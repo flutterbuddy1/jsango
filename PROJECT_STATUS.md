@@ -123,6 +123,7 @@ None.
 ## Benchmark Results (Summary)
 
 ### Database Abstraction Benchmarks
+
 - Connection Release: **3,291,735 ops/sec** (0.0003 ms mean)
 - Connection Acquisition: **3,105,512 ops/sec** (0.0003 ms mean)
 - Dialect Placeholder Normalization: **2,677,916 ops/sec** (0.0004 ms mean)
@@ -134,17 +135,20 @@ None.
 - Credential Masking in Strings: **681,171 ops/sec** (0.0015 ms mean)
 
 ### Middleware & Request Lifecycle Benchmarks
+
 - Scoped Container Creation & Disposal: **3,119,349 ops/sec**
 - Response Normalization: **2,099,360 ops/sec**
 - Empty Middleware Pipeline: **1,819,353 ops/sec**
 - Full Application Lifecycle: **461,608 ops/sec**
 
 ### Router Benchmarks
+
 - Static Route Matching: **3,212,192 ops/sec**
 - Parametric Route Matching: **2,525,487 ops/sec**
 - Reverse URL Generation: **3,892,104 ops/sec**
 
 ### HTTP Core Benchmarks
+
 - Raw Response Creation: **10,990,926 ops/sec**
 - Header Lookup: **7,160,766 ops/sec**
 - Request Context Creation: **6,915,571 ops/sec**
