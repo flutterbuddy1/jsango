@@ -1,0 +1,25 @@
+{
+  "name": "@django-js/validation",
+  "version": "0.0.1",
+  "description": "Schema and request validation for django-js",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@django-js/core": "workspace:*"
+  },
+  "files": [
+    "dist"
+  ]
+}

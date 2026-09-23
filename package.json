@@ -1,0 +1,31 @@
+{
+  "name": "django-js-monorepo",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Production-grade, batteries-included TypeScript backend framework for modern JavaScript runtimes",
+  "packageManager": "pnpm@12.5.1",
+  "type": "module",
+  "scripts": {
+    "build": "turbo run build",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "bench": "vitest bench --run",
+    "lint": "eslint .",
+    "format": "prettier --write \"**/*.{ts,js,json,md,yaml,yml}\"",
+    "format:check": "prettier --check \"**/*.{ts,js,json,md,yaml,yml}\"",
+    "clean": "turbo run clean"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.21.0",
+    "@types/node": "^26.6.2",
+    "eslint": "^9.21.0",
+    "prettier": "^3.5.3",
+    "turbo": "^2.4.4",
+    "typescript": "^5.8.2",
+    "typescript-eslint": "^8.25.0",
+    "vitest": "^3.0.7"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

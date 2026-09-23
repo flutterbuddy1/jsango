@@ -1,0 +1,18 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/runtime" },
+    { "path": "./packages/core" },
+    { "path": "./packages/container" },
+    { "path": "./packages/config" },
+    { "path": "./packages/http" },
+    { "path": "./packages/router" },
+    { "path": "./packages/middleware" },
+    { "path": "./packages/database" },
+    { "path": "./packages/orm" },
+    { "path": "./packages/validation" },
+    { "path": "./packages/cli" },
+    { "path": "./packages/testing" },
+    { "path": "./examples/basic-app" }
+  ]
+}

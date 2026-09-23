@@ -1,0 +1,26 @@
+{
+  "name": "@django-js/database",
+  "version": "0.0.1",
+  "description": "Database abstraction, connections, transactions and drivers for django-js",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@django-js/config": "workspace:*",
+    "@django-js/core": "workspace:*"
+  },
+  "files": [
+    "dist"
+  ]
+}

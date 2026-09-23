@@ -1,0 +1,19 @@
+{
+  "name": "example-basic-app",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "dev": "node dist/index.js"
+  },
+  "dependencies": {
+    "@django-js/core": "workspace:*",
+    "@django-js/container": "workspace:*",
+    "@django-js/http": "workspace:*",
+    "@django-js/router": "workspace:*",
+    "@django-js/middleware": "workspace:*",
+    "@django-js/database": "workspace:*"
+  }
+}
