@@ -28,7 +28,7 @@ const ALLOWED_FILES = new Set([
   'scripts/check-branding.mjs',
 ]);
 
-Forbidden patterns associated with the legacy project identity
+// Forbidden patterns associated with the legacy project identity
   const FORBIDDEN_PATTERNS = [
   /@django-js\b/gi,
   /django-js\b/gi,
