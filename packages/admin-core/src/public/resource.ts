@@ -94,8 +94,14 @@ export class AdminResource {
     return this.fields.get(name);
   }
 
+  private _cachedSchema?: AdminResourceSchema | undefined;
+
   public getSchema(): AdminResourceSchema {
-    return {
+    if (this._cachedSchema) {
+      return this._cachedSchema;
+    }
+
+    this._cachedSchema = {
       id: this.id,
       label: this.label,
       pluralLabel: this.pluralLabel,
@@ -118,5 +124,7 @@ export class AdminResource {
       bulkActions: [...this.bulkActions.values()].map((ba) => ba.toJSON()),
       canSoftDelete: this.canSoftDelete,
     };
+
+    return this._cachedSchema;
   }
 }

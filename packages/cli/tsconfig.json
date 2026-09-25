@@ -18,7 +18,9 @@
     { "path": "../cache" },
     { "path": "../queue" },
     { "path": "../events" },
-    { "path": "../websocket" }
+    { "path": "../websocket" },
+    { "path": "../openapi" },
+    { "path": "../observability" }
   ],
   "include": ["src/**/*"],
   "exclude": ["**/*.test.ts", "**/*.spec.ts"]

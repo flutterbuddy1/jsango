@@ -30,6 +30,11 @@ import { QueueRetryCommand } from '../commands/queue-retry.js';
 import { QueueClearCommand } from '../commands/queue-clear.js';
 import { EventsListCommand } from '../commands/events-list.js';
 import { WsStatusCommand } from '../commands/ws-status.js';
+import { OpenApiGenerateCommand } from '../commands/openapi-generate.js';
+import { OpenApiValidateCommand } from '../commands/openapi-validate.js';
+import { HealthCommand } from '../commands/health.js';
+import { MetricsCommand } from '../commands/metrics.js';
+import { DiagnosticsCommand } from '../commands/diagnostics.js';
 
 export interface CliApplicationOptions {
   readonly registry?: CommandRegistry | undefined;
@@ -79,6 +84,13 @@ export class CliApplication {
     // Register events & websocket commands
     registry.register(new EventsListCommand());
     registry.register(new WsStatusCommand());
+
+    // Register OpenAPI & Observability commands
+    registry.register(new OpenApiGenerateCommand());
+    registry.register(new OpenApiValidateCommand());
+    registry.register(new HealthCommand());
+    registry.register(new MetricsCommand());
+    registry.register(new DiagnosticsCommand());
 
     return app;
   }

@@ -13,7 +13,7 @@ describe('CLI Process Integration Tests', () => {
       encoding: 'utf8',
     });
     expect(res.status).toBe(0);
-    expect(res.stdout).toContain('django-js v0.0.1');
+    expect(res.stdout).toContain('django-js v1.0.0');
     expect(res.stderr).toBe('');
   });
 

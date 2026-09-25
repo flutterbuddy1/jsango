@@ -373,6 +373,12 @@ importers:
       '@django-js/migrations':
         specifier: workspace:*
         version: link:../migrations
+      '@django-js/observability':
+        specifier: workspace:*
+        version: link:../observability
+      '@django-js/openapi':
+        specifier: workspace:*
+        version: link:../openapi
       '@django-js/orm':
         specifier: workspace:*
         version: link:../orm
@@ -460,6 +466,33 @@ importers:
       '@django-js/orm':
         specifier: workspace:*
         version: link:../orm
+
+  packages/observability:
+    dependencies:
+      '@django-js/core':
+        specifier: workspace:*
+        version: link:../core
+      '@django-js/http':
+        specifier: workspace:*
+        version: link:../http
+      '@django-js/router':
+        specifier: workspace:*
+        version: link:../router
+
+  packages/openapi:
+    dependencies:
+      '@django-js/core':
+        specifier: workspace:*
+        version: link:../core
+      '@django-js/http':
+        specifier: workspace:*
+        version: link:../http
+      '@django-js/router':
+        specifier: workspace:*
+        version: link:../router
+      '@django-js/validation':
+        specifier: workspace:*
+        version: link:../validation
 
   packages/orm:
     dependencies:

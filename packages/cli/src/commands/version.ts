@@ -2,7 +2,7 @@ import { BaseCommand } from '../public/command.js';
 import type { CommandContext } from '../public/context.js';
 import { ExitCode } from '../public/types.js';
 
-export const FRAMEWORK_VERSION = '0.0.1';
+export const FRAMEWORK_VERSION = '1.0.0';
 
 export class VersionCommand extends BaseCommand {
   public readonly name = 'version';

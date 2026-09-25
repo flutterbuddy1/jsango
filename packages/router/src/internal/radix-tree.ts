@@ -10,8 +10,11 @@ import {
 } from '../public/errors.js';
 import { normalizePath, splitSegments, safeDecodeParam } from './path-utils.js';
 
+const EMPTY_PARAMS: Readonly<Record<string, string>> = Object.freeze({});
+
 export class RadixTree {
   private readonly root = new RadixNode();
+  private readonly staticRouteMap = new Map<string, Map<HttpMethod, Route>>();
   private _isLocked = false;
 
   public get isLocked(): boolean {
@@ -28,6 +31,19 @@ export class RadixTree {
     }
 
     const path = normalizePath(route.path);
+
+    // Track pure static routes for O(1) matching fast path
+    if (!path.includes(':') && !path.includes('*') && !path.includes('?')) {
+      let methodMap = this.staticRouteMap.get(path);
+      if (!methodMap) {
+        methodMap = new Map<HttpMethod, Route>();
+        this.staticRouteMap.set(path, methodMap);
+      }
+      if (methodMap.has(route.method)) {
+        throw new DuplicateRouteError(route.method, route.path);
+      }
+      methodMap.set(route.method, route);
+    }
 
     // Check for optional parameter at the end (e.g. /users/:id? or /users/:id<number>? or /:id?)
     if (path.includes('?')) {
@@ -157,6 +173,47 @@ export class RadixTree {
 
   public search(method: HttpMethod, rawPath: string): RouteMatchResult {
     const pathname = normalizePath(rawPath);
+
+    // O(1) Fast path for pure static routes
+    const staticRoutes = this.staticRouteMap.get(pathname);
+    if (staticRoutes) {
+      const exactRoute = staticRoutes.get(method);
+      if (exactRoute) {
+        return {
+          type: 'MATCHED',
+          route: exactRoute,
+          handler: exactRoute.handler,
+          params: EMPTY_PARAMS,
+          metadata: exactRoute.metadata,
+        };
+      }
+
+      if (method === 'HEAD') {
+        const getRoute = staticRoutes.get('GET');
+        if (getRoute) {
+          return {
+            type: 'MATCHED',
+            route: getRoute,
+            handler: getRoute.handler,
+            params: EMPTY_PARAMS,
+            metadata: getRoute.metadata,
+            isHeadFallback: true,
+          };
+        }
+      }
+
+      const allowed = new Set<HttpMethod>(staticRoutes.keys());
+      if (staticRoutes.has('GET')) {
+        allowed.add('HEAD');
+      }
+
+      return {
+        type: 'METHOD_NOT_ALLOWED',
+        allowedMethods: Object.freeze(Array.from(allowed)),
+        pathname,
+      };
+    }
+
     const segments = splitSegments(pathname);
 
     interface MatchCandidate {

@@ -1,6 +1,6 @@
 {
   "name": "@django-js/events",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Typed event bus, handlers, middleware, and queue integration for django-js",
   "type": "module",
   "main": "./dist/index.js",
@@ -25,5 +25,14 @@
   },
   "files": [
     "dist"
-  ]
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/django-js/django-js.git",
+    "directory": "packages/events"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

@@ -38,7 +38,7 @@ describe('Built-in Commands', () => {
     it('should output version in text mode', async () => {
       const code = await app.run(['version'], output);
       expect(code).toBe(ExitCode.SUCCESS);
-      expect(stdoutData).toContain('django-js v0.0.1');
+      expect(stdoutData).toContain('django-js v1.0.0');
     });
 
     it('should output version in json mode', async () => {
@@ -46,7 +46,7 @@ describe('Built-in Commands', () => {
       expect(code).toBe(ExitCode.SUCCESS);
       const parsed = JSON.parse(stdoutData.trim()) as Record<string, unknown>;
       expect(parsed['framework']).toBe('django-js');
-      expect(parsed['version']).toBe('0.0.1');
+      expect(parsed['version']).toBe('1.0.0');
     });
   });
 

@@ -77,7 +77,13 @@ export class Container implements IContainer {
   public resolve<T>(id: ServiceIdentifier<T>): T {
     this.assertNotDisposed();
 
-    // Check circular dependencies
+    // 1. Fast path: already instantiated locally (scoped or root singleton)
+    const existing = this.instances.get(id as ServiceIdentifier<unknown>);
+    if (existing !== undefined) {
+      return existing as T;
+    }
+
+    // 2. Check circular dependencies
     if (this.resolvingStack.has(id as ServiceIdentifier<unknown>)) {
       const chain = Array.from(this.resolvingStack).map((s) =>
         typeof s === 'function' ? s.name : String(s)
@@ -87,35 +93,34 @@ export class Container implements IContainer {
       throw new CircularDependencyError(chain);
     }
 
-    // 1. Look for binding locally or in parent
-    const binding = this.findBinding(id as ServiceIdentifier<unknown>);
+    // 3. Delegate singleton resolution to parent when in child container
+    if (this.parent) {
+      const binding = this.findBinding(id as ServiceIdentifier<unknown>);
+      if (!binding) {
+        throw new ServiceNotFoundError(id as ServiceIdentifier<unknown>);
+      }
+      if (binding.lifetime === 'singleton') {
+        return this.parent.resolve(id);
+      }
+      if (binding.lifetime === 'scoped') {
+        const instance = this.createInstance(id as ServiceIdentifier<unknown>, binding.factory);
+        this.instances.set(id as ServiceIdentifier<unknown>, instance);
+        return instance as T;
+      }
+      return this.createInstance(id as ServiceIdentifier<unknown>, binding.factory) as T;
+    }
+
+    const binding = this.bindings.get(id as ServiceIdentifier<unknown>);
     if (!binding) {
       throw new ServiceNotFoundError(id as ServiceIdentifier<unknown>);
     }
 
-    // 2. Resolve based on lifetime
-    if (binding.lifetime === 'singleton') {
-      if (this.parent) {
-        return this.parent.resolve(id);
-      }
-      if (this.instances.has(id as ServiceIdentifier<unknown>)) {
-        return this.instances.get(id as ServiceIdentifier<unknown>) as T;
-      }
+    if (binding.lifetime === 'singleton' || binding.lifetime === 'scoped') {
       const instance = this.createInstance(id as ServiceIdentifier<unknown>, binding.factory);
       this.instances.set(id as ServiceIdentifier<unknown>, instance);
       return instance as T;
     }
 
-    if (binding.lifetime === 'scoped') {
-      if (this.instances.has(id as ServiceIdentifier<unknown>)) {
-        return this.instances.get(id as ServiceIdentifier<unknown>) as T;
-      }
-      const instance = this.createInstance(id as ServiceIdentifier<unknown>, binding.factory);
-      this.instances.set(id as ServiceIdentifier<unknown>, instance);
-      return instance as T;
-    }
-
-    // Transient lifetime
     return this.createInstance(id as ServiceIdentifier<unknown>, binding.factory) as T;
   }
 

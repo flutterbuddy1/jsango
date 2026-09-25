@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**PHASE 13 — ADMIN PLATFORM FOUNDATION** (Completed)
+**PHASE 17 — FINAL 1.0 RELEASE + PUBLIC API FREEZE** (Completed — v1.0.0 Stable GA)
 
 ---
 
@@ -183,22 +183,35 @@
   - **`@django-js/admin-audit`**: Non-blocking `AdminAuditLogger` producing immutable audit entries, `diffChanges` utility with automatic sensitive field redaction (`/password|secret|token|key|hash|salt|credential/i`), and deterministic `InMemoryAuditStore`.
   - **`@django-js/admin-media`**: `AdminMediaManager` with strict validation (`maxSizeBytes`, `allowedMimeTypes`, `allowedExtensions`) before storage I/O, backed by `IMediaStorage` and `InMemoryMediaStorage`.
   - **`@django-js/admin-server`**: Decoupled `IAdminQueryAdapter` bridging ORM and admin server, production-grade `AdminCrudService` orchestrating business logic and audit events, and full REST API mounted on `IRouter` (resource listing, schema, CRUD endpoints, soft-delete restore, row actions, bulk actions, and audit log query).
-- [x] **Documentation & ADRs (Phases 0 - 13)**:
-  - Architecture guides across core, http, router, middleware, database, orm, migrations, cli, auth, cache, queue, events, websocket, and admin packages.
-  - ADR-001 through ADR-026.
-- [x] **Benchmarks (Phases 2 - 12)**:
-  - HTTP microbenchmarks (`benchmarks/http/http.bench.ts`).
-  - Router microbenchmarks (`benchmarks/router/router.bench.ts`).
-  - Middleware microbenchmarks (`benchmarks/middleware/middleware.bench.ts`).
-  - Database microbenchmarks (`benchmarks/database/database.bench.ts`).
-  - ORM microbenchmarks (`benchmarks/orm/orm.bench.ts`).
-  - Migrations microbenchmarks (`benchmarks/migrations/migrations.bench.ts`).
-  - CLI microbenchmarks (`benchmarks/cli/cli.bench.ts`).
-  - Auth & Authorization microbenchmarks (`benchmarks/auth/auth.bench.ts`).
-  - Cache microbenchmarks (`benchmarks/cache/cache.bench.ts`).
-  - Queue microbenchmarks (`benchmarks/queue/queue.bench.ts`).
-  - Events microbenchmarks (`benchmarks/events/events.bench.ts`).
-  - WebSocket microbenchmarks (`benchmarks/websocket/websocket.bench.ts`).
+- [x] **OpenAPI & API Documentation (`@django-js/openapi`) (Phase 14)**:
+  - **`OpenApiGenerator`**: Deterministic, zero-reflection OpenAPI 3.1.0 document generation from router metadata, validation schemas, ORM metadata, and Admin resources.
+  - **`OpenApiRegistry`**: Central registration for components, operations, schemas, parameters, responses, and security schemes with strict collision detection (`DuplicateOperationIdError`, `ConflictingSchemaError`).
+  - **Adapters**: `ValidationAdapter` (mapping validation rules to JSON Schema/OpenAPI), `OrmAdapter` (mapping `ModelMetadata` fields), and `AdminAdapter` (isolated Admin API docs).
+  - **`OpenApiValidator`**: Built-in spec integrity checker validating paths, parameters, responses, and `$ref` component schemas.
+  - **`OpenApiFormatter`**: Zero-dependency JSON and YAML serializer.
+  - **HTTP Endpoint**: `createOpenApiHandler` serving `/openapi.json` with access control.
+  - **CLI**: `openapi:generate [--output] [--format]` and `openapi:validate [--file]`.
+- [x] **Observability Foundation (`@django-js/observability`) (Phase 14)**:
+  - **`StructuredLogger`**: Production structured logging with scoped context chaining (`withContext`), control-character sanitization to prevent log injection, and log level filtering.
+  - **`MetricRegistry`**: Bounded metrics engine supporting monotonic `Counter`, stateful `Gauge`, and distribution `Histogram` with high-cardinality protection (capped label permutations).
+  - **`Tracer` & `Span`**: Nanosecond-accurate tracing using `performance.now()` monotonic clock with sampling strategies and zero-allocation `NoopSpan`.
+  - **`CorrelationManager`**: Request ID sanitization/generation and W3C `traceparent` parsing & propagation across async boundaries.
+  - **`HealthRegistry`**: Independent `liveness` and `readiness` health checks with `createHealthHandler` for `/health`, `/health/live`, `/health/ready`.
+  - **`DiagnosticsProvider`**: Safe runtime and subsystem inspection with `createDiagnosticsHandler`.
+  - **`Redactor`**: Recursive PII masking across sensitive keys and headers with zero input mutation.
+  - **Framework Instrumentation**: HTTP middleware and hooks for metrics, logging, and correlation propagation.
+  - **CLI**: `health`, `metrics [--filter]`, and `diagnostics`.
+- [x] **Performance Optimization & Production Hardening (Phase 15)**:
+  - **Radix Tree Static Route Fast Path**: $O(1)$ static route lookup table and `EMPTY_PARAMS` singleton boosting static matching from 3.2M to **7.7M+ ops/sec** (2.4x speedup).
+  - **DI Container Instance Caching**: Immediate instance cache lookup in `Container.resolve()` accelerating scoped resolution from 17.6M to **24.1M+ ops/sec** and singleton resolution to **21.5M+ ops/sec**.
+  - **Admin Schema Caching**: Cached `AdminResourceSchema` structure on `AdminResource._cachedSchema` accelerating schema generation from 6.6M to **24.6M+ ops/sec** (3.7x speedup).
+  - **Tracing NoopSpan Optimization**: Singleton `NoopSpan.INSTANCE` elimination of object allocations when tracing is disabled or unsampled.
+  - **Memory Leak & Hardening Tests**: Regression suite in `tests/performance/leak.test.ts` verifying memory bounds over 5,000 requests, 5,000 DI scopes, 1,000 WebSocket disconnects, and cache prunes.
+  - **Concurrency Load Testing**: Concurrency suite in `tests/performance/concurrency.test.ts` verifying 1,000 concurrent HTTP requests, 1,000 event dispatches, and pooled database operations.
+  - **Comprehensive Benchmark Suites**: Full coverage across all 15 framework subsystems (HTTP, Router, Middleware, Database, ORM, Migrations, Validation, CLI, Auth, Cache, Queue, Events, WebSockets, Admin, OpenAPI, Observability, Container, Startup).
+- [x] **Documentation & ADRs (Phases 0 - 15)**:
+  - Architecture guides and performance report (`docs/performance/PHASE-15-REPORT.md`).
+  - ADR-001 through ADR-038.
 
 ---
 

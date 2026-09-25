@@ -1,6 +1,6 @@
 {
   "name": "@django-js/config",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Configuration loading, validation and environment abstraction for django-js",
   "type": "module",
   "main": "./dist/index.js",
@@ -22,5 +22,14 @@
   },
   "files": [
     "dist"
-  ]
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/django-js/django-js.git",
+    "directory": "packages/config"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

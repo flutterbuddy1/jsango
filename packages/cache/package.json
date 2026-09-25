@@ -1,6 +1,6 @@
 {
   "name": "@django-js/cache",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Cache abstraction, drivers, stampede defense, and serialization for django-js",
   "type": "module",
   "main": "./dist/index.js",
@@ -28,5 +28,14 @@
   },
   "files": [
     "dist"
-  ]
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/django-js/django-js.git",
+    "directory": "packages/cache"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

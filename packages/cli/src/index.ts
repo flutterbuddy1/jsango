@@ -21,3 +21,8 @@ export { QueueRetryCommand } from './commands/queue-retry.js';
 export { QueueClearCommand } from './commands/queue-clear.js';
 export { EventsListCommand } from './commands/events-list.js';
 export { WsStatusCommand } from './commands/ws-status.js';
+export { OpenApiGenerateCommand } from './commands/openapi-generate.js';
+export { OpenApiValidateCommand } from './commands/openapi-validate.js';
+export { HealthCommand } from './commands/health.js';
+export { MetricsCommand } from './commands/metrics.js';
+export { DiagnosticsCommand } from './commands/diagnostics.js';

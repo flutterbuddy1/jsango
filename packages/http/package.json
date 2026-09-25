@@ -1,6 +1,6 @@
 {
   "name": "@django-js/http",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "HTTP request and response abstractions for django-js",
   "type": "module",
   "main": "./dist/index.js",
@@ -22,5 +22,14 @@
   },
   "files": [
     "dist"
-  ]
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/django-js/django-js.git",
+    "directory": "packages/http"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

@@ -24,6 +24,8 @@
     { "path": "./packages/admin-audit" },
     { "path": "./packages/admin-media" },
     { "path": "./packages/admin-server" },
+    { "path": "./packages/openapi" },
+    { "path": "./packages/observability" },
     { "path": "./examples/basic-app" },
     { "path": "./examples/auth-demo" }
   ]

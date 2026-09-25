@@ -1,6 +1,6 @@
 {
   "name": "@django-js/queue",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Background job queue, workers, retry policies, and drivers for django-js",
   "type": "module",
   "main": "./dist/index.js",
@@ -29,5 +29,14 @@
   },
   "files": [
     "dist"
-  ]
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/django-js/django-js.git",
+    "directory": "packages/queue"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

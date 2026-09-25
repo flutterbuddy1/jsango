@@ -87,7 +87,7 @@ export class MemoryDriverConnection implements IDriverConnection {
   }
 
   private executeSql<T>(sql: string, params: readonly unknown[]): DatabaseResult<T> {
-    const cleanSql = sql.replace(/\s+/g, ' ').trim();
+    const cleanSql = sql.replace(/;\s*$/, '').replace(/\s+/g, ' ').trim();
     const upper = cleanSql.toUpperCase();
 
     // 1. Transaction statements
