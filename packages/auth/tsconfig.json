@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src"
+  },
+  "references": [
+    { "path": "../runtime" },
+    { "path": "../core" },
+    { "path": "../container" },
+    { "path": "../config" },
+    { "path": "../http" },
+    { "path": "../middleware" }
+  ],
+  "include": ["src/**/*"],
+  "exclude": ["**/*.test.ts", "**/*.spec.ts"]
+}

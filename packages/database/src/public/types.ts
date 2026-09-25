@@ -34,6 +34,7 @@ export interface DatabaseCapabilities {
   readonly supportsReturning: boolean;
   readonly supportsCancellation: boolean;
   readonly placeholderType: 'dollar' | 'question' | 'named';
+  readonly supportsTransactionalDDL?: boolean | undefined;
   readonly supportedIsolationLevels?: readonly IsolationLevel[] | undefined;
 }
 

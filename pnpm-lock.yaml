@@ -191,8 +191,32 @@ importers:
         specifier: ^3.0.7
         version: 3.2.7(@types/node@26.6.2)(supports-color@7.2.0)
 
+  examples/auth-demo:
+    dependencies:
+      '@django-js/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
+      '@django-js/container':
+        specifier: workspace:*
+        version: link:../../packages/container
+      '@django-js/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@django-js/http':
+        specifier: workspace:*
+        version: link:../../packages/http
+      '@django-js/middleware':
+        specifier: workspace:*
+        version: link:../../packages/middleware
+      '@django-js/router':
+        specifier: workspace:*
+        version: link:../../packages/router
+
   examples/basic-app:
     dependencies:
+      '@django-js/cli':
+        specifier: workspace:*
+        version: link:../../packages/cli
       '@django-js/container':
         specifier: workspace:*
         version: link:../../packages/container
@@ -208,15 +232,162 @@ importers:
       '@django-js/middleware':
         specifier: workspace:*
         version: link:../../packages/middleware
+      '@django-js/migrations':
+        specifier: workspace:*
+        version: link:../../packages/migrations
+      '@django-js/orm':
+        specifier: workspace:*
+        version: link:../../packages/orm
       '@django-js/router':
         specifier: workspace:*
         version: link:../../packages/router
 
-  packages/cli:
+  packages/admin-audit:
+    dependencies:
+      '@django-js/admin-core':
+        specifier: workspace:*
+        version: link:../admin-core
+      '@django-js/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/admin-auth:
+    dependencies:
+      '@django-js/admin-core':
+        specifier: workspace:*
+        version: link:../admin-core
+      '@django-js/auth':
+        specifier: workspace:*
+        version: link:../auth
+      '@django-js/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/admin-core:
     dependencies:
       '@django-js/core':
         specifier: workspace:*
         version: link:../core
+      '@django-js/orm':
+        specifier: workspace:*
+        version: link:../orm
+      '@django-js/validation':
+        specifier: workspace:*
+        version: link:../validation
+
+  packages/admin-media:
+    dependencies:
+      '@django-js/admin-core':
+        specifier: workspace:*
+        version: link:../admin-core
+      '@django-js/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/admin-server:
+    dependencies:
+      '@django-js/admin-audit':
+        specifier: workspace:*
+        version: link:../admin-audit
+      '@django-js/admin-auth':
+        specifier: workspace:*
+        version: link:../admin-auth
+      '@django-js/admin-core':
+        specifier: workspace:*
+        version: link:../admin-core
+      '@django-js/auth':
+        specifier: workspace:*
+        version: link:../auth
+      '@django-js/core':
+        specifier: workspace:*
+        version: link:../core
+      '@django-js/http':
+        specifier: workspace:*
+        version: link:../http
+      '@django-js/router':
+        specifier: workspace:*
+        version: link:../router
+
+  packages/auth:
+    dependencies:
+      '@django-js/config':
+        specifier: workspace:*
+        version: link:../config
+      '@django-js/container':
+        specifier: workspace:*
+        version: link:../container
+      '@django-js/core':
+        specifier: workspace:*
+        version: link:../core
+      '@django-js/http':
+        specifier: workspace:*
+        version: link:../http
+      '@django-js/middleware':
+        specifier: workspace:*
+        version: link:../middleware
+      '@django-js/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+
+  packages/cache:
+    dependencies:
+      '@django-js/config':
+        specifier: workspace:*
+        version: link:../config
+      '@django-js/container':
+        specifier: workspace:*
+        version: link:../container
+      '@django-js/core':
+        specifier: workspace:*
+        version: link:../core
+      '@django-js/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+
+  packages/cli:
+    dependencies:
+      '@django-js/cache':
+        specifier: workspace:*
+        version: link:../cache
+      '@django-js/config':
+        specifier: workspace:*
+        version: link:../config
+      '@django-js/container':
+        specifier: workspace:*
+        version: link:../container
+      '@django-js/core':
+        specifier: workspace:*
+        version: link:../core
+      '@django-js/database':
+        specifier: workspace:*
+        version: link:../database
+      '@django-js/events':
+        specifier: workspace:*
+        version: link:../events
+      '@django-js/http':
+        specifier: workspace:*
+        version: link:../http
+      '@django-js/middleware':
+        specifier: workspace:*
+        version: link:../middleware
+      '@django-js/migrations':
+        specifier: workspace:*
+        version: link:../migrations
+      '@django-js/orm':
+        specifier: workspace:*
+        version: link:../orm
+      '@django-js/queue':
+        specifier: workspace:*
+        version: link:../queue
+      '@django-js/router':
+        specifier: workspace:*
+        version: link:../router
+      '@django-js/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      '@django-js/websocket':
+        specifier: workspace:*
+        version: link:../websocket
 
   packages/config:
     dependencies:
@@ -248,6 +419,12 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/events:
+    dependencies:
+      '@django-js/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/http:
     dependencies:
       '@django-js/container':
@@ -272,6 +449,18 @@ importers:
         specifier: workspace:*
         version: link:../router
 
+  packages/migrations:
+    dependencies:
+      '@django-js/core':
+        specifier: workspace:*
+        version: link:../core
+      '@django-js/database':
+        specifier: workspace:*
+        version: link:../database
+      '@django-js/orm':
+        specifier: workspace:*
+        version: link:../orm
+
   packages/orm:
     dependencies:
       '@django-js/core':
@@ -280,6 +469,24 @@ importers:
       '@django-js/database':
         specifier: workspace:*
         version: link:../database
+
+  packages/queue:
+    dependencies:
+      '@django-js/config':
+        specifier: workspace:*
+        version: link:../config
+      '@django-js/container':
+        specifier: workspace:*
+        version: link:../container
+      '@django-js/core':
+        specifier: workspace:*
+        version: link:../core
+      '@django-js/database':
+        specifier: workspace:*
+        version: link:../database
+      '@django-js/runtime':
+        specifier: workspace:*
+        version: link:../runtime
 
   packages/router:
     dependencies:
@@ -306,6 +513,22 @@ importers:
       '@django-js/core':
         specifier: workspace:*
         version: link:../core
+
+  packages/websocket:
+    dependencies:
+      '@django-js/core':
+        specifier: workspace:*
+        version: link:../core
+      '@django-js/http':
+        specifier: workspace:*
+        version: link:../http
+      ws:
+        specifier: ^8.18.0
+        version: 8.21.3
+    devDependencies:
+      '@types/ws':
+        specifier: ^8.5.14
+        version: 8.18.1
 
 packages:
 
@@ -715,6 +938,9 @@ packages:
 
   '@types/node@26.6.2':
     resolution: {integrity: sha512-X1P21scMv4zGKLYqjdGjaKa7COa0RKVYYZZN/NfvLQ1JegxFhdhpZG/Lyn8AXx6CDUavKAd11v6BvfpkDByK8g==}
+
+  '@types/ws@8.18.1':
+    resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
 
   '@typescript-eslint/eslint-plugin@8.70.1':
     resolution: {integrity: sha512-nDNrUQ/4ruSNYbu749TRY7cfrzPtoLHEXSNBI8aaNY32LlZCajixqRf3FqcKC4p5Cam4VOHYx/t+i5+nKXvrqA==}
@@ -1331,6 +1557,18 @@ packages:
     resolution: {integrity: sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==}
     engines: {node: '>=0.10.0'}
 
+  ws@8.21.3:
+    resolution: {integrity: sha512-201TZ/kPWxoPr/OKWjquZR1SWKXcvxdH+e1xrx89b3YbmzLMFCLfnaG1HFIgWzJOEWZ7MvpK++odZufgYR50Rw==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
@@ -1589,6 +1827,10 @@ snapshots:
   '@types/node@26.6.2':
     dependencies:
       undici-types: 8.9.0
+
+  '@types/ws@8.18.1':
+    dependencies:
+      '@types/node': 26.6.2
 
   '@typescript-eslint/eslint-plugin@8.70.1(@typescript-eslint/parser@8.70.1(eslint@9.39.5(supports-color@7.2.0))(supports-color@7.2.0)(typescript@5.9.3))(eslint@9.39.5(supports-color@7.2.0))(supports-color@7.2.0)(typescript@5.9.3)':
     dependencies:
@@ -2250,5 +2492,7 @@ snapshots:
       stackback: 0.0.2
 
   word-wrap@1.2.5: {}
+
+  ws@8.21.3: {}
 
   yocto-queue@0.1.0: {}

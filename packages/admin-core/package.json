@@ -1,0 +1,31 @@
+{
+  "name": "@django-js/admin-core",
+  "version": "0.0.1",
+  "description": "Core Admin registry, resource definitions, fields, forms, tables, and auto-generation for django-js",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/public/testing/index.d.ts",
+      "import": "./dist/public/testing/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@django-js/core": "workspace:*",
+    "@django-js/orm": "workspace:*",
+    "@django-js/validation": "workspace:*"
+  },
+  "files": [
+    "dist"
+  ]
+}

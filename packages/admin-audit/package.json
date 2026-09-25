@@ -1,0 +1,26 @@
+{
+  "name": "@django-js/admin-audit",
+  "version": "0.0.1",
+  "description": "Structured audit log for django-js Admin — records every create, update, delete, and action",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@django-js/core": "workspace:*",
+    "@django-js/admin-core": "workspace:*"
+  },
+  "files": [
+    "dist"
+  ]
+}

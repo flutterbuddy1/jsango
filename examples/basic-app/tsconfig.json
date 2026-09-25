@@ -10,7 +10,9 @@
     { "path": "../../packages/http" },
     { "path": "../../packages/router" },
     { "path": "../../packages/middleware" },
-    { "path": "../../packages/database" }
+    { "path": "../../packages/database" },
+    { "path": "../../packages/orm" },
+    { "path": "../../packages/cli" }
   ],
   "include": ["src/**/*"]
 }

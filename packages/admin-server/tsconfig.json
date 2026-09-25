@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src"
+  },
+  "references": [
+    { "path": "../core" },
+    { "path": "../http" },
+    { "path": "../router" },
+    { "path": "../auth" },
+    { "path": "../admin-core" },
+    { "path": "../admin-auth" },
+    { "path": "../admin-audit" }
+  ],
+  "include": ["src/**/*"],
+  "exclude": ["**/*.test.ts", "**/*.spec.ts"]
+}

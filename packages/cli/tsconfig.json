@@ -4,7 +4,22 @@
     "outDir": "./dist",
     "rootDir": "./src"
   },
-  "references": [{ "path": "../core" }],
+  "references": [
+    { "path": "../runtime" },
+    { "path": "../core" },
+    { "path": "../container" },
+    { "path": "../config" },
+    { "path": "../http" },
+    { "path": "../router" },
+    { "path": "../middleware" },
+    { "path": "../database" },
+    { "path": "../orm" },
+    { "path": "../migrations" },
+    { "path": "../cache" },
+    { "path": "../queue" },
+    { "path": "../events" },
+    { "path": "../websocket" }
+  ],
   "include": ["src/**/*"],
   "exclude": ["**/*.test.ts", "**/*.spec.ts"]
 }

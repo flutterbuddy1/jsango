@@ -1,0 +1,31 @@
+{
+  "name": "@django-js/admin-server",
+  "version": "0.0.1",
+  "description": "Admin HTTP API server — CRUD service layer, REST endpoints, and framework integration for django-js Admin",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@django-js/core": "workspace:*",
+    "@django-js/http": "workspace:*",
+    "@django-js/router": "workspace:*",
+    "@django-js/auth": "workspace:*",
+    "@django-js/admin-core": "workspace:*",
+    "@django-js/admin-auth": "workspace:*",
+    "@django-js/admin-audit": "workspace:*"
+  },
+  "files": [
+    "dist"
+  ]
+}

@@ -5,6 +5,10 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "django-js": "./dist/bin/django-js.js",
+    "nexora": "./dist/bin/django-js.js"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -17,7 +21,20 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@django-js/core": "workspace:*"
+    "@django-js/runtime": "workspace:*",
+    "@django-js/core": "workspace:*",
+    "@django-js/container": "workspace:*",
+    "@django-js/config": "workspace:*",
+    "@django-js/http": "workspace:*",
+    "@django-js/router": "workspace:*",
+    "@django-js/middleware": "workspace:*",
+    "@django-js/database": "workspace:*",
+    "@django-js/orm": "workspace:*",
+    "@django-js/migrations": "workspace:*",
+    "@django-js/cache": "workspace:*",
+    "@django-js/queue": "workspace:*",
+    "@django-js/events": "workspace:*",
+    "@django-js/websocket": "workspace:*"
   },
   "files": [
     "dist"

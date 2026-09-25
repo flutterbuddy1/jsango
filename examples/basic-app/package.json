@@ -14,6 +14,9 @@
     "@django-js/http": "workspace:*",
     "@django-js/router": "workspace:*",
     "@django-js/middleware": "workspace:*",
-    "@django-js/database": "workspace:*"
+    "@django-js/database": "workspace:*",
+    "@django-js/orm": "workspace:*",
+    "@django-js/migrations": "workspace:*",
+    "@django-js/cli": "workspace:*"
   }
 }

@@ -1,0 +1,33 @@
+{
+  "name": "@django-js/queue",
+  "version": "0.0.1",
+  "description": "Background job queue, workers, retry policies, and drivers for django-js",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/public/testing/index.d.ts",
+      "import": "./dist/public/testing/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@django-js/runtime": "workspace:*",
+    "@django-js/core": "workspace:*",
+    "@django-js/container": "workspace:*",
+    "@django-js/config": "workspace:*",
+    "@django-js/database": "workspace:*"
+  },
+  "files": [
+    "dist"
+  ]
+}

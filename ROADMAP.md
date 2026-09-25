@@ -80,23 +80,41 @@ This roadmap outlines the phased development plan for the **django-js** framewor
 
 ---
 
-### [ ] PHASE 6 — ORM
+### [x] PHASE 6 — ORM / Object-Relational Mapping Layer
 
-- Active record / data mapper hybrid model definitions.
-- Fluent, type-safe SQL query builder.
-- Relationship definitions: one-to-one, one-to-many, many-to-many with lazy and eager loading.
+- Rich, immutable, introspectable Model Metadata system (`ModelMetadata`, `FieldMetadata`, `RelationMetadata`, `IndexMetadata`) serving future Admin, Migrations, Validation, and OpenAPI.
+- Declarative field factories (`fields.string`, `fields.integer`, `fields.boolean`, `fields.dateTime`, `fields.json`, `fields.uuid`, etc.).
+- Declarative relationship definitions (`relations.belongsTo`, `relations.hasOne`, `relations.hasMany`, `relations.manyToMany`) with target/through resolvers and `WeakMap` resolution caches.
+- Pure batch eager loading via `.with()` guaranteeing zero N+1 queries ($1 + R$ total queries); strict ban on implicit lazy loading via property access.
+- Immutable AST-based `QueryBuilder` with parameterized SQL compiler (`SqlCompiler`), strict identifier regex validation, and ANSI double-quoting.
+- `Model` base class with dirty tracking (`isDirty()`, `getDirty()`, `getOriginal()`), `save()`, `delete()`, `refresh()`, and `defineModel()` factory.
+- Database connection lifecycle management with automated release via `finally` blocks, and multi-connection transaction propagation (`.using(tx)`).
+- Model registry (`ModelRegistry`) for introspection and registration.
+- Comprehensive unit (32), integration, example app (5), and benchmark (12 scenarios) test coverage.
+- Architecture documentation (`docs/architecture/orm/`, 13 documents) and ADR-009.
 
 ---
 
-### [ ] PHASE 7 — Migrations
+### [x] PHASE 7 — Migrations + Database Schema Management
 
-- Migration file generator and runner.
-- Schema diffing and transactional DDL execution.
-- Migration rollback and status tracking.
+- Normalized, immutable, dialect-neutral schema representation (`SchemaSnapshot`, `TableSchema`, `ColumnSchema`, `IndexSchema`, `ForeignKeySchema`, `UniqueConstraintSchema`) with structural SHA-256 checksums.
+- Automatic ORM Model Metadata $\to$ Schema Snapshot converter (`ModelSchemaConverter`) supporting timestamps, soft deletes, and foreign keys.
+- Pluggable live database introspection (`SchemaIntrospector` with PostgreSQL, SQLite, and in-memory reflection).
+- Deterministic schema diffing engine (`SchemaDiffEngine`) with topological sorting (tables $\to$ columns $\to$ alterations $\to$ unique constraints $\to$ indexes $\to$ foreign keys $\to$ drops).
+- 14 concrete, typed, serializable, and reversible operation AST nodes (`CreateTable`, `DropTable`, `AddColumn`, `DropColumn`, `AlterColumn`, `CreateIndex`, `DropIndex`, `AddForeignKey`, `DropForeignKey`, `CreateUniqueConstraint`, `DropUniqueConstraint`, `RenameTable`, `RenameColumn`, `RawSql`).
+- Strict safety guard policy requiring explicit approval (`allowDestructive: true`) for destructive changes and confirmation (`confirm: 'YES_I_AM_SURE'`) for database resets.
+- Dialect DDL SQL compiler (`SqlMigrationCompiler`) with ANSI quoting and strict alphanumeric identifier injection defense.
+- Migration file generator (`MigrationGenerator`) generating human-readable, typed TypeScript migration files (`YYYYMMDDHHmmss_name.ts`) with content checksums.
+- Migration registry (`MigrationRegistry`) and tracking storage (`MigrationStorage` managing `django_js_migrations`).
+- Distributed concurrency locking (`MigrationLock` managing `django_js_migration_lock`) with optimistic locking and automatic stale lock recovery.
+- Transaction-aware migration runner (`MigrationRunner`) honoring `supportsTransactionalDDL` capability, batch tracking, step-based/batch rollback, and reset support.
+- Programmatic drift detector (`DriftDetector`) identifying out-of-band schema discrepancies.
+- Comprehensive unit (37), integration, example app (6), and microbenchmark (7 scenarios) suites.
+- Architecture documentation (`docs/architecture/migrations/`, 12 documents) and ADR-010.
 
 ---
 
-### [ ] PHASE 8 — Validation
+### [x] PHASE 8 — Validation + Serialization
 
 - High-throughput schema validation engine.
 - Request payload, query, and parameter validation.
@@ -104,40 +122,101 @@ This roadmap outlines the phased development plan for the **django-js** framewor
 
 ---
 
-### [ ] PHASE 9 — CLI
+### [x] PHASE 9 — CLI + Developer Tooling
 
-- Command runner with argument/flag parsing.
-- Interactive project scaffolding (`django-js new`).
-- Code generators (`make:controller`, `make:model`, `make:migration`).
-
----
-
-### [ ] PHASE 10 — Authentication + Authorization
-
-- Session-based authentication with secure cookie storage.
-- JWT and API token authentication.
-- Role-based and permission-based authorization policies (Gates / Policies).
-
----
-
-### [ ] PHASE 11 — Cache + Queue
-
-- Cache abstraction (Memory, Redis) with tag-based invalidation.
-- Background job queue abstraction with retries, delays, and worker processes.
+- Command runner with zero-dependency argument and option parsing (`ArgParser`).
+- Deterministic `CommandRegistry` with colon-delimited namespacing and top-level aliases.
+- CLI output abstraction (`CliOutput`) with stream separation, TTY auto-detection, tables, and pure `--json` output.
+- POSIX-compliant exit codes and structured `CliError` hierarchy.
+- Upward project discovery and safe project scaffolding (`create <name>`).
+- Comprehensive built-in commands: `version`, `help`, `doctor`, `route:list`, `model:list`, `model:show`, `config:show`, `db:status`, `migrate:run`, `migrate:status`, `migrate:rollback`, `migrate:generate`, `migrate:check`.
+- Secret masking, path traversal defenses, destructive confirmation requirements, and `AbortSignal` cancellation.
+- Extensibility via `ICommandProvider` for future plugins.
+- Comprehensive test suite (42 tests), process execution tests, and performance benchmarks (up to 16.9M ops/sec).
+- Architecture documentation (`docs/architecture/cli/`, 11 documents) and ADR-011 through ADR-015.
 
 ---
 
-### [ ] PHASE 12 — Events + WebSockets
+### [x] PHASE 10 — Authentication + Authorization
 
-- Synchronous and asynchronous event dispatcher.
-- Real-time WebSocket connection manager and room/channel broadcasting.
+- Decoupled Authentication ("Who is this?") and Authorization ("What can this identity do?").
+- Multiple authentication strategies: Session, Bearer (JWT), API Key with deterministic chaining and fail-fast downgrade protection.
+- Immutable principal abstraction (`Identity`, `UserIdentity`, `ServiceAccountIdentity`, `SystemIdentity`, `AnonymousIdentity`).
+- Pluggable session store (`ISessionStore`, `MemorySessionStore`) and session fixation defense via identifier rotation (`rotate()`).
+- RFC 7519 JWT service with strict algorithm whitelist (rejects `alg: "none"`) and revocation store (`ITokenRevocationStore`).
+- Memory-hard password hashing via Scrypt (RFC 7914) with random salt, constant-time verification, and `needsRehash` upgrade strategy.
+- Complete authorization engine with namespaced permissions (`PermissionRegistry`), roles (`RoleRegistry`), and object-level policies (`PolicyRegistry`, `BasePolicy`).
+- Boolean policy combinators (`andPolicy`, `orPolicy`, `notPolicy`) and bulk authorization (`authorizeMany`).
+- Fail-closed security default: all unhandled access or missing identity/policy evaluates strictly to DENY.
+- Clean HTTP status separation: 401 Unauthorized (`UnauthenticatedError`) vs 403 Forbidden (`ForbiddenError`).
+- Request-scoped identity isolation in `RequestContext.state` and DI container with zero mutable global state.
+- Comprehensive tests (68 files, 362 total tests passed), security invariants, and benchmarks (up to 12.6M ops/sec).
+- Architecture documentation (`docs/architecture/auth/`, 14 documents) and ADR-016 through ADR-021.
 
 ---
 
-### [ ] PHASE 13 — Admin
+### [x] PHASE 11 — Cache + Queue
 
-- Batteries-included auto-generated administrative dashboard.
-- CRUD interfaces for ORM models with filtering, search, and pagination.
+- **Cache Abstraction (`@django-js/cache`)**: Production-grade, driver-agnostic caching with `CacheManager` orchestrating multiple named stores, `CacheStore` providing high-level API with key normalization (`CacheKeyBuilder`), safe serialization (`SafeCacheSerializer` with Date/BigInt round-trip), Promise-based stampede protection (`remember()`/`getOrSet()`), hit/miss statistics, `namespace()` isolation, and fallback modes (`fail-fast`, `fallback-to-memory`, `bypass`).
+- Universal `ICacheDriver` contract with `CacheCapabilities` — `MemoryCacheDriver` (LRU, TTL, prune sweeps) built-in; Redis adapter follows identical contract.
+- **Queue & Background Jobs (`@django-js/queue`)**: AT-LEAST-ONCE delivery background job system with `QueueManager` orchestrating named queues, `Queue` handles for typed `dispatch()`/`delay()`/`schedule()`, `Worker` long-running polling with configurable concurrency/lease timeout/idle backoff/graceful shutdown, `RetryCalculator` (fixed/exponential/jitter), `JobRegistry` for type-safe handler resolution, queue-scoped `MiddlewarePipeline` (separate from HTTP middleware), and `IFailedJobStore` dead-letter storage.
+- Universal `IQueueDriver` contract — `MemoryQueueDriver` (priority, delayed, visibility leases) and `DatabaseQueueDriver` (persistent via `@django-js/database`, `locked_until` distributed locking) built-in.
+- CLI commands: `cache:clear`, `queue:work [--once]`, `queue:status`, `queue:failed`, `queue:retry`, `queue:clear`.
+- Contract test suites for both driver types; 86 test files, 444 tests passing.
+- Benchmarks: up to 62M ops/sec (RetryCalculator), 5.7M ops/sec (cache driver get), 1.6M ops/sec (queue enqueue).
+- Architecture documentation (`docs/architecture/cache/`, `docs/architecture/queue/`) and ADR-022 through ADR-023.
+
+---
+
+### [x] PHASE 12 — Events + WebSockets
+
+- **Event System (`@django-js/events`)**:
+  - Typed `EventDefinition<Payload>` with unique UUIDv4 `eventId`, `timestamp`, `schemaVersion`, and optional `metadata`.
+  - Tri-mode execution semantics: `sync` (deterministic sequential priority order), `async` (concurrent non-blocking via `Promise.allSettled`), and `queued` (delegated via `IEventQueueAdapter` to `@django-js/queue`).
+  - `EventRegistry` with duplicate detection, priority sorting, and introspection (`inspect()`) for diagnostics and Admin UI.
+  - Dedicated `EventMiddlewarePipeline` (onion pattern) separate from HTTP and Queue middleware.
+  - Safe payload serialization rejecting functions, symbols, and circular references (`EventSerializer`).
+  - Observability lifecycle hooks (`onDispatched`, `onHandlerStarted`, `onHandlerCompleted`, `onHandlerFailed`).
+  - `FakeEventBus` testing utility.
+- **WebSocket & Real-Time Infrastructure (`@django-js/websocket`)**:
+  - Engine-independent `IWebSocketServer` and `IWebSocketConnection` abstractions isolating low-level libraries (`ws`).
+  - High-performance `RoomManager` with multi-room membership, join authorization, and automated cleanup on disconnect.
+  - Typed JSON message framing (`{ type, payload, requestId, metadata }`) and `WebSocketContext` matching `RequestContext` ergonomics.
+  - Defensive connection limits (`maxTotalConnections`, `maxConnectionsPerIdentity`, `maxRoomsPerConnection`, `maxMessageSizeBytes`).
+  - Backpressure enforcement (`maxBufferedAmountBytes`) and ping/pong health monitoring (`HeartbeatManager`).
+  - Pluggable transport layer (`IRealtimeTransport`, `LocalTransport`) for single-node and multi-node pub/sub scaling.
+  - HTTP upgrade integration with authentication hooks and `@django-js/auth` Identity reuse.
+  - Bi-directional event bridges (`WebSocketEventBridge`, `WebSocketToEventBridge`).
+  - `FakeWebSocketConnection` and `FakeWebSocketServer` testing utilities.
+- **CLI Commands**: `events:list` and `ws:status`.
+- **Benchmarks**: EventRegistry (23.9M ops/sec), RoomManager (26.1M ops/sec), EventBus sync dispatch (1.35M ops/sec), LocalTransport publish (7.1M ops/sec).
+- **Architecture & ADRs**: `docs/architecture/events/`, `docs/architecture/websocket/`, and ADR-024 through ADR-026.
+
+---
+
+### [x] PHASE 13 — Admin Platform Foundation
+
+- **Admin Core (`@django-js/admin-core`)**:
+  - Model-driven `AdminResource` abstraction with convention-over-configuration defaults for `listFields`, `detailFields`, `createFields`, `editFields`, `searchFields`, `filters`, `actions`, `bulkActions`, and pagination.
+  - Automatic `ModelMetadata` $\to$ `AdminResource` auto-generator (`AdminResourceAutoGenerator`).
+  - Extensible field system (`textField`, `numberField`, `booleanField`, `dateField`, `emailField`, `passwordField`, `jsonField`, `uuidField`, etc.) with widget metadata.
+  - Table, form, filter, dashboard, and custom page abstractions with plugin lifecycle hooks.
+  - Central `AdminRegistry` for resources and dashboard pages.
+- **Admin Authorization (`@django-js/admin-auth`)**:
+  - `AdminPermissionChecker` enforcing staff access, resource-level CRUD permissions, row-level action execution, and field-level visibility/editability with sensitive field protection.
+- **Admin Audit Trail (`@django-js/admin-audit`)**:
+  - Non-blocking `AdminAuditLogger` producing immutable audit entries for all create, update, delete, restore, and custom action operations.
+  - `diffChanges` utility computing field diffs with automatic regex-based sensitive field redaction (`/password|secret|token|key|hash|salt|credential/i`).
+  - Pluggable `IAuditStore` with deterministic `InMemoryAuditStore`.
+- **Admin Media Management (`@django-js/admin-media`)**:
+  - `AdminMediaManager` with strict validation (`maxSizeBytes`, `allowedMimeTypes`, `allowedExtensions`) before storage I/O.
+  - Pluggable `IMediaStorage` abstraction with `InMemoryMediaStorage`.
+- **Admin Server & REST API (`@django-js/admin-server`)**:
+  - Decoupled `IAdminQueryAdapter` bridging ORM and admin server without circular dependencies.
+  - Production-grade `AdminCrudService` orchestrating validation, RBAC, mass-assignment sanitization, field-level filtering, and audit logging.
+  - Complete REST API mounted on `IRouter`: resources, schema, CRUD endpoints, soft-delete restore, row actions, bulk actions, and audit log query.
+- **Testing & Quality Gates**: 108 test files (540 total tests passing), ESLint passing, Prettier clean, strict TypeScript build passing.
+- **Documentation**: `docs/architecture/admin/` architecture guide.
 
 ---
 
