@@ -2,11 +2,11 @@
 
 ## Overview
 
-Nexora is designed from the ground up for high-concurrency workloads, zero unnecessary allocations in hot paths, and bounded memory usage.
+JSango is designed from the ground up for high-concurrency workloads, zero unnecessary allocations in hot paths, and bounded memory usage.
 
 This directory documents:
 
-- **[Phase 15 Performance Report](file:///Users/mayankdiwakar/Documents/Development/django-js/docs/performance/PHASE-15-REPORT.md)**: Comprehensive before/after measurements, bottleneck analyses, and optimization trade-offs.
+- **[Phase 15 Performance Report](file:///Users/mayankdiwakar/Documents/Development/jsango/docs/performance/PHASE-15-REPORT.md)**: Comprehensive before/after measurements, bottleneck analyses, and optimization trade-offs.
 - **Methodology & Tooling**: Microbenchmarks, concurrency load testing, and memory leak regression suites.
 - **Production Tuning**: Guidelines for configuring pools, workers, timeouts, and sampling in production environments.
 

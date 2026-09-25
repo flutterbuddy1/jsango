@@ -1,4 +1,4 @@
-import type { IDatabaseConnection } from '@django-js/database';
+import type { IDatabaseConnection } from '@jsango/database';
 import { SchemaSnapshot, TableSchema } from '../../public/schema.js';
 import type { ColumnDefinition, TableDefinition } from '../../public/types.js';
 
@@ -6,7 +6,7 @@ export class SqliteSchemaIntrospector {
   public async introspect(connection: IDatabaseConnection): Promise<SchemaSnapshot> {
     const tablesRes = await connection.query<{ name: string }>(`
       SELECT name FROM sqlite_master
-      WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'django_js_%'
+      WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'jsango_%'
       ORDER BY name ASC
     `);
 

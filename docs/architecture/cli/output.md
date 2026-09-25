@@ -9,7 +9,7 @@ The `CliOutput` abstraction decouples presentation logic from command implementa
 - **`stdout`**: Reserved strictly for command payload data (tables, success messages, clean JSON).
 - **`stderr`**: Reserved for diagnostics, warnings, debug info, and errors.
 
-This guarantees that redirected pipes or subshells (e.g. `django-js route:list --json > routes.json`) never receive error banners or ANSI escape codes.
+This guarantees that redirected pipes or subshells (e.g. `jsango route:list --json > routes.json`) never receive error banners or ANSI escape codes.
 
 ## Output Modes
 

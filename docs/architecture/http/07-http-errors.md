@@ -2,14 +2,14 @@
 
 ## Overview
 
-All HTTP-specific errors inherit from `DjangoJsError` (from `@django-js/core`), ensuring structured error codes, standard HTTP status codes, causes, and safe serialization.
+All HTTP-specific errors inherit from `JsangoError` (from `@jsango/core`), ensuring structured error codes, standard HTTP status codes, causes, and safe serialization.
 
 ---
 
 ## Hierarchy
 
 ```
-DjangoJsError (Core)
+JsangoError (Core)
        ↓
     HttpError
        ├── BadRequestError (400)

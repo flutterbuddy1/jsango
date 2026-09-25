@@ -1,4 +1,4 @@
-import type { ModelMetadata, FieldType } from '@django-js/orm';
+import type { ModelMetadata, FieldType } from '@jsango/orm';
 import type { AdminFieldConfig, AdminFieldType } from './types.js';
 import { isSensitiveFieldName } from './fields.js';
 import { AdminResource } from './resource.js';

@@ -2,11 +2,11 @@
 trigger: always_on
 ---
 
-# Nexora Architecture Rules
+# JSango Architecture Rules
 
 ## Project Identity
 
-Nexora is a production-grade, batteries-included TypeScript backend framework.
+JSango is a production-grade, batteries-included TypeScript backend framework.
 
 The framework is inspired by:
 
@@ -15,7 +15,7 @@ The framework is inspired by:
 - Modern TypeScript
 - High-performance JavaScript runtimes
 
-Nexora is NOT a copy of Django, Laravel, Express, NestJS, or any existing framework.
+JSango is NOT a copy of Django, Laravel, Express, NestJS, or any existing framework.
 
 The implementation must use its own architecture and APIs.
 
@@ -40,7 +40,7 @@ The implementation must use its own architecture and APIs.
 
 # Architecture Layers
 
-Nexora follows strict layering:
+JSango follows strict layering:
 
 Runtime
 ↓
@@ -72,43 +72,43 @@ Each package must have one clear responsibility.
 
 Example:
 
-@Nexora/core
+@JSango/core
 Core application lifecycle and dependency injection.
 
-@Nexora/http
+@JSango/http
 HTTP request/response abstractions.
 
-@Nexora/router
+@JSango/router
 Route matching and route registration.
 
-@Nexora/orm
+@JSango/orm
 Models, queries and relationships.
 
-@Nexora/database
+@JSango/database
 Database drivers and connection management.
 
-@Nexora/auth
+@JSango/auth
 Authentication and authorization.
 
-@Nexora/validation
+@JSango/validation
 Request and data validation.
 
-@Nexora/cache
+@JSango/cache
 Cache abstraction.
 
-@Nexora/queue
+@JSango/queue
 Background jobs.
 
-@Nexora/events
+@JSango/events
 Application events.
 
-@Nexora/websocket
+@JSango/websocket
 Realtime functionality.
 
-@Nexora/cli
+@JSango/cli
 CLI and code generation.
 
-@Nexora/testing
+@JSango/testing
 Testing utilities.
 
 ---

@@ -1,6 +1,6 @@
 # Database Architecture Documentation
 
-This directory contains the architecture documentation for `@django-js/database`.
+This directory contains the architecture documentation for `@jsango/database`.
 
 ## Documentation Index
 

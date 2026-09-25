@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { ICommand, CommandContext } from './index.js';
 
-describe('@django-js/cli', () => {
+describe('@jsango/cli', () => {
   it('should support typing mock CLI commands', async () => {
     class MockVersionCommand implements ICommand {
       readonly name = 'version';

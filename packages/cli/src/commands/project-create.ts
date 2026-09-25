@@ -8,8 +8,8 @@ import { ProjectDiscovery } from '../internal/project.js';
 
 export class ProjectCreateCommand extends BaseCommand {
   public readonly name = 'create';
-  public readonly description = 'Create and scaffold a new django-js project';
-  public readonly usage = 'django-js create <projectName> [options]';
+  public readonly description = 'Create and scaffold a new jsango project';
+  public readonly usage = 'jsango create <projectName> [options]';
   public readonly aliases = ['init'];
   public readonly arguments = [
     {
@@ -70,13 +70,13 @@ export class ProjectCreateCommand extends BaseCommand {
           dev: 'node dist/index.js',
         },
         dependencies: {
-          '@django-js/core': '^1.0.0',
-          '@django-js/http': '^1.0.0',
-          '@django-js/router': '^1.0.0',
-          '@django-js/middleware': '^1.0.0',
-          '@django-js/database': '^1.0.0',
-          '@django-js/orm': '^1.0.0',
-          '@django-js/migrations': '^1.0.0',
+          '@jsango/core': '^1.0.0',
+          '@jsango/http': '^1.0.0',
+          '@jsango/router': '^1.0.0',
+          '@jsango/middleware': '^1.0.0',
+          '@jsango/database': '^1.0.0',
+          '@jsango/orm': '^1.0.0',
+          '@jsango/migrations': '^1.0.0',
         },
         devDependencies: {
           typescript: '^5.8.2',
@@ -110,13 +110,13 @@ export class ProjectCreateCommand extends BaseCommand {
     fs.writeFileSync(path.join(targetDir, 'tsconfig.json'), tsconfigContent, 'utf8');
 
     // 3. src/index.ts
-    const indexTsContent = `import { Application } from '@django-js/middleware';
+    const indexTsContent = `import { Application } from '@jsango/middleware';
 
 export function createApplication(): Application {
   const app = new Application({ isProduction: process.env.NODE_ENV === 'production' });
 
   app.get('/', () => ({
-    message: 'Welcome to your new django-js application!',
+    message: 'Welcome to your new jsango application!',
     status: 'ok',
     timestamp: new Date().toISOString(),
   }));
@@ -150,7 +150,7 @@ if (process.env.NODE_ENV !== 'test') {
     // 4. README.md
     const readmeContent = `# ${projectName}
 
-A modern TypeScript backend application powered by django-js.
+A modern TypeScript backend application powered by jsango.
 
 ## Getting Started
 
@@ -177,7 +177,7 @@ pnpm start
     }
 
     const { colors } = context.output;
-    context.output.success(`Created django-js project in ${colors.cyan(targetDir)}`);
+    context.output.success(`Created jsango project in ${colors.cyan(targetDir)}`);
     context.output.text();
     context.output.text('Inside that directory, you can run:');
     context.output.text(`  ${colors.dim('$')} cd ${projectName}`);

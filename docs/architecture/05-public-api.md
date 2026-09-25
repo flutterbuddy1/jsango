@@ -4,7 +4,7 @@
 
 A major pitfall in framework evolution is the accidental leakage of internal implementation details into the public API, leading to brittle user code and breaking changes during internal refactoring.
 
-`django-js` enforces explicit API segregation:
+`jsango` enforces explicit API segregation:
 
 ```
 packages/<name>/src/

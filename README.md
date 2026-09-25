@@ -1,4 +1,4 @@
-# django-js
+# JSango
 
 > Production-grade, batteries-included TypeScript backend framework designed for modern JavaScript runtimes and high-concurrency workloads.
 
@@ -10,7 +10,7 @@
 
 ## Overview
 
-**django-js** combines the convention-over-configuration philosophy, developer ergonomics, and built-in batteries of Django with modern TypeScript type safety, modular package architecture, and the high-throughput performance of contemporary JavaScript runtimes (Node.js 20+).
+**JSango** combines the convention-over-configuration philosophy, developer ergonomics, and built-in batteries of Django with modern TypeScript type safety, modular package architecture, and the high-throughput performance of contemporary JavaScript runtimes (Node.js 20+).
 
 ### Core Principles
 
@@ -28,8 +28,8 @@
 ### 1. Scaffolding a New Application
 
 ```bash
-# Create a new django-js project using the CLI
-npx django-js create my-app
+# Create a new jsango project using the CLI
+npx jsango create my-app
 cd my-app
 pnpm install
 ```
@@ -37,8 +37,8 @@ pnpm install
 ### 2. Application Example
 
 ```typescript
-import { Application } from '@django-js/middleware';
-import { defineModel, fields } from '@django-js/orm';
+import { Application } from '@jsango/middleware';
+import { defineModel, fields } from '@jsango/orm';
 
 // 1. Define Model
 export const User = defineModel({
@@ -72,33 +72,33 @@ console.log('Server running on http://localhost:3000');
 
 ## Monorepo Packages (`v1.0.0`)
 
-| Package                                              | Purpose & Responsibility                                                                       |
-| :--------------------------------------------------- | :--------------------------------------------------------------------------------------------- |
-| [`@django-js/runtime`](packages/runtime)             | Runtime abstraction and platform adapters (Node.js)                                            |
-| [`@django-js/core`](packages/core)                   | Application lifecycle coordinator, structured error hierarchy, and logging abstractions        |
-| [`@django-js/container`](packages/container)         | High-performance DI container supporting transient, singleton, and scoped lifetimes            |
-| [`@django-js/config`](packages/config)               | Centralized, immutable configuration provider with type casting and schema validation          |
-| [`@django-js/http`](packages/http)                   | Runtime-independent HTTP request/response abstractions and streaming body parsers              |
-| [`@django-js/router`](packages/router)               | Segment Radix Trie router (>7.7M ops/sec), typed parameter constraints, and route groups       |
-| [`@django-js/middleware`](packages/middleware)       | Onion-style middleware pipeline, response normalization, and application coordinator           |
-| [`@django-js/database`](packages/database)           | Multi-connection manager, FIFO connection pool, and scoped transaction state machines          |
-| [`@django-js/orm`](packages/orm)                     | Declarative models, AST query builder, and pure batch eager loading (`.with()`)                |
-| [`@django-js/migrations`](packages/migrations)       | Schema diffing engine, DDL compilers, distributed locks, and migration runner                  |
-| [`@django-js/validation`](packages/validation)       | High-throughput schema validation engine for body, query, and parameter payloads               |
-| [`@django-js/cli`](packages/cli)                     | CLI commands (`django-js`, `nexora`), scaffolding, and developer tooling                       |
-| [`@django-js/auth`](packages/auth)                   | Authentication (Session, JWT, API Key), Scrypt hashing, and object-level policy engine         |
-| [`@django-js/cache`](packages/cache)                 | Driver-agnostic caching with stampede protection (`remember`) and namespaces                   |
-| [`@django-js/queue`](packages/queue)                 | At-least-once background job queues, concurrent worker polling, and dead-letter store          |
-| [`@django-js/events`](packages/events)               | Typed event definitions, tri-mode execution (`sync`, `async`, `queued`), and priority handlers |
-| [`@django-js/websocket`](packages/websocket)         | Multi-room WebSocket management with heartbeat monitoring and backpressure safeguards          |
-| [`@django-js/admin-core`](packages/admin-core)       | Declarative admin resource definitions, auto-generation from ORM metadata, and registry        |
-| [`@django-js/admin-server`](packages/admin-server)   | Admin REST API server orchestrating CRUD operations, permissions, and audit logging            |
-| [`@django-js/admin-auth`](packages/admin-auth)       | Staff authorization, resource-level CRUD permissions, and field-level visibility checks        |
-| [`@django-js/admin-audit`](packages/admin-audit)     | Immutable audit trails, change diff calculation, and sensitive field redaction                 |
-| [`@django-js/admin-media`](packages/admin-media)     | Secure media uploads, MIME/extension validation, and storage abstractions                      |
-| [`@django-js/openapi`](packages/openapi)             | Deterministic OpenAPI 3.1 document generation from router, validation, ORM, and Admin          |
-| [`@django-js/observability`](packages/observability) | Structured JSON logging, Prometheus metrics, monotonic tracing, and health checks              |
-| [`@django-js/testing`](packages/testing)             | Testing utilities, HTTP client simulator, and mock transports                                  |
+| Package                                           | Purpose & Responsibility                                                                       |
+| :------------------------------------------------ | :--------------------------------------------------------------------------------------------- |
+| [`@jsango/runtime`](packages/runtime)             | Runtime abstraction and platform adapters (Node.js)                                            |
+| [`@jsango/core`](packages/core)                   | Application lifecycle coordinator, structured error hierarchy, and logging abstractions        |
+| [`@jsango/container`](packages/container)         | High-performance DI container supporting transient, singleton, and scoped lifetimes            |
+| [`@jsango/config`](packages/config)               | Centralized, immutable configuration provider with type casting and schema validation          |
+| [`@jsango/http`](packages/http)                   | Runtime-independent HTTP request/response abstractions and streaming body parsers              |
+| [`@jsango/router`](packages/router)               | Segment Radix Trie router (>7.7M ops/sec), typed parameter constraints, and route groups       |
+| [`@jsango/middleware`](packages/middleware)       | Onion-style middleware pipeline, response normalization, and application coordinator           |
+| [`@jsango/database`](packages/database)           | Multi-connection manager, FIFO connection pool, and scoped transaction state machines          |
+| [`@jsango/orm`](packages/orm)                     | Declarative models, AST query builder, and pure batch eager loading (`.with()`)                |
+| [`@jsango/migrations`](packages/migrations)       | Schema diffing engine, DDL compilers, distributed locks, and migration runner                  |
+| [`@jsango/validation`](packages/validation)       | High-throughput schema validation engine for body, query, and parameter payloads               |
+| [`@jsango/cli`](packages/cli)                     | CLI commands (`jsango`, `jsango`), scaffolding, and developer tooling                          |
+| [`@jsango/auth`](packages/auth)                   | Authentication (Session, JWT, API Key), Scrypt hashing, and object-level policy engine         |
+| [`@jsango/cache`](packages/cache)                 | Driver-agnostic caching with stampede protection (`remember`) and namespaces                   |
+| [`@jsango/queue`](packages/queue)                 | At-least-once background job queues, concurrent worker polling, and dead-letter store          |
+| [`@jsango/events`](packages/events)               | Typed event definitions, tri-mode execution (`sync`, `async`, `queued`), and priority handlers |
+| [`@jsango/websocket`](packages/websocket)         | Multi-room WebSocket management with heartbeat monitoring and backpressure safeguards          |
+| [`@jsango/admin-core`](packages/admin-core)       | Declarative admin resource definitions, auto-generation from ORM metadata, and registry        |
+| [`@jsango/admin-server`](packages/admin-server)   | Admin REST API server orchestrating CRUD operations, permissions, and audit logging            |
+| [`@jsango/admin-auth`](packages/admin-auth)       | Staff authorization, resource-level CRUD permissions, and field-level visibility checks        |
+| [`@jsango/admin-audit`](packages/admin-audit)     | Immutable audit trails, change diff calculation, and sensitive field redaction                 |
+| [`@jsango/admin-media`](packages/admin-media)     | Secure media uploads, MIME/extension validation, and storage abstractions                      |
+| [`@jsango/openapi`](packages/openapi)             | Deterministic OpenAPI 3.1 document generation from router, validation, ORM, and Admin          |
+| [`@jsango/observability`](packages/observability) | Structured JSON logging, Prometheus metrics, monotonic tracing, and health checks              |
+| [`@jsango/testing`](packages/testing)             | Testing utilities, HTTP client simulator, and mock transports                                  |
 
 ---
 
@@ -145,4 +145,4 @@ pnpm format:check
 
 ## License
 
-MIT © 2026 django-js contributors.
+MIT © 2026 jsango contributors.

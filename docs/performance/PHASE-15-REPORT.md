@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-Phase 15 systematically measured, profiled, benchmarked, and optimized the Nexora backend framework across all 15 completed architectural subsystems:
+Phase 15 systematically measured, profiled, benchmarked, and optimized the JSango backend framework across all 15 completed architectural subsystems:
 
 - **Runtime & Core**
 - **Container / Dependency Injection**

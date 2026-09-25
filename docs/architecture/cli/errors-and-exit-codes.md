@@ -2,7 +2,7 @@
 
 ## Overview
 
-`@django-js/cli` adheres to POSIX exit code conventions and extends the framework's structured `DjangoJsError` hierarchy.
+`@jsango/cli` adheres to POSIX exit code conventions and extends the framework's structured `JsangoError` hierarchy.
 
 ## Exit Code Strategy
 
@@ -19,7 +19,7 @@
 ## Error Class Hierarchy
 
 ```
-DjangoJsError (from @django-js/core)
+JsangoError (from @jsango/core)
   └── CliError (public exitCode: ExitCode)
         ├── UsageError (exitCode: 2)
         │     ├── CommandNotFoundError

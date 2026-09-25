@@ -1,7 +1,7 @@
-# django-js 1.0.0 Public API Freeze
+# jsango 1.0.0 Public API Freeze
 
 **Effective Date**: 2026-09-25  
-**Milestone**: `django-js v1.0.0 Stable Release`  
+**Milestone**: `jsango v1.0.0 Stable Release`  
 **Status**: **FROZEN**
 
 ---
@@ -18,31 +18,31 @@ No breaking modifications, signature alterations, or removal of public symbols a
 
 The following 25 packages are frozen under Tier 1 Stable Public API guarantees:
 
-1. `@django-js/runtime`
-2. `@django-js/core`
-3. `@django-js/container`
-4. `@django-js/config`
-5. `@django-js/http`
-6. `@django-js/router`
-7. `@django-js/middleware`
-8. `@django-js/database`
-9. `@django-js/orm`
-10. `@django-js/migrations`
-11. `@django-js/validation`
-12. `@django-js/cli`
-13. `@django-js/auth`
-14. `@django-js/cache`
-15. `@django-js/queue`
-16. `@django-js/events`
-17. `@django-js/websocket`
-18. `@django-js/admin-core`
-19. `@django-js/admin-server`
-20. `@django-js/admin-auth`
-21. `@django-js/admin-audit`
-22. `@django-js/admin-media`
-23. `@django-js/openapi`
-24. `@django-js/observability`
-25. `@django-js/testing`
+1. `@jsango/runtime`
+2. `@jsango/core`
+3. `@jsango/container`
+4. `@jsango/config`
+5. `@jsango/http`
+6. `@jsango/router`
+7. `@jsango/middleware`
+8. `@jsango/database`
+9. `@jsango/orm`
+10. `@jsango/migrations`
+11. `@jsango/validation`
+12. `@jsango/cli`
+13. `@jsango/auth`
+14. `@jsango/cache`
+15. `@jsango/queue`
+16. `@jsango/events`
+17. `@jsango/websocket`
+18. `@jsango/admin-core`
+19. `@jsango/admin-server`
+20. `@jsango/admin-auth`
+21. `@jsango/admin-audit`
+22. `@jsango/admin-media`
+23. `@jsango/openapi`
+24. `@jsango/observability`
+25. `@jsango/testing`
 
 ---
 

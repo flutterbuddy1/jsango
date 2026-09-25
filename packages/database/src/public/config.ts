@@ -1,4 +1,4 @@
-import type { IConfigProvider } from '@django-js/config';
+import type { IConfigProvider } from '@jsango/config';
 import { DatabaseConfigurationError } from './errors.js';
 
 export interface PoolConfig {

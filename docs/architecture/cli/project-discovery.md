@@ -2,13 +2,13 @@
 
 ## Overview
 
-The CLI automatically detects the active django-js project root without arbitrary or recursive filesystem scanning.
+The CLI automatically detects the active jsango project root without arbitrary or recursive filesystem scanning.
 
 ## Discovery Algorithm
 
 1. Starting from the current working directory (`process.cwd()`), `ProjectDiscovery.findProjectRoot()` inspects the current directory for:
-   - `nexora.config.ts`, `nexora.config.js`, `django-js.config.ts`, `django-js.config.js`
-   - A `package.json` with `@django-js/*` dependencies or framework markers.
+   - `jsango.config.ts`, `jsango.config.js`, `jsango.config.ts`, `jsango.config.js`
+   - A `package.json` with `@jsango/*` dependencies or framework markers.
 2. If not found, it steps upward to the parent directory until:
    - A valid project root is located.
    - The filesystem root is reached.

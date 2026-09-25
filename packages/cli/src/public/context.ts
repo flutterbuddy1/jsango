@@ -1,17 +1,17 @@
-import type { ILogger } from '@django-js/core';
-import { NoopLogger } from '@django-js/core';
-import type { IConfigProvider } from '@django-js/config';
-import { createConfigProvider } from '@django-js/config';
-import type { Application } from '@django-js/middleware';
-import type { DatabaseManager } from '@django-js/database';
-import type { MigrationRegistry } from '@django-js/migrations';
-import { defaultMigrationRegistry } from '@django-js/migrations';
-import type { ModelRegistry } from '@django-js/orm';
-import { getDefaultRegistry } from '@django-js/orm';
-import type { CacheManager } from '@django-js/cache';
-import type { QueueManager } from '@django-js/queue';
-import type { EventBus } from '@django-js/events';
-import type { IWebSocketServer } from '@django-js/websocket';
+import type { ILogger } from '@jsango/core';
+import { NoopLogger } from '@jsango/core';
+import type { IConfigProvider } from '@jsango/config';
+import { createConfigProvider } from '@jsango/config';
+import type { Application } from '@jsango/middleware';
+import type { DatabaseManager } from '@jsango/database';
+import type { MigrationRegistry } from '@jsango/migrations';
+import { defaultMigrationRegistry } from '@jsango/migrations';
+import type { ModelRegistry } from '@jsango/orm';
+import { getDefaultRegistry } from '@jsango/orm';
+import type { CacheManager } from '@jsango/cache';
+import type { QueueManager } from '@jsango/queue';
+import type { EventBus } from '@jsango/events';
+import type { IWebSocketServer } from '@jsango/websocket';
 import { CliOutput } from './output.js';
 import { ProjectDiscovery } from '../internal/project.js';
 
@@ -74,7 +74,7 @@ export class CommandContext {
     this.env =
       options.env ??
       (this.options['env'] as string | undefined) ??
-      process.env['DJANGO_JS_ENV'] ??
+      process.env['JSANGO_ENV'] ??
       process.env['NODE_ENV'] ??
       'development';
 

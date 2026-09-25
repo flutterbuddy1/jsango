@@ -1,6 +1,6 @@
-# django-js Production Deployment Guide
+# jsango Production Deployment Guide
 
-This guide covers best practices for deploying `django-js` applications to production environments.
+This guide covers best practices for deploying `jsango` applications to production environments.
 
 ---
 
@@ -38,12 +38,12 @@ CMD ["node", "dist/index.js"]
 
 ## 2. Reverse Proxy (Nginx / Caddy)
 
-Always run `django-js` behind a high-performance reverse proxy (e.g. Nginx or Caddy) to handle TLS termination, static asset caching, and request rate limiting.
+Always run `jsango` behind a high-performance reverse proxy (e.g. Nginx or Caddy) to handle TLS termination, static asset caching, and request rate limiting.
 
 ### Nginx Example
 
 ```nginx
-upstream django_js_backend {
+upstream jsango_backend {
     server 127.0.0.1:3000;
     keepalive 64;
 }
@@ -62,7 +62,7 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
 
     location / {
-        proxy_pass http://django_js_backend;
+        proxy_pass http://jsango_backend;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -78,7 +78,7 @@ server {
 
 ## 3. Graceful Shutdown & Process Management
 
-`django-js` applications listen for `SIGTERM` and `SIGINT` signals to gracefully close active HTTP sockets, drain database connection pools, acknowledge active queue worker leases, and notify WebSocket clients before process termination.
+`jsango` applications listen for `SIGTERM` and `SIGINT` signals to gracefully close active HTTP sockets, drain database connection pools, acknowledge active queue worker leases, and notify WebSocket clients before process termination.
 
 ### PM2 Ecosystem Example (`ecosystem.config.cjs`)
 
@@ -86,7 +86,7 @@ server {
 module.exports = {
   apps: [
     {
-      name: 'django-js-api',
+      name: 'jsango-api',
       script: 'dist/index.js',
       instances: 'max',
       exec_mode: 'cluster',
@@ -104,7 +104,7 @@ module.exports = {
 
 ## 4. Health Checks & Kubernetes Probes
 
-`django-js` provides standardized endpoints for orchestrators:
+`jsango` provides standardized endpoints for orchestrators:
 
 - **Liveness Probe (`/health/live`)**: Returns HTTP `200` if the Node.js event loop is operational.
 - **Readiness Probe (`/health/ready`)**: Returns HTTP `200` if all critical subsystem checks (database pools, cache, queue drivers) are connected and ready to accept traffic.

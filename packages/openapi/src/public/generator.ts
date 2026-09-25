@@ -1,4 +1,4 @@
-import type { IRouter, Route } from '@django-js/router';
+import type { IRouter, Route } from '@jsango/router';
 import type {
   OpenApiDocument,
   OpenApiInfo,

@@ -2,7 +2,7 @@
 
 ## Algorithmic Efficiency
 
-The Nexora routing engine is built upon a segment-based Radix Trie:
+The JSango routing engine is built upon a segment-based Radix Trie:
 
 - **Static Route Matching**: $O(k)$ where $k$ is the number of path segments, achieved via direct `Map.get()` lookup at each level.
 - **Parameterized Matching**: Segment constraints are precompiled regexes or functions executed once per segment.

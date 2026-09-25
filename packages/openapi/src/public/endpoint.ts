@@ -1,7 +1,7 @@
-import type { RouteHandler } from '@django-js/router';
-import type { IRouter } from '@django-js/router';
-import type { RequestContext } from '@django-js/http';
-import { HttpResponse, HttpStatus, ContentType } from '@django-js/http';
+import type { RouteHandler } from '@jsango/router';
+import type { IRouter } from '@jsango/router';
+import type { RequestContext } from '@jsango/http';
+import { HttpResponse, HttpStatus, ContentType } from '@jsango/http';
 import type { OpenApiDocument } from './types.js';
 import { OpenApiGenerator } from './generator.js';
 import { OpenApiFormatter } from './formatter.js';

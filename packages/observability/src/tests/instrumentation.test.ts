@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { HttpRequest, HttpResponse, RequestContext } from '@django-js/http';
+import { HttpRequest, HttpResponse, RequestContext } from '@jsango/http';
 import { MetricRegistry } from '../public/metrics.js';
 import { Tracer } from '../public/tracing.js';
 import { StructuredLogger } from '../public/logger.js';

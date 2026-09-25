@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { IValidator, ValidationResult } from './index.js';
 
-describe('@django-js/validation', () => {
+describe('@jsango/validation', () => {
   it('should support typing mock validator contract', () => {
     interface RegisterPayload {
       email: string;

@@ -1,19 +1,19 @@
-# @django-js/admin-auth
+# @jsango/admin-auth
 
-> Staff authorization, resource-level CRUD permissions, and field-level visibility checks for django-js Admin.
+> Staff authorization, resource-level CRUD permissions, and field-level visibility checks for jsango Admin.
 
-Part of the **[django-js](https://github.com/django-js/django-js)** backend framework for TypeScript.
+Part of the **[jsango](https://github.com/jsango/jsango)** backend framework for TypeScript.
 
 ## Installation
 
 ```bash
-pnpm add @django-js/admin-auth
+pnpm add @jsango/admin-auth
 ```
 
 ## Usage
 
 ```typescript
-import { AdminPermissionChecker } from '@django-js/admin-auth';
+import { AdminPermissionChecker } from '@jsango/admin-auth';
 
 const checker = new AdminPermissionChecker();
 const allowed = checker.canAccessResource(identity, resource, 'create');
@@ -21,8 +21,8 @@ const allowed = checker.canAccessResource(identity, resource, 'create');
 
 ## Documentation
 
-For full architecture documentation and guides, visit the [django-js documentation](https://github.com/django-js/django-js/tree/main/docs).
+For full architecture documentation and guides, visit the [jsango documentation](https://github.com/jsango/jsango/tree/main/docs).
 
 ## License
 
-MIT © django-js contributors
+MIT © jsango contributors

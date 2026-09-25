@@ -1,8 +1,8 @@
 export {
-  DjangoJsError,
+  JsangoError,
   type ErrorMetadata,
   type SafeErrorResponse,
-  type DjangoJsErrorOptions,
+  type JsangoErrorOptions,
   type LogLevel,
   type LogContext,
   type ILogger,

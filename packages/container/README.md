@@ -1,19 +1,19 @@
-# @django-js/container
+# @jsango/container
 
 > High-performance dependency injection container with transient, singleton, and scoped resolution lifecycles.
 
-Part of the **[django-js](https://github.com/django-js/django-js)** backend framework for TypeScript.
+Part of the **[jsango](https://github.com/jsango/jsango)** backend framework for TypeScript.
 
 ## Installation
 
 ```bash
-pnpm add @django-js/container
+pnpm add @jsango/container
 ```
 
 ## Usage
 
 ```typescript
-import { Container } from '@django-js/container';
+import { Container } from '@jsango/container';
 
 const container = new Container();
 container.singleton('UserService', UserService);
@@ -24,8 +24,8 @@ const svc = scope.resolve('UserService');
 
 ## Documentation
 
-For full architecture documentation and guides, visit the [django-js documentation](https://github.com/django-js/django-js/tree/main/docs).
+For full architecture documentation and guides, visit the [jsango documentation](https://github.com/jsango/jsango/tree/main/docs).
 
 ## License
 
-MIT © django-js contributors
+MIT © jsango contributors

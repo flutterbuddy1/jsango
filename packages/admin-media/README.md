@@ -1,19 +1,19 @@
-# @django-js/admin-media
+# @jsango/admin-media
 
-> Secure media uploads, MIME/extension validation, and storage abstraction for django-js Admin.
+> Secure media uploads, MIME/extension validation, and storage abstraction for jsango Admin.
 
-Part of the **[django-js](https://github.com/django-js/django-js)** backend framework for TypeScript.
+Part of the **[jsango](https://github.com/jsango/jsango)** backend framework for TypeScript.
 
 ## Installation
 
 ```bash
-pnpm add @django-js/admin-media
+pnpm add @jsango/admin-media
 ```
 
 ## Usage
 
 ```typescript
-import { AdminMediaManager, InMemoryMediaStorage } from '@django-js/admin-media';
+import { AdminMediaManager, InMemoryMediaStorage } from '@jsango/admin-media';
 
 const storage = new InMemoryMediaStorage();
 const media = new AdminMediaManager(storage, { maxSizeBytes: 5 * 1024 * 1024 });
@@ -21,8 +21,8 @@ const media = new AdminMediaManager(storage, { maxSizeBytes: 5 * 1024 * 1024 });
 
 ## Documentation
 
-For full architecture documentation and guides, visit the [django-js documentation](https://github.com/django-js/django-js/tree/main/docs).
+For full architecture documentation and guides, visit the [jsango documentation](https://github.com/jsango/jsango/tree/main/docs).
 
 ## License
 
-MIT © django-js contributors
+MIT © jsango contributors

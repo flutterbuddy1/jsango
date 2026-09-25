@@ -2,7 +2,7 @@
 
 ## Supported Field Types
 
-`@django-js/orm` includes standard field types corresponding to relational database column types:
+`@jsango/orm` includes standard field types corresponding to relational database column types:
 
 | Helper Factory              | TypeScript Type | Description                                |
 | :-------------------------- | :-------------- | :----------------------------------------- |

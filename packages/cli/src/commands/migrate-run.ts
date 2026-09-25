@@ -1,13 +1,13 @@
 import { BaseCommand } from '../public/command.js';
 import type { CommandContext } from '../public/context.js';
 import { ExitCode } from '../public/types.js';
-import { MigrationRunner } from '@django-js/migrations';
+import { MigrationRunner } from '@jsango/migrations';
 import { DestructiveOperationError } from '../public/errors.js';
 
 export class MigrateRunCommand extends BaseCommand {
   public readonly name = 'migrate:run';
   public readonly description = 'Execute pending database migrations';
-  public readonly usage = 'django-js migrate:run [options]';
+  public readonly usage = 'jsango migrate:run [options]';
   public readonly aliases = ['migrate'];
   public readonly options = [
     {

@@ -1,5 +1,5 @@
 import { MemoryConfigProvider } from '../internal/memory-config.js';
-import type { IRuntimeAdapter } from '@django-js/runtime';
+import type { IRuntimeAdapter } from '@jsango/runtime';
 import type { IConfigProvider } from './config.js';
 
 export * from './config.js';

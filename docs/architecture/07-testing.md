@@ -2,7 +2,7 @@
 
 ## Testing Layers
 
-Testing in `django-js` is divided into four distinct tiers:
+Testing in `jsango` is divided into four distinct tiers:
 
 1. **Unit Tests**:
    - Scope: Individual functions, classes, and isolated package abstractions.
@@ -29,6 +29,6 @@ Testing in `django-js` is divided into four distinct tiers:
 
 ## Test Requirements & Determinism
 
-- **No Shared Mutable State**: Tests must instantiate isolated test contexts using `@django-js/testing`.
+- **No Shared Mutable State**: Tests must instantiate isolated test contexts using `@jsango/testing`.
 - **Zero Flakiness**: Timeouts and non-deterministic delays are forbidden; use mock clocks or deterministic event loops.
 - **Strict Quality Gate**: No pull request may be merged without passing 100% of unit and integration tests.

@@ -1,5 +1,5 @@
-import type { ILogger } from '@django-js/core';
-import { NoopLogger } from '@django-js/core';
+import type { ILogger } from '@jsango/core';
+import { NoopLogger } from '@jsango/core';
 import type { IQueueDriver, Job, JobContext, JobErrorMetadata, WorkerOptions } from './types.js';
 import { JobTimeoutError } from './errors.js';
 import type { JobRegistry } from './registry.js';

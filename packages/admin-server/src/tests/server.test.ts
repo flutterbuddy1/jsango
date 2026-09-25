@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Router } from '@django-js/router';
-import { HttpRequest, RequestContext } from '@django-js/http';
-import { AdminRegistry, AdminResource } from '@django-js/admin-core';
-import { AdminPermissionChecker } from '@django-js/admin-auth';
-import { AdminAuditLogger, InMemoryAuditStore } from '@django-js/admin-audit';
-import type { Identity } from '@django-js/auth';
+import { Router } from '@jsango/router';
+import { HttpRequest, RequestContext } from '@jsango/http';
+import { AdminRegistry, AdminResource } from '@jsango/admin-core';
+import { AdminPermissionChecker } from '@jsango/admin-auth';
+import { AdminAuditLogger, InMemoryAuditStore } from '@jsango/admin-audit';
+import type { Identity } from '@jsango/auth';
 import { AdminServer } from '../public/server.js';
 import type { IAdminQueryAdapter, AdminListResult } from '../public/types.js';
 

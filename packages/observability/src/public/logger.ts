@@ -1,4 +1,4 @@
-import type { ILogger, LogContext } from '@django-js/core';
+import type { ILogger, LogContext } from '@jsango/core';
 import type { ObservabilityLogLevel, StructuredLogEntry } from './types.js';
 import { Redactor } from './redaction.js';
 

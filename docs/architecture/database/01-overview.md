@@ -1,6 +1,6 @@
 # Database Layer: Overview
 
-`@django-js/database` provides a runtime-independent, high-performance database connectivity and connection pooling foundation for the Nexora framework.
+`@jsango/database` provides a runtime-independent, high-performance database connectivity and connection pooling foundation for the JSango framework.
 
 ## Core Responsibilities
 
@@ -13,7 +13,7 @@
 
 ## Architectural Boundaries
 
-`@django-js/database` is strictly an infrastructure layer:
+`@jsango/database` is strictly an infrastructure layer:
 
 - **No ORM models or schemas**
 - **No query builders or fluent SQL compilers**
@@ -25,7 +25,7 @@ Domain / Application Logic / Background Workers
                     ↓
                Phase 6: ORM
                     ↓
-          Phase 5: @django-js/database
+          Phase 5: @jsango/database
                     ↓
              Driver Adapters
                     ↓

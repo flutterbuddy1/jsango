@@ -1,19 +1,19 @@
-# @django-js/middleware
+# @jsango/middleware
 
 > Onion-style middleware pipeline, response normalization, global error boundaries, and Application coordinator.
 
-Part of the **[django-js](https://github.com/django-js/django-js)** backend framework for TypeScript.
+Part of the **[jsango](https://github.com/jsango/jsango)** backend framework for TypeScript.
 
 ## Installation
 
 ```bash
-pnpm add @django-js/middleware
+pnpm add @jsango/middleware
 ```
 
 ## Usage
 
 ```typescript
-import { Application } from '@django-js/middleware';
+import { Application } from '@jsango/middleware';
 
 const app = new Application();
 app.use(async (ctx, next) => {
@@ -25,8 +25,8 @@ app.get('/hello', () => ({ message: 'world' }));
 
 ## Documentation
 
-For full architecture documentation and guides, visit the [django-js documentation](https://github.com/django-js/django-js/tree/main/docs).
+For full architecture documentation and guides, visit the [jsango documentation](https://github.com/jsango/jsango/tree/main/docs).
 
 ## License
 
-MIT © django-js contributors
+MIT © jsango contributors

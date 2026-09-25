@@ -1,11 +1,11 @@
-import type { ILogger } from '@django-js/core';
+import type { ILogger } from '@jsango/core';
 import type { WebSocketContext } from './context.js';
 
 export type WebSocketState = 'connecting' | 'connected' | 'closing' | 'closed';
 
 /**
  * Common Identity interface to support authentication integration without
- * introducing a strict compile-time dependency on @django-js/auth.
+ * introducing a strict compile-time dependency on @jsango/auth.
  */
 export interface WebSocketIdentity {
   readonly id: string;

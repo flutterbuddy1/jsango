@@ -1,5 +1,5 @@
-import type { IDatabaseConnection } from '@django-js/database';
-import type { ModelMetadata } from '@django-js/orm';
+import type { IDatabaseConnection } from '@jsango/database';
+import type { ModelMetadata } from '@jsango/orm';
 import { SchemaDiffEngine } from './diff.js';
 import { SchemaIntrospector } from './introspector.js';
 import { ModelSchemaConverter } from '../internal/converter.js';

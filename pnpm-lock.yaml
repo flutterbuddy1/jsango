@@ -193,340 +193,349 @@ importers:
 
   examples/auth-demo:
     dependencies:
-      '@django-js/auth':
+      '@jsango/auth':
         specifier: workspace:*
         version: link:../../packages/auth
-      '@django-js/container':
+      '@jsango/container':
         specifier: workspace:*
         version: link:../../packages/container
-      '@django-js/core':
+      '@jsango/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@django-js/http':
+      '@jsango/http':
         specifier: workspace:*
         version: link:../../packages/http
-      '@django-js/middleware':
+      '@jsango/middleware':
         specifier: workspace:*
         version: link:../../packages/middleware
-      '@django-js/router':
+      '@jsango/router':
         specifier: workspace:*
         version: link:../../packages/router
 
   examples/basic-app:
     dependencies:
-      '@django-js/cli':
+      '@jsango/cli':
         specifier: workspace:*
         version: link:../../packages/cli
-      '@django-js/container':
+      '@jsango/container':
         specifier: workspace:*
         version: link:../../packages/container
-      '@django-js/core':
+      '@jsango/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@django-js/database':
+      '@jsango/database':
         specifier: workspace:*
         version: link:../../packages/database
-      '@django-js/http':
+      '@jsango/http':
         specifier: workspace:*
         version: link:../../packages/http
-      '@django-js/middleware':
+      '@jsango/middleware':
         specifier: workspace:*
         version: link:../../packages/middleware
-      '@django-js/migrations':
+      '@jsango/migrations':
         specifier: workspace:*
         version: link:../../packages/migrations
-      '@django-js/orm':
+      '@jsango/orm':
         specifier: workspace:*
         version: link:../../packages/orm
-      '@django-js/router':
+      '@jsango/router':
         specifier: workspace:*
         version: link:../../packages/router
 
   packages/admin-audit:
     dependencies:
-      '@django-js/admin-core':
+      '@jsango/admin-core':
         specifier: workspace:*
         version: link:../admin-core
-      '@django-js/core':
+      '@jsango/core':
         specifier: workspace:*
         version: link:../core
 
   packages/admin-auth:
     dependencies:
-      '@django-js/admin-core':
+      '@jsango/admin-core':
         specifier: workspace:*
         version: link:../admin-core
-      '@django-js/auth':
+      '@jsango/auth':
         specifier: workspace:*
         version: link:../auth
-      '@django-js/core':
+      '@jsango/core':
         specifier: workspace:*
         version: link:../core
 
   packages/admin-core:
     dependencies:
-      '@django-js/core':
+      '@jsango/core':
         specifier: workspace:*
         version: link:../core
-      '@django-js/orm':
+      '@jsango/orm':
         specifier: workspace:*
         version: link:../orm
-      '@django-js/validation':
+      '@jsango/validation':
         specifier: workspace:*
         version: link:../validation
 
   packages/admin-media:
     dependencies:
-      '@django-js/admin-core':
+      '@jsango/admin-core':
         specifier: workspace:*
         version: link:../admin-core
-      '@django-js/core':
+      '@jsango/core':
         specifier: workspace:*
         version: link:../core
 
   packages/admin-server:
     dependencies:
-      '@django-js/admin-audit':
+      '@jsango/admin-audit':
         specifier: workspace:*
         version: link:../admin-audit
-      '@django-js/admin-auth':
+      '@jsango/admin-auth':
         specifier: workspace:*
         version: link:../admin-auth
-      '@django-js/admin-core':
+      '@jsango/admin-core':
         specifier: workspace:*
         version: link:../admin-core
-      '@django-js/auth':
+      '@jsango/auth':
         specifier: workspace:*
         version: link:../auth
-      '@django-js/core':
+      '@jsango/core':
         specifier: workspace:*
         version: link:../core
-      '@django-js/http':
+      '@jsango/http':
         specifier: workspace:*
         version: link:../http
-      '@django-js/router':
+      '@jsango/router':
         specifier: workspace:*
         version: link:../router
 
-  packages/auth:
+  packages/admin-ui:
     dependencies:
-      '@django-js/config':
+      '@jsango/admin-core':
         specifier: workspace:*
-        version: link:../config
-      '@django-js/container':
-        specifier: workspace:*
-        version: link:../container
-      '@django-js/core':
+        version: link:../admin-core
+      '@jsango/core':
         specifier: workspace:*
         version: link:../core
-      '@django-js/http':
+
+  packages/auth:
+    dependencies:
+      '@jsango/config':
+        specifier: workspace:*
+        version: link:../config
+      '@jsango/container':
+        specifier: workspace:*
+        version: link:../container
+      '@jsango/core':
+        specifier: workspace:*
+        version: link:../core
+      '@jsango/http':
         specifier: workspace:*
         version: link:../http
-      '@django-js/middleware':
+      '@jsango/middleware':
         specifier: workspace:*
         version: link:../middleware
-      '@django-js/runtime':
+      '@jsango/runtime':
         specifier: workspace:*
         version: link:../runtime
 
   packages/cache:
     dependencies:
-      '@django-js/config':
+      '@jsango/config':
         specifier: workspace:*
         version: link:../config
-      '@django-js/container':
+      '@jsango/container':
         specifier: workspace:*
         version: link:../container
-      '@django-js/core':
+      '@jsango/core':
         specifier: workspace:*
         version: link:../core
-      '@django-js/runtime':
+      '@jsango/runtime':
         specifier: workspace:*
         version: link:../runtime
 
   packages/cli:
     dependencies:
-      '@django-js/cache':
+      '@jsango/cache':
         specifier: workspace:*
         version: link:../cache
-      '@django-js/config':
+      '@jsango/config':
         specifier: workspace:*
         version: link:../config
-      '@django-js/container':
+      '@jsango/container':
         specifier: workspace:*
         version: link:../container
-      '@django-js/core':
+      '@jsango/core':
         specifier: workspace:*
         version: link:../core
-      '@django-js/database':
+      '@jsango/database':
         specifier: workspace:*
         version: link:../database
-      '@django-js/events':
+      '@jsango/events':
         specifier: workspace:*
         version: link:../events
-      '@django-js/http':
+      '@jsango/http':
         specifier: workspace:*
         version: link:../http
-      '@django-js/middleware':
+      '@jsango/middleware':
         specifier: workspace:*
         version: link:../middleware
-      '@django-js/migrations':
+      '@jsango/migrations':
         specifier: workspace:*
         version: link:../migrations
-      '@django-js/observability':
+      '@jsango/observability':
         specifier: workspace:*
         version: link:../observability
-      '@django-js/openapi':
+      '@jsango/openapi':
         specifier: workspace:*
         version: link:../openapi
-      '@django-js/orm':
+      '@jsango/orm':
         specifier: workspace:*
         version: link:../orm
-      '@django-js/queue':
+      '@jsango/queue':
         specifier: workspace:*
         version: link:../queue
-      '@django-js/router':
+      '@jsango/router':
         specifier: workspace:*
         version: link:../router
-      '@django-js/runtime':
+      '@jsango/runtime':
         specifier: workspace:*
         version: link:../runtime
-      '@django-js/websocket':
+      '@jsango/websocket':
         specifier: workspace:*
         version: link:../websocket
 
   packages/config:
     dependencies:
-      '@django-js/core':
+      '@jsango/core':
         specifier: workspace:*
         version: link:../core
-      '@django-js/runtime':
+      '@jsango/runtime':
         specifier: workspace:*
         version: link:../runtime
 
   packages/container:
     dependencies:
-      '@django-js/core':
+      '@jsango/core':
         specifier: workspace:*
         version: link:../core
 
   packages/core:
     dependencies:
-      '@django-js/runtime':
+      '@jsango/runtime':
         specifier: workspace:*
         version: link:../runtime
 
   packages/database:
     dependencies:
-      '@django-js/config':
+      '@jsango/config':
         specifier: workspace:*
         version: link:../config
-      '@django-js/core':
+      '@jsango/core':
         specifier: workspace:*
         version: link:../core
 
   packages/events:
     dependencies:
-      '@django-js/core':
+      '@jsango/core':
         specifier: workspace:*
         version: link:../core
 
   packages/http:
     dependencies:
-      '@django-js/container':
+      '@jsango/container':
         specifier: workspace:*
         version: link:../container
-      '@django-js/core':
+      '@jsango/core':
         specifier: workspace:*
         version: link:../core
 
   packages/middleware:
     dependencies:
-      '@django-js/container':
+      '@jsango/container':
         specifier: workspace:*
         version: link:../container
-      '@django-js/core':
+      '@jsango/core':
         specifier: workspace:*
         version: link:../core
-      '@django-js/http':
+      '@jsango/http':
         specifier: workspace:*
         version: link:../http
-      '@django-js/router':
+      '@jsango/router':
         specifier: workspace:*
         version: link:../router
 
   packages/migrations:
     dependencies:
-      '@django-js/core':
+      '@jsango/core':
         specifier: workspace:*
         version: link:../core
-      '@django-js/database':
+      '@jsango/database':
         specifier: workspace:*
         version: link:../database
-      '@django-js/orm':
+      '@jsango/orm':
         specifier: workspace:*
         version: link:../orm
 
   packages/observability:
     dependencies:
-      '@django-js/core':
+      '@jsango/core':
         specifier: workspace:*
         version: link:../core
-      '@django-js/http':
+      '@jsango/http':
         specifier: workspace:*
         version: link:../http
-      '@django-js/router':
+      '@jsango/router':
         specifier: workspace:*
         version: link:../router
 
   packages/openapi:
     dependencies:
-      '@django-js/core':
+      '@jsango/core':
         specifier: workspace:*
         version: link:../core
-      '@django-js/http':
+      '@jsango/http':
         specifier: workspace:*
         version: link:../http
-      '@django-js/router':
+      '@jsango/router':
         specifier: workspace:*
         version: link:../router
-      '@django-js/validation':
+      '@jsango/validation':
         specifier: workspace:*
         version: link:../validation
 
   packages/orm:
     dependencies:
-      '@django-js/core':
+      '@jsango/core':
         specifier: workspace:*
         version: link:../core
-      '@django-js/database':
+      '@jsango/database':
         specifier: workspace:*
         version: link:../database
 
   packages/queue:
     dependencies:
-      '@django-js/config':
+      '@jsango/config':
         specifier: workspace:*
         version: link:../config
-      '@django-js/container':
+      '@jsango/container':
         specifier: workspace:*
         version: link:../container
-      '@django-js/core':
+      '@jsango/core':
         specifier: workspace:*
         version: link:../core
-      '@django-js/database':
+      '@jsango/database':
         specifier: workspace:*
         version: link:../database
-      '@django-js/runtime':
+      '@jsango/runtime':
         specifier: workspace:*
         version: link:../runtime
 
   packages/router:
     dependencies:
-      '@django-js/core':
+      '@jsango/core':
         specifier: workspace:*
         version: link:../core
-      '@django-js/http':
+      '@jsango/http':
         specifier: workspace:*
         version: link:../http
 
@@ -534,25 +543,25 @@ importers:
 
   packages/testing:
     dependencies:
-      '@django-js/container':
+      '@jsango/container':
         specifier: workspace:*
         version: link:../container
-      '@django-js/core':
+      '@jsango/core':
         specifier: workspace:*
         version: link:../core
 
   packages/validation:
     dependencies:
-      '@django-js/core':
+      '@jsango/core':
         specifier: workspace:*
         version: link:../core
 
   packages/websocket:
     dependencies:
-      '@django-js/core':
+      '@jsango/core':
         specifier: workspace:*
         version: link:../core
-      '@django-js/http':
+      '@jsango/http':
         specifier: workspace:*
         version: link:../http
       ws:

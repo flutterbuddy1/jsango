@@ -1,6 +1,6 @@
-import { DjangoJsError } from '@django-js/core';
+import { JsangoError } from '@jsango/core';
 
-export class WebSocketError extends DjangoJsError {
+export class WebSocketError extends JsangoError {
   constructor(options: {
     readonly code?: string | undefined;
     readonly message: string;

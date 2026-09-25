@@ -2,7 +2,7 @@ import { BaseCommand } from '../public/command.js';
 import type { CommandContext } from '../public/context.js';
 import { ExitCode } from '../public/types.js';
 import { FRAMEWORK_VERSION } from './version.js';
-import { MigrationRunner } from '@django-js/migrations';
+import { MigrationRunner } from '@jsango/migrations';
 
 export interface DiagnosticCheck {
   readonly category: string;
@@ -15,7 +15,7 @@ export interface DiagnosticCheck {
 export class DoctorCommand extends BaseCommand {
   public readonly name = 'doctor';
   public readonly description = 'Run system and project diagnostics';
-  public readonly usage = 'django-js doctor [options]';
+  public readonly usage = 'jsango doctor [options]';
 
   public async execute(context: CommandContext): Promise<number> {
     const checks: DiagnosticCheck[] = [];
@@ -41,7 +41,7 @@ export class DoctorCommand extends BaseCommand {
     // 2. Framework Version
     checks.push({
       category: 'Framework',
-      name: 'Nexora Core',
+      name: 'JSango Core',
       status: 'ok',
       message: `v${FRAMEWORK_VERSION}`,
     });
@@ -151,7 +151,7 @@ export class DoctorCommand extends BaseCommand {
       context.output.json({ checks });
     } else {
       const { colors } = context.output;
-      context.output.text(colors.bold('Nexora Diagnostic Report'));
+      context.output.text(colors.bold('JSango Diagnostic Report'));
       context.output.text();
 
       const rows = checks.map((c) => {

@@ -1,7 +1,7 @@
 {
-  "name": "@django-js/testing",
+  "name": "@jsango/testing",
   "version": "1.0.0",
-  "description": "Framework testing utilities for django-js",
+  "description": "Framework testing utilities for jsango",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,8 +17,8 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@django-js/container": "workspace:*",
-    "@django-js/core": "workspace:*"
+    "@jsango/container": "workspace:*",
+    "@jsango/core": "workspace:*"
   },
   "files": [
     "dist"
@@ -26,7 +26,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/django-js/django-js.git",
+    "url": "https://github.com/jsango/jsango.git",
     "directory": "packages/testing"
   },
   "publishConfig": {

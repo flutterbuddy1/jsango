@@ -7,7 +7,7 @@ import {
   type IDatabaseDriver,
 } from './index.js';
 
-describe('@django-js/database', () => {
+describe('@jsango/database', () => {
   it('should export all public database abstractions and classes', () => {
     expect(DatabaseManager).toBeDefined();
     expect(DatabaseConnection).toBeDefined();

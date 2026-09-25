@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ModelMetadata, fields } from '@django-js/orm';
+import { ModelMetadata, fields } from '@jsango/orm';
 import { AutoResourceGenerator } from '../public/auto-generator.js';
 
 describe('AutoResourceGenerator', () => {

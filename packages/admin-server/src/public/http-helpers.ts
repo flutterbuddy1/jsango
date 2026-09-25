@@ -1,4 +1,4 @@
-import { type HttpRequest, HttpResponse, HttpStatus } from '@django-js/http';
+import { type HttpRequest, HttpResponse, HttpStatus } from '@jsango/http';
 import type { AdminListQuery } from './types.js';
 
 /**

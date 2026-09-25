@@ -1,12 +1,12 @@
-# django-js Public API Stability Policy
+# jsango Public API Stability Policy
 
-This document defines the formal stability classification, deprecation policies, and Semantic Versioning guarantees for all public APIs across the `django-js` ecosystem beginning with **v1.0.0**.
+This document defines the formal stability classification, deprecation policies, and Semantic Versioning guarantees for all public APIs across the `jsango` ecosystem beginning with **v1.0.0**.
 
 ---
 
 ## 1. API Stability Tiers
 
-Every symbol exported by a `@django-js/*` package belongs to one of four formal tiers:
+Every symbol exported by a `@jsango/*` package belongs to one of four formal tiers:
 
 ### Tier 1: Stable Public API
 
@@ -34,7 +34,7 @@ Every symbol exported by a `@django-js/*` package belongs to one of four formal 
 
 ## 2. Semantic Versioning Rules (Post-1.0)
 
-`django-js` follows [SemVer 2.0.0](https://semver.org/):
+`jsango` follows [SemVer 2.0.0](https://semver.org/):
 
 - **MAJOR (`X.0.0`)**: Incompatible public API changes, removed deprecated APIs, or bumped minimum Node.js runtime requirement.
 - **MINOR (`1.X.0`)**: Backwards-compatible new features, additive packages, or new adapters.

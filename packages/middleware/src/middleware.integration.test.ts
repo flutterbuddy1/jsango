@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { Application } from './index.js';
-import type { IHttpServer } from '@django-js/http';
+import type { IHttpServer } from '@jsango/http';
 
 describe('Application Request Lifecycle Integration Tests', () => {
   let app: Application;
@@ -23,7 +23,7 @@ describe('Application Request Lifecycle Integration Tests', () => {
       if (tracker) {
         res.headers.set('x-request-seq', String(tracker.sequence));
       }
-      res.headers.set('x-powered-by', 'django-js');
+      res.headers.set('x-powered-by', 'jsango');
       return res;
     });
 
@@ -73,7 +73,7 @@ describe('Application Request Lifecycle Integration Tests', () => {
   it('should process full HTTP request through global middleware and handler with response normalization', async () => {
     const res = await fetch(`${baseUrl}/api/health`);
     expect(res.status).toBe(200);
-    expect(res.headers.get('x-powered-by')).toBe('django-js');
+    expect(res.headers.get('x-powered-by')).toBe('jsango');
     expect(res.headers.get('x-request-seq')).toBeDefined();
 
     const data = await res.json();
@@ -134,7 +134,7 @@ describe('Application Request Lifecycle Integration Tests', () => {
   it('should execute error pipeline and return masked 500 on unhandled error', async () => {
     const res = await fetch(`${baseUrl}/api/crash`);
     expect(res.status).toBe(500);
-    expect(res.headers.get('x-powered-by')).toBe('django-js');
+    expect(res.headers.get('x-powered-by')).toBe('jsango');
 
     const data = await res.json();
     expect(data.error.code).toBe('ERR_INTERNAL_ERROR');
@@ -144,7 +144,7 @@ describe('Application Request Lifecycle Integration Tests', () => {
   it('should return 404 for unknown routes while still applying global middleware', async () => {
     const res = await fetch(`${baseUrl}/nonexistent`);
     expect(res.status).toBe(404);
-    expect(res.headers.get('x-powered-by')).toBe('django-js');
+    expect(res.headers.get('x-powered-by')).toBe('jsango');
     expect(res.headers.get('x-request-seq')).toBeDefined();
 
     const data = await res.json();
@@ -155,7 +155,7 @@ describe('Application Request Lifecycle Integration Tests', () => {
     const res = await fetch(`${baseUrl}/api/echo`, { method: 'GET' });
     expect(res.status).toBe(405);
     expect(res.headers.get('allow')).toBe('POST');
-    expect(res.headers.get('x-powered-by')).toBe('django-js');
+    expect(res.headers.get('x-powered-by')).toBe('jsango');
 
     const data = await res.json();
     expect(data.error.code).toBe('ERR_HTTP_METHOD_NOT_ALLOWED');

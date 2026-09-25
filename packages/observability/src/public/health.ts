@@ -1,6 +1,6 @@
-import type { RouteHandler } from '@django-js/router';
-import type { RequestContext } from '@django-js/http';
-import { HttpResponse, HttpStatus } from '@django-js/http';
+import type { RouteHandler } from '@jsango/router';
+import type { RequestContext } from '@jsango/http';
+import { HttpResponse, HttpStatus } from '@jsango/http';
 import type {
   HealthStatus,
   HealthResult,

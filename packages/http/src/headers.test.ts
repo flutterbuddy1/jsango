@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { HttpHeaders } from './public/headers.js';
-import { DjangoJsError } from '@django-js/core';
+import { JsangoError } from '@jsango/core';
 
 describe('HttpHeaders', () => {
   it('should get, set and check headers case-insensitively', () => {
@@ -65,13 +65,13 @@ describe('HttpHeaders', () => {
     const headers = new HttpHeaders();
     expect(() => {
       headers.set('Bad\r\nHeader', 'value');
-    }).toThrow(DjangoJsError);
+    }).toThrow(JsangoError);
   });
 
   it('should prevent CRLF header injection in header values', () => {
     const headers = new HttpHeaders();
     expect(() => {
       headers.set('X-Test', 'Value\r\nInjected-Header: 123');
-    }).toThrow(DjangoJsError);
+    }).toThrow(JsangoError);
   });
 });

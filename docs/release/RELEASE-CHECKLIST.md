@@ -1,4 +1,4 @@
-# django-js Release Checklist
+# jsango Release Checklist
 
 Follow this checklist prior to publishing any Release Candidate or Production Release.
 

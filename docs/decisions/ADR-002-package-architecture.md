@@ -10,9 +10,9 @@ A monolithic single-package architecture tends to accumulate hidden coupling bet
 
 ## Decision
 
-We structure `django-js` as a modular monorepo managed with `pnpm workspaces` and `Turborepo`.
+We structure `jsango` as a modular monorepo managed with `pnpm workspaces` and `Turborepo`.
 
-- The framework is partitioned into single-responsibility packages (`@django-js/runtime`, `@django-js/core`, `@django-js/container`, `@django-js/config`, `@django-js/http`, `@django-js/router`, `@django-js/middleware`, `@django-js/database`, `@django-js/orm`, `@django-js/validation`, `@django-js/cli`, `@django-js/testing`).
+- The framework is partitioned into single-responsibility packages (`@jsango/runtime`, `@jsango/core`, `@jsango/container`, `@jsango/config`, `@jsango/http`, `@jsango/router`, `@jsango/middleware`, `@jsango/database`, `@jsango/orm`, `@jsango/validation`, `@jsango/cli`, `@jsango/testing`).
 - A strict layered dependency hierarchy is enforced: lower-level packages must never import higher-level packages.
 - Zero circular dependencies are allowed.
 - Build orchestration uses TypeScript Project References (`tsc -b`) managed via Turborepo pipelines.

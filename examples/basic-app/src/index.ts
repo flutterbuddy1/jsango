@@ -1,12 +1,12 @@
-import { Application } from '@django-js/middleware';
-import { DatabaseManager, MemoryDatabaseDriver } from '@django-js/database';
-import { defineModel, fields, relations, setDatabaseManager } from '@django-js/orm';
+import { Application } from '@jsango/middleware';
+import { DatabaseManager, MemoryDatabaseDriver } from '@jsango/database';
+import { defineModel, fields, relations, setDatabaseManager } from '@jsango/orm';
 import {
   Migration,
   MigrationRegistry,
   MigrationRunner,
   CreateTableOperation,
-} from '@django-js/migrations';
+} from '@jsango/migrations';
 
 // 0. Schema Migrations Definition
 export const initMigration = new Migration({
@@ -121,7 +121,7 @@ export function createApplication(): { app: Application; db: DatabaseManager } {
   });
 
   // 6. Routes
-  app.get('/', () => 'Welcome to Nexora!');
+  app.get('/', () => 'Welcome to JSango!');
 
   app.group('/api/v1', (api) => {
     // Model lookup via ORM find()

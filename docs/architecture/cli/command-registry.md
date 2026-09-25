@@ -8,7 +8,7 @@ The `CommandRegistry` manages command registration, lookup, aliases, and namespa
 
 1. **Deterministic Indexing**: Commands are stored in memory and returned sorted alphabetically by primary name.
 2. **Colon-Delimited Namespaces**: Commands follow hierarchical namespacing (`migrate:status`, `route:list`, `model:list`).
-3. **Space-Delimited Fallback**: Running `django-js migrate status` transparently maps to `migrate:status`.
+3. **Space-Delimited Fallback**: Running `jsango migrate status` transparently maps to `migrate:status`.
 4. **Collision Prevention**: Re-registering an existing command name or conflicting alias throws an explicit error immediately.
 5. **Typo Suggestions**: When an unknown command is invoked, the registry uses Levenshtein distance to find the closest valid command and suggests it:
    ```

@@ -1,19 +1,19 @@
-# @django-js/websocket
+# @jsango/websocket
 
 > Real-time WebSocket infrastructure with multi-room management, backpressure guards, heartbeat, and transport adapters.
 
-Part of the **[django-js](https://github.com/django-js/django-js)** backend framework for TypeScript.
+Part of the **[jsango](https://github.com/jsango/jsango)** backend framework for TypeScript.
 
 ## Installation
 
 ```bash
-pnpm add @django-js/websocket
+pnpm add @jsango/websocket
 ```
 
 ## Usage
 
 ```typescript
-import { RoomManager, LocalTransport } from '@django-js/websocket';
+import { RoomManager, LocalTransport } from '@jsango/websocket';
 
 const rooms = new RoomManager();
 const transport = new LocalTransport();
@@ -22,8 +22,8 @@ transport.publish('chat-room', { text: 'Hello!' });
 
 ## Documentation
 
-For full architecture documentation and guides, visit the [django-js documentation](https://github.com/django-js/django-js/tree/main/docs).
+For full architecture documentation and guides, visit the [jsango documentation](https://github.com/jsango/jsango/tree/main/docs).
 
 ## License
 
-MIT © django-js contributors
+MIT © jsango contributors

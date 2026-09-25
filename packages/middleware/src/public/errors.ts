@@ -1,6 +1,6 @@
-import { DjangoJsError } from '@django-js/core';
+import { JsangoError } from '@jsango/core';
 
-export class MiddlewareError extends DjangoJsError {}
+export class MiddlewareError extends JsangoError {}
 
 export class MultipleNextCallsError extends MiddlewareError {
   constructor(middlewareName?: string) {

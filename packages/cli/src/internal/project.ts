@@ -10,10 +10,10 @@ export interface ProjectInfo {
 }
 
 const CONFIG_FILENAMES = [
-  'nexora.config.ts',
-  'nexora.config.js',
-  'django-js.config.ts',
-  'django-js.config.js',
+  'jsango.config.ts',
+  'jsango.config.js',
+  'jsango.config.ts',
+  'jsango.config.js',
 ];
 
 export class ProjectDiscovery {
@@ -42,9 +42,9 @@ export class ProjectDiscovery {
           };
 
           const isFrameworkProject =
-            parsed['nexora'] !== undefined ||
-            parsed['django-js'] !== undefined ||
-            Object.keys(deps).some((k) => k.startsWith('@django-js/') || k === 'django-js');
+            parsed['jsango'] !== undefined ||
+            parsed['jsango'] !== undefined ||
+            Object.keys(deps).some((k) => k.startsWith('@jsango/') || k === 'jsango');
 
           if (isFrameworkProject) {
             return {

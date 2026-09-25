@@ -1,13 +1,13 @@
-import type { Identity } from '@django-js/auth';
-import type { AdminResource, AdminResourceSchema } from '@django-js/admin-core';
+import type { Identity } from '@jsango/auth';
+import type { AdminResource, AdminResourceSchema } from '@jsango/admin-core';
 import {
   AdminAuthorizationError,
   AdminItemNotFoundError,
   AdminResourceNotFoundError,
   AdminActionError,
-} from '@django-js/admin-core';
-import type { AdminPermissionChecker } from '@django-js/admin-auth';
-import type { AdminAuditLogger } from '@django-js/admin-audit';
+} from '@jsango/admin-core';
+import type { AdminPermissionChecker } from '@jsango/admin-auth';
+import type { AdminAuditLogger } from '@jsango/admin-audit';
 import type {
   IAdminQueryAdapter,
   AdminListQuery,

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseCookies, serializeCookie } from './public/cookies.js';
-import { DjangoJsError } from '@django-js/core';
+import { JsangoError } from '@jsango/core';
 
 describe('Cookies', () => {
   it('should parse simple and quoted cookie headers', () => {
@@ -37,15 +37,15 @@ describe('Cookies', () => {
   it('should prevent CRLF injection in cookie values', () => {
     expect(() => {
       serializeCookie('auth', 'val\r\nSet-Cookie: evil=1');
-    }).toThrow(DjangoJsError);
+    }).toThrow(JsangoError);
   });
 
   it('should reject invalid cookie names', () => {
     expect(() => {
       serializeCookie('bad=name', 'val');
-    }).toThrow(DjangoJsError);
+    }).toThrow(JsangoError);
     expect(() => {
       serializeCookie('bad;name', 'val');
-    }).toThrow(DjangoJsError);
+    }).toThrow(JsangoError);
   });
 });

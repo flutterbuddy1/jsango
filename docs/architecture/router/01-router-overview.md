@@ -2,7 +2,7 @@
 
 ## Identity and Responsibilities
 
-`@django-js/router` is the high-performance HTTP routing engine of Nexora. It is responsible for mapping incoming HTTP requests to route handlers based on HTTP method, path patterns, parameter constraints, and route priorities.
+`@jsango/router` is the high-performance HTTP routing engine of JSango. It is responsible for mapping incoming HTTP requests to route handlers based on HTTP method, path patterns, parameter constraints, and route priorities.
 
 ## Key Capabilities
 

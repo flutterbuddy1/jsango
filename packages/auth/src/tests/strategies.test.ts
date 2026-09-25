@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { HttpRequest, RequestContext } from '@django-js/http';
+import { HttpRequest, RequestContext } from '@jsango/http';
 import {
   BearerTokenAuthenticationStrategy,
   JwtTokenVerifier,

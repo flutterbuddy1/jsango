@@ -1,10 +1,6 @@
-import {
-  DatabaseManager,
-  MemoryDatabaseDriver,
-  type IDatabaseConnection,
-} from '@django-js/database';
+import { DatabaseManager, MemoryDatabaseDriver, type IDatabaseConnection } from '@jsango/database';
 import { defaultMigrationRegistry } from '../public/registry.js';
-import { defaultModelRegistry } from '@django-js/orm';
+import { defaultModelRegistry } from '@jsango/orm';
 
 export function createTestDatabase(): {
   manager: DatabaseManager;

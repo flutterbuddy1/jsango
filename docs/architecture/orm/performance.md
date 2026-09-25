@@ -2,7 +2,7 @@
 
 ## Performance Architecture
 
-`@django-js/orm` is optimized for high-throughput, low-latency microservices and high-concurrency server workloads:
+`@jsango/orm` is optimized for high-throughput, low-latency microservices and high-concurrency server workloads:
 
 1. **Zero Runtime Reflection**: Does not use TypeScript experimental decorator reflection (`reflect-metadata`), eliminating runtime overhead and startup penalties.
 2. **Immutable Cloned Builders**: Query builders use lightweight shallow copies of AST structures for query chaining (4.05M ops/sec).

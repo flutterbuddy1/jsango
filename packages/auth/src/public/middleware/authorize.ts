@@ -1,5 +1,5 @@
-import type { MiddlewareHandler } from '@django-js/middleware';
-import type { RequestContext, HttpResponse } from '@django-js/http';
+import type { MiddlewareHandler } from '@jsango/middleware';
+import type { RequestContext, HttpResponse } from '@jsango/http';
 import { UnauthenticatedError, ForbiddenError } from '../errors.js';
 import { AuthorizationManager } from '../authorization/manager.js';
 import { getAuthContext, getIdentity } from '../context/auth-context.js';

@@ -9,14 +9,14 @@
     "dev": "node dist/index.js"
   },
   "dependencies": {
-    "@django-js/core": "workspace:*",
-    "@django-js/container": "workspace:*",
-    "@django-js/http": "workspace:*",
-    "@django-js/router": "workspace:*",
-    "@django-js/middleware": "workspace:*",
-    "@django-js/database": "workspace:*",
-    "@django-js/orm": "workspace:*",
-    "@django-js/migrations": "workspace:*",
-    "@django-js/cli": "workspace:*"
+    "@jsango/core": "workspace:*",
+    "@jsango/container": "workspace:*",
+    "@jsango/http": "workspace:*",
+    "@jsango/router": "workspace:*",
+    "@jsango/middleware": "workspace:*",
+    "@jsango/database": "workspace:*",
+    "@jsango/orm": "workspace:*",
+    "@jsango/migrations": "workspace:*",
+    "@jsango/cli": "workspace:*"
   }
 }

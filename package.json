@@ -1,5 +1,5 @@
 {
-  "name": "django-js-monorepo",
+  "name": "jsango-monorepo",
   "version": "1.0.0",
   "private": true,
   "description": "Production-grade, batteries-included TypeScript backend framework for modern JavaScript runtimes",
@@ -13,6 +13,7 @@
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,js,json,md,yaml,yml}\"",
     "format:check": "prettier --check \"**/*.{ts,js,json,md,yaml,yml}\"",
+    "check:branding": "node scripts/check-branding.mjs",
     "clean": "turbo run clean"
   },
   "devDependencies": {

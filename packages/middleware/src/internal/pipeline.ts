@@ -1,4 +1,4 @@
-import type { HttpResponse, RequestContext } from '@django-js/http';
+import type { HttpResponse, RequestContext } from '@jsango/http';
 import type { Middleware, NextFunction } from '../public/types.js';
 import { MultipleNextCallsError } from '../public/errors.js';
 import { ResponseNormalizer } from './normalizer.js';

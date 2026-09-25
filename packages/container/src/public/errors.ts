@@ -1,7 +1,7 @@
-import { DjangoJsError } from '@django-js/core';
+import { JsangoError } from '@jsango/core';
 import type { ServiceIdentifier } from './container.js';
 
-export class ServiceNotFoundError extends DjangoJsError {
+export class ServiceNotFoundError extends JsangoError {
   constructor(id: ServiceIdentifier<unknown>) {
     const idName = typeof id === 'function' ? id.name : String(id);
     super({
@@ -13,7 +13,7 @@ export class ServiceNotFoundError extends DjangoJsError {
   }
 }
 
-export class CircularDependencyError extends DjangoJsError {
+export class CircularDependencyError extends JsangoError {
   constructor(chain: string[]) {
     super({
       code: 'ERR_CIRCULAR_DEPENDENCY',
@@ -24,7 +24,7 @@ export class CircularDependencyError extends DjangoJsError {
   }
 }
 
-export class ContainerDisposedError extends DjangoJsError {
+export class ContainerDisposedError extends JsangoError {
   constructor() {
     super({
       code: 'ERR_CONTAINER_DISPOSED',

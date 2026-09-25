@@ -1,4 +1,4 @@
-import type { HttpRequest, RequestContext } from '@django-js/http';
+import type { HttpRequest, RequestContext } from '@jsango/http';
 import { AnonymousIdentity } from '../identity.js';
 import type { AuthenticationResult, IAuthenticationStrategy } from '../types.js';
 

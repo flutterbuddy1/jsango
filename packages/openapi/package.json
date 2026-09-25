@@ -1,7 +1,7 @@
 {
-  "name": "@django-js/openapi",
+  "name": "@jsango/openapi",
   "version": "1.0.0",
-  "description": "Deterministic OpenAPI 3.x document generation and documentation foundation for django-js",
+  "description": "Deterministic OpenAPI 3.x document generation and documentation foundation for jsango",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,10 +17,10 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@django-js/core": "workspace:*",
-    "@django-js/http": "workspace:*",
-    "@django-js/router": "workspace:*",
-    "@django-js/validation": "workspace:*"
+    "@jsango/core": "workspace:*",
+    "@jsango/http": "workspace:*",
+    "@jsango/router": "workspace:*",
+    "@jsango/validation": "workspace:*"
   },
   "files": [
     "dist"
@@ -28,7 +28,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/django-js/django-js.git",
+    "url": "https://github.com/jsango/jsango.git",
     "directory": "packages/openapi"
   },
   "publishConfig": {

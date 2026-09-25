@@ -1,5 +1,5 @@
-import type { HttpMethod, RequestContext } from '@django-js/http';
-import { HttpResponse, HttpStatus } from '@django-js/http';
+import type { HttpMethod, RequestContext } from '@jsango/http';
+import { HttpResponse, HttpStatus } from '@jsango/http';
 import { Route, type RouteHandler, type RouteOptions } from './route.js';
 import { RouteGroup, type RouteGroupConfig, type RouteGroupOptions } from './group.js';
 import type { IRouter } from './router-interface.js';

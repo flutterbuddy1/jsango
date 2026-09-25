@@ -6,11 +6,11 @@ Accepted
 
 ## Context
 
-As the `django-js` framework advances to production readiness, database schemas must evolve deterministically across development, testing, staging, and multi-node production clusters.
+As the `jsango` framework advances to production readiness, database schemas must evolve deterministically across development, testing, staging, and multi-node production clusters.
 
-The requirements for schema management in `django-js` are:
+The requirements for schema management in `jsango` are:
 
-1. **Unidirectional Layering**: Zero dependencies on higher layers (HTTP, routing, controllers, validation, auth). Depend strictly on `@django-js/core`, `@django-js/database`, and `@django-js/orm`.
+1. **Unidirectional Layering**: Zero dependencies on higher layers (HTTP, routing, controllers, validation, auth). Depend strictly on `@jsango/core`, `@jsango/database`, and `@jsango/orm`.
 2. **Normalized Schema Representation**: Dialect-independent schema representation (`SchemaSnapshot`, `TableSchema`, `ColumnSchema`, `IndexSchema`, `ForeignKeySchema`, `UniqueConstraintSchema`) with deterministic structural hashing and equality.
 3. **Deterministic Diff Engine**: Pure topological schema difference calculation producing a stable sequence of operations (table creation $\to$ columns $\to$ alterations $\to$ unique constraints $\to$ indexes $\to$ foreign keys $\to$ drops).
 4. **Safety & Destructive Operation Guard**: Destructive operations (`DropTable`, `DropColumn`, incompatible alterations) must be rejected by default unless explicit override (`allowDestructive: true`) is provided.
@@ -68,7 +68,7 @@ Any migration containing destructive operations (`isDestructive: true`) throws `
 
 ### 5. Distributed Locking
 
-Migration execution is coordinated via `django_js_migration_lock`:
+Migration execution is coordinated via `jsango_migration_lock`:
 
 - Contains row `id = 'lock'`.
 - Uses optimistic concurrency with timestamps.
@@ -81,5 +81,5 @@ Each migration executes within an isolated transaction if `driver.capabilities.s
 ## Consequences
 
 - **Positive**: Complete schema reproducibility, zero external dependencies, robust production safety, deterministic ordering, and multi-replica concurrency safety.
-- **Positive**: Clean foundation for future CLI commands (`django-js makemigrations`, `django-js migrate`) and Admin introspection.
+- **Positive**: Clean foundation for future CLI commands (`jsango makemigrations`, `jsango migrate`) and Admin introspection.
 - **Negative**: Full column introspection in production requires driver-specific metadata queries.

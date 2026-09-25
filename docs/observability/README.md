@@ -1,19 +1,19 @@
 # Observability Documentation
 
-See [`docs/architecture/observability/README.md`](file:///Users/mayankdiwakar/Documents/Development/django-js/docs/architecture/observability/README.md) for full architectural details.
+See [`docs/architecture/observability/README.md`](file:///Users/mayankdiwakar/Documents/Development/jsango/docs/architecture/observability/README.md) for full architectural details.
 
 ## Quick CLI Usage
 
 ```bash
 # Check application health
-django-js health
+jsango health
 
 # Display metrics snapshot
-django-js metrics
+jsango metrics
 
 # Filter metrics
-django-js metrics --filter http
+jsango metrics --filter http
 
 # Display system diagnostics
-django-js diagnostics
+jsango diagnostics
 ```

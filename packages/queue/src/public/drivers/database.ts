@@ -1,4 +1,4 @@
-import type { DatabaseManager } from '@django-js/database';
+import type { DatabaseManager } from '@jsango/database';
 import type {
   IQueueDriver,
   Job,
@@ -37,7 +37,7 @@ interface JobRow {
 }
 
 /**
- * Production Database Queue Driver leveraging @django-js/database
+ * Production Database Queue Driver leveraging @jsango/database
  * with safe SQL execution, leased claiming, and multi-worker safety.
  */
 export class DatabaseQueueDriver implements IQueueDriver {
@@ -55,7 +55,7 @@ export class DatabaseQueueDriver implements IQueueDriver {
 
   constructor(options: DatabaseQueueDriverOptions) {
     this.db = options.databaseManager;
-    this.tableName = options.tableName ?? 'django_js_jobs';
+    this.tableName = options.tableName ?? 'jsango_jobs';
   }
 
   /**

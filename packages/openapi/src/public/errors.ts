@@ -1,6 +1,6 @@
-import { DjangoJsError } from '@django-js/core';
+import { JsangoError } from '@jsango/core';
 
-export class OpenApiError extends DjangoJsError {
+export class OpenApiError extends JsangoError {
   constructor(message: string, code = 'ERR_OPENAPI_GENERAL', meta?: Record<string, unknown>) {
     super({ code, message, metadata: meta });
     this.name = 'OpenApiError';

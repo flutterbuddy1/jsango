@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { DjangoJsError, NoopLogger } from './index.js';
+import { JsangoError, NoopLogger } from './index.js';
 
-describe('@django-js/core', () => {
-  describe('DjangoJsError', () => {
+describe('@jsango/core', () => {
+  describe('JsangoError', () => {
     it('should instantiate error with code, message, and status', () => {
-      const err = new DjangoJsError({
+      const err = new JsangoError({
         code: 'ERR_NOT_FOUND',
         message: 'Resource was not found',
         statusCode: 404,
@@ -18,7 +18,7 @@ describe('@django-js/core', () => {
     });
 
     it('should safely serialize 5xx error in production', () => {
-      const err = new DjangoJsError({
+      const err = new JsangoError({
         code: 'ERR_DB_CRASH',
         message: 'Database connection string leaked: secret_pwd',
         statusCode: 500,
@@ -32,7 +32,7 @@ describe('@django-js/core', () => {
     });
 
     it('should serialize error with details in non-production mode', () => {
-      const err = new DjangoJsError({
+      const err = new JsangoError({
         code: 'ERR_DB_CRASH',
         message: 'Detailed error info',
         statusCode: 500,

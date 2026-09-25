@@ -20,7 +20,7 @@ Complex applications require decoupling between core business operations (e.g. u
    - Event middleware operates via an onion pipeline (`EventMiddlewarePipeline`) independent of HTTP and Queue middleware.
    - Enables centralized event logging, schema validation, authorization, and telemetry.
 5. **Decoupled Queue Integration**:
-   - `EventBus` has zero compile-time dependency on `@django-js/queue`.
+   - `EventBus` has zero compile-time dependency on `@jsango/queue`.
    - Communication with the queue system occurs through the `IEventQueueAdapter` abstraction (`QueueEventAdapter`).
 
 ## Consequences

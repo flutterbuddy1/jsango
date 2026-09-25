@@ -2,7 +2,7 @@
 
 ## Design for High-Concurrency Workloads
 
-`django-js` is engineered for high-throughput, low-latency applications running in cloud-native and edge environments.
+`jsango` is engineered for high-throughput, low-latency applications running in cloud-native and edge environments.
 
 ### Core Performance Principles
 

@@ -1,6 +1,6 @@
-# django-js Framework Limitations & Architectural Boundaries
+# jsango Framework Limitations & Architectural Boundaries
 
-This document provides a transparent, honest overview of the architectural limitations, runtime boundaries, and current scope of the `django-js` framework as of `0.1.0-rc.1`.
+This document provides a transparent, honest overview of the architectural limitations, runtime boundaries, and current scope of the `jsango` framework as of `0.1.0-rc.1`.
 
 ---
 
@@ -8,7 +8,7 @@ This document provides a transparent, honest overview of the architectural limit
 
 - **Node.js**: Requires Node.js `>=20.0.0` (active LTS or newer) utilizing native ECMAScript Modules (`"type": "module"`).
 - **Bun / Deno**: The core HTTP, Container, Router, Validation, and ORM packages are designed with runtime independence abstractions (`IRuntimeAdapter`). However, dedicated Bun/Deno platform adapters are planned for post-1.0 milestones.
-- **CommonJS**: The framework is strictly ESM-first. CJS consumers must use dynamic `import()` to consume `@django-js/*` packages.
+- **CommonJS**: The framework is strictly ESM-first. CJS consumers must use dynamic `import()` to consume `@jsango/*` packages.
 
 ---
 

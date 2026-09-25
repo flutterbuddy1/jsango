@@ -1,7 +1,7 @@
-import type { HttpResponse, RequestContext } from '@django-js/http';
-import type { ILogger } from '@django-js/core';
-import type { Container } from '@django-js/container';
-import type { Router } from '@django-js/router';
+import type { HttpResponse, RequestContext } from '@jsango/http';
+import type { ILogger } from '@jsango/core';
+import type { Container } from '@jsango/container';
+import type { Router } from '@jsango/router';
 
 export type NextFunction = () => Promise<HttpResponse>;
 

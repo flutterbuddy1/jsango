@@ -1,12 +1,12 @@
 import { BaseCommand } from '../public/command.js';
 import type { CommandContext } from '../public/context.js';
 import { ExitCode } from '../public/types.js';
-import { QueueManager } from '@django-js/queue';
+import { QueueManager } from '@jsango/queue';
 
 export class QueueStatusCommand extends BaseCommand {
   public readonly name = 'queue:status';
   public readonly description = 'Show status and metrics for background job queues';
-  public readonly usage = 'django-js queue:status [options]';
+  public readonly usage = 'jsango queue:status [options]';
   public readonly options = [
     {
       name: 'queue',

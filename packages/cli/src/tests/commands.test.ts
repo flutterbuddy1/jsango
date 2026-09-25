@@ -3,10 +3,10 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { CliApplication } from '../public/app.js';
 import { CliOutput } from '../public/output.js';
-import { Application } from '@django-js/middleware';
-import { DatabaseManager, MemoryDatabaseDriver } from '@django-js/database';
-import { defineModel, fields, setDatabaseManager, defaultModelRegistry } from '@django-js/orm';
-import { CreateTableOperation, Migration, MigrationRegistry } from '@django-js/migrations';
+import { Application } from '@jsango/middleware';
+import { DatabaseManager, MemoryDatabaseDriver } from '@jsango/database';
+import { defineModel, fields, setDatabaseManager, defaultModelRegistry } from '@jsango/orm';
+import { CreateTableOperation, Migration, MigrationRegistry } from '@jsango/migrations';
 import { ExitCode } from '../public/types.js';
 
 describe('Built-in Commands', () => {
@@ -38,14 +38,14 @@ describe('Built-in Commands', () => {
     it('should output version in text mode', async () => {
       const code = await app.run(['version'], output);
       expect(code).toBe(ExitCode.SUCCESS);
-      expect(stdoutData).toContain('django-js v1.0.0');
+      expect(stdoutData).toContain('jsango v1.0.0');
     });
 
     it('should output version in json mode', async () => {
       const code = await app.run(['--json', 'version'], output);
       expect(code).toBe(ExitCode.SUCCESS);
       const parsed = JSON.parse(stdoutData.trim()) as Record<string, unknown>;
-      expect(parsed['framework']).toBe('django-js');
+      expect(parsed['framework']).toBe('jsango');
       expect(parsed['version']).toBe('1.0.0');
     });
   });
@@ -54,7 +54,7 @@ describe('Built-in Commands', () => {
     it('should display global help when no arguments are provided', async () => {
       const code = await app.run([], output);
       expect(code).toBe(ExitCode.SUCCESS);
-      expect(stdoutData).toContain('django-js — Production-grade TypeScript backend framework');
+      expect(stdoutData).toContain('jsango — Production-grade TypeScript backend framework');
       expect(stdoutData).toContain('AVAILABLE COMMANDS');
     });
 
@@ -71,7 +71,7 @@ describe('Built-in Commands', () => {
     it('should run diagnostic checks successfully', async () => {
       const code = await app.run(['doctor'], output);
       expect(code).toBe(ExitCode.SUCCESS);
-      expect(stdoutData).toContain('Nexora Diagnostic Report');
+      expect(stdoutData).toContain('JSango Diagnostic Report');
       expect(stdoutData).toContain('Node.js Version');
     });
 
@@ -160,7 +160,7 @@ describe('Built-in Commands', () => {
       });
       (ctx as unknown as { _config: unknown })._config = {
         values: {
-          appName: 'django-js-app',
+          appName: 'jsango-app',
           dbPassword: 'super-secret-password-123',
           apiKey: 'token-abc-987',
         },
@@ -169,7 +169,7 @@ describe('Built-in Commands', () => {
       const code = await cmd.execute(ctx);
       expect(code).toBe(ExitCode.SUCCESS);
       expect(stdoutData).toContain('appName');
-      expect(stdoutData).toContain('django-js-app');
+      expect(stdoutData).toContain('jsango-app');
       expect(stdoutData).toContain('********');
       expect(stdoutData).not.toContain('super-secret-password-123');
       expect(stdoutData).not.toContain('token-abc-987');

@@ -45,4 +45,4 @@ Every `ModelMetadata` instance provides all information required to construct da
    - `metadata.timestamps`: `createdAt` and `updatedAt` timestamp columns.
    - `metadata.softDelete`: `deletedAt` nullable timestamp column.
 
-By exposing this rich, deterministic metadata structure, Phase 7 Migrations can be implemented cleanly without touching `@django-js/orm` internals.
+By exposing this rich, deterministic metadata structure, Phase 7 Migrations can be implemented cleanly without touching `@jsango/orm` internals.

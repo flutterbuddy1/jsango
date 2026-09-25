@@ -1,4 +1,4 @@
-import type { IDatabaseConnection } from '@django-js/database';
+import type { IDatabaseConnection } from '@jsango/database';
 import { SchemaSnapshot } from './schema.js';
 import { MemorySchemaIntrospector } from '../internal/introspectors/memory-introspector.js';
 import { PostgresSchemaIntrospector } from '../internal/introspectors/postgres-introspector.js';

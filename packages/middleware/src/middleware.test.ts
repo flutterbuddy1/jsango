@@ -7,8 +7,8 @@ import {
   type MiddlewareHandler,
   type NextFunction,
 } from './index.js';
-import { HttpRequest, HttpResponse, HttpStatus, RequestContext } from '@django-js/http';
-import { DjangoJsError } from '@django-js/core';
+import { HttpRequest, HttpResponse, HttpStatus, RequestContext } from '@jsango/http';
+import { JsangoError } from '@jsango/core';
 
 function createMockRequest(
   method: string,
@@ -22,7 +22,7 @@ function createMockRequest(
   });
 }
 
-describe('@django-js/middleware', () => {
+describe('@jsango/middleware', () => {
   describe('MiddlewarePipeline Engine', () => {
     it('should execute single middleware before and after logic', async () => {
       const order: string[] = [];
@@ -423,7 +423,7 @@ describe('@django-js/middleware', () => {
     it('should mask 5xx internal error details in production mode', async () => {
       const app = new Application({ isProduction: true });
       app.get('/db-error', () => {
-        throw new DjangoJsError({
+        throw new JsangoError({
           code: 'ERR_DB',
           message: 'Sensitive database credentials leaked',
           statusCode: 500,

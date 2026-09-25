@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-Nexora provides a pluggable session abstraction decoupling session storage from runtime execution.
+JSango provides a pluggable session abstraction decoupling session storage from runtime execution.
 
 ```typescript
 export interface ISessionStore {

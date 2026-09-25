@@ -1,7 +1,7 @@
 {
-  "name": "@django-js/config",
+  "name": "@jsango/config",
   "version": "1.0.0",
-  "description": "Configuration loading, validation and environment abstraction for django-js",
+  "description": "Configuration loading, validation and environment abstraction for jsango",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,8 +17,8 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@django-js/core": "workspace:*",
-    "@django-js/runtime": "workspace:*"
+    "@jsango/core": "workspace:*",
+    "@jsango/runtime": "workspace:*"
   },
   "files": [
     "dist"
@@ -26,7 +26,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/django-js/django-js.git",
+    "url": "https://github.com/jsango/jsango.git",
     "directory": "packages/config"
   },
   "publishConfig": {

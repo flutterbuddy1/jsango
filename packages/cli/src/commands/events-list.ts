@@ -5,7 +5,7 @@ import { ExitCode } from '../public/types.js';
 export class EventsListCommand extends BaseCommand {
   public readonly name = 'events:list';
   public readonly description = 'List all registered events and their handlers';
-  public readonly usage = 'django-js events:list [options]';
+  public readonly usage = 'jsango events:list [options]';
   public readonly options = [];
 
   public async execute(context: CommandContext): Promise<number> {

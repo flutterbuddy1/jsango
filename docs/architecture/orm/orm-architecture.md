@@ -2,7 +2,7 @@
 
 ## Design Philosophy
 
-The `django-js` ORM is built on the following foundational tenets:
+The `jsango` ORM is built on the following foundational tenets:
 
 1. **TypeScript-First**: Zero reliance on external code generators or fragile experimental decorator reflection. All model attributes, creation payloads, and query results are inferred directly by the TypeScript compiler.
 2. **Metadata-Driven**: Every model produces an immutable `ModelMetadata` schema at definition time. The metadata is decoupled from query execution and database drivers, allowing future Admin, Migration, and Validation layers to inspect models without executing database operations.
@@ -30,7 +30,7 @@ Internal Query AST (SelectAst, InsertAst, UpdateAst, DeleteAst)
       ↓
 SQL Compiler (SqlCompiler with Dialect & Identifier Validation)
       ↓
-Database Abstraction (@django-js/database: IDatabaseConnection, IDatabaseTransaction)
+Database Abstraction (@jsango/database: IDatabaseConnection, IDatabaseTransaction)
       ↓
 Database Driver (Node.js / Bun Driver)
 ```
@@ -39,19 +39,19 @@ Database Driver (Node.js / Bun Driver)
 
 ## Package Boundary and Dependencies
 
-`@django-js/orm` strictly follows the architectural dependency graph:
+`@jsango/orm` strictly follows the architectural dependency graph:
 
 ```
 Allowed Dependencies:
-@django-js/core
-@django-js/database
+@jsango/core
+@jsango/database
 
 Forbidden Dependencies:
-@django-js/http
-@django-js/router
-@django-js/middleware
-@django-js/admin
-@django-js/cli
+@jsango/http
+@jsango/router
+@jsango/middleware
+@jsango/admin
+@jsango/cli
 ```
 
 Infrastructure concerns never leak into domain models. The ORM does not know how HTTP requests or routing work, ensuring it can be used cleanly in CLI scripts, background queues, webhooks, and unit tests.

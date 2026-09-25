@@ -2,7 +2,7 @@
 
 ## Node.js Adapter (`NodeHttpServer`)
 
-The `NodeHttpServer` adapter converts between Node's raw transport layer and `django-js` abstractions.
+The `NodeHttpServer` adapter converts between Node's raw transport layer and `jsango` abstractions.
 
 ### Inbound Translation
 

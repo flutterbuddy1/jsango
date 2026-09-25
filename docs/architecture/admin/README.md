@@ -1,12 +1,12 @@
-# @django-js Admin Platform Architecture Overview
+# @jsango Admin Platform Architecture Overview
 
 ## 1. Core Mission & Philosophy
 
-The Nexora (`django-js`) Admin Platform provides a production-grade, model-driven, convention-over-configuration administration interface for TypeScript backends.
+The JSango (`jsango`) Admin Platform provides a production-grade, model-driven, convention-over-configuration administration interface for TypeScript backends.
 
 Key design principles:
 
-- **Model-Driven Foundation**: Admin resources are generated automatically from `@django-js/orm` model metadata with sensible, robust defaults.
+- **Model-Driven Foundation**: Admin resources are generated automatically from `@jsango/orm` model metadata with sensible, robust defaults.
 - **Explicit Customization**: Every automatic aspect (list fields, search fields, filters, forms, actions, permissions) can be explicitly overridden without rewriting boilerplate.
 - **Secure by Default (API as Security Boundary)**: The Admin UI is never trusted. All access control, field visibility, mass-assignment protection, and mutation policies are strictly enforced in the server layer.
 - **Decoupled Package Architecture**: Admin is cleanly partitioned into 5 focused packages following the dependency inversion principle.
@@ -18,27 +18,27 @@ Key design principles:
 ## 2. Package Architecture & Layering
 
 ```
-@django-js/admin-core
+@jsango/admin-core
   ├── Resource definition & schema metadata
   ├── Field definitions & widgets
   ├── Filter, table, form, dashboard, page abstractions
   ├── Model-driven auto-generator (ModelMetadata → AdminResource)
   └── AdminRegistry
 
-@django-js/admin-auth
+@jsango/admin-auth
   └── AdminPermissionChecker (RBAC, superuser, row-level, field-level auth)
 
-@django-js/admin-audit
+@jsango/admin-audit
   ├── AdminAuditLogger (structured logging, diff changes, sensitive redaction)
   ├── IAuditStore contract
   └── InMemoryAuditStore
 
-@django-js/admin-media
+@jsango/admin-media
   ├── AdminMediaManager (validation before I/O)
   ├── IMediaStorage contract
   └── InMemoryMediaStorage
 
-@django-js/admin-server
+@jsango/admin-server
   ├── IAdminQueryAdapter (database/ORM abstraction)
   ├── AdminCrudService (business logic, permission checks, audit emission)
   ├── AdminServer (HTTP route registration onto IRouter)
@@ -49,16 +49,16 @@ Key design principles:
 
 ## 3. Key Packages & Components
 
-### 3.1 `@django-js/admin-core`
+### 3.1 `@jsango/admin-core`
 
 Core resource abstractions:
 
 - `AdminResource`: Central class defining how an ORM model is administered. Configures `listFields`, `detailFields`, `createFields`, `editFields`, `searchFields`, `filters`, `actions`, `bulkActions`, and pagination.
-- `AdminResourceAutoGenerator`: Inspects `ModelMetadata` from `@django-js/orm` and generates complete `AdminResource` instances with default searchable fields, list displays, and editable fields.
+- `AdminResourceAutoGenerator`: Inspects `ModelMetadata` from `@jsango/orm` and generates complete `AdminResource` instances with default searchable fields, list displays, and editable fields.
 - `AdminRegistry`: Central singleton/scoped registry for registering and looking up resources and custom dashboard pages.
 - Field types: `textField()`, `numberField()`, `booleanField()`, `dateField()`, `emailField()`, `passwordField()`, `jsonField()`, `uuidField()`, etc.
 
-### 3.2 `@django-js/admin-auth`
+### 3.2 `@jsango/admin-auth`
 
 Security and permission checking:
 
@@ -68,7 +68,7 @@ Security and permission checking:
 - **Field-Level Permissions**: Checks `canViewField` and `canEditField`, hiding sensitive fields (passwords, tokens) from non-superusers unless explicitly granted.
 - **Custom Actions**: Validates row and bulk action execution rights.
 
-### 3.3 `@django-js/admin-audit`
+### 3.3 `@jsango/admin-audit`
 
 Audit trail logging:
 
@@ -76,14 +76,14 @@ Audit trail logging:
 - `diffChanges(before, after)`: Automatically computes changed fields and redacts sensitive keys matching regex `/password|secret|token|key|hash|salt|credential/i`.
 - `IAuditStore`: Persistence contract for storing, querying, and paginating audit entries by resource, action, actor, or date range.
 
-### 3.4 `@django-js/admin-media`
+### 3.4 `@jsango/admin-media`
 
 Media management:
 
 - `AdminMediaManager`: Validates uploads against `maxSizeBytes`, `allowedMimeTypes`, and `allowedExtensions` before performing any storage I/O.
 - `IMediaStorage`: Storage abstraction supporting `store()`, `get()`, `delete()`, and signed/public `url()` generation.
 
-### 3.5 `@django-js/admin-server`
+### 3.5 `@jsango/admin-server`
 
 REST API & Controller layer:
 

@@ -5,7 +5,7 @@ import { ExitCode } from '../public/types.js';
 export class WsStatusCommand extends BaseCommand {
   public readonly name = 'ws:status';
   public readonly description = 'Show WebSocket server connection metrics and room statistics';
-  public readonly usage = 'django-js ws:status [options]';
+  public readonly usage = 'jsango ws:status [options]';
   public readonly options = [];
 
   public async execute(context: CommandContext): Promise<number> {

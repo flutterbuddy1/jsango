@@ -5,7 +5,7 @@ import { ExitCode } from '../public/types.js';
 export class DbStatusCommand extends BaseCommand {
   public readonly name = 'db:status';
   public readonly description = 'Check database connection health and status';
-  public readonly usage = 'django-js db:status [options]';
+  public readonly usage = 'jsango db:status [options]';
   public readonly aliases = ['database:status', 'db:health'];
   public readonly options = [
     {

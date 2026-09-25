@@ -1,5 +1,5 @@
-import type { ILogger } from '@django-js/core';
-import { NoopLogger } from '@django-js/core';
+import type { ILogger } from '@jsango/core';
+import { NoopLogger } from '@jsango/core';
 import type { WebSocketConnection } from './connection.js';
 import type { HeartbeatConfig } from './types.js';
 

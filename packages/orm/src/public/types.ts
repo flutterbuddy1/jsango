@@ -1,4 +1,4 @@
-import type { IDatabaseConnection, IDatabaseTransaction } from '@django-js/database';
+import type { IDatabaseConnection, IDatabaseTransaction } from '@jsango/database';
 import type { Model } from './model.js';
 import type { QueryBuilder } from './query.js';
 import type { ModelMetadata } from './metadata.js';

@@ -1,8 +1,8 @@
-# @django-js/cli — Developer Tooling Architecture
+# @jsango/cli — Developer Tooling Architecture
 
 ## Overview
 
-`@django-js/cli` is the official command-line interface for the django-js framework. It serves as the primary developer workflow engine for:
+`@jsango/cli` is the official command-line interface for the jsango framework. It serves as the primary developer workflow engine for:
 
 - Project scaffolding and generation (`create`)
 - Application inspection (`route:list`, `model:list`, `model:show`, `config:show`)
@@ -22,7 +22,7 @@
 ## Architecture Layers
 
 ```
-CLI Entry Point (bin/django-js)
+CLI Entry Point (bin/jsango)
          ↓
   CliApplication
          ↓

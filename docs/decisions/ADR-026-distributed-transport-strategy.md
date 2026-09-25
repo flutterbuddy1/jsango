@@ -18,7 +18,7 @@ In multi-node deployments, WebSocket connections are distributed across multiple
    - Multi-node environments can supply a distributed transport driver (e.g. Redis Pub/Sub, NATS, Kafka) by implementing `IRealtimeTransport`.
    - `WebSocketManager` consumes `IRealtimeTransport` transparently without any changes to application controllers, rooms, or message handlers.
 4. **Bi-Directional Event Bridges**:
-   - `WebSocketEventBridge` and `WebSocketToEventBridge` provide clean integration between `@django-js/events` and `@django-js/websocket` without tight coupling.
+   - `WebSocketEventBridge` and `WebSocketToEventBridge` provide clean integration between `@jsango/events` and `@jsango/websocket` without tight coupling.
 
 ## Consequences
 

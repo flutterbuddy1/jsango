@@ -1,4 +1,4 @@
-import type { RequestContext } from '@django-js/http';
+import type { RequestContext } from '@jsango/http';
 import { CorrelationManager } from './correlation.js';
 import { MetricRegistry } from './metrics.js';
 import { Tracer } from './tracing.js';

@@ -1,7 +1,7 @@
 {
-  "name": "@django-js/core",
+  "name": "@jsango/core",
   "version": "1.0.0",
-  "description": "Application lifecycle, framework primitives and shared core abstractions for django-js",
+  "description": "Application lifecycle, framework primitives and shared core abstractions for jsango",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,7 +17,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@django-js/runtime": "workspace:*"
+    "@jsango/runtime": "workspace:*"
   },
   "files": [
     "dist"
@@ -25,7 +25,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/django-js/django-js.git",
+    "url": "https://github.com/jsango/jsango.git",
     "directory": "packages/core"
   },
   "publishConfig": {

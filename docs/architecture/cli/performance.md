@@ -8,7 +8,7 @@ CLI startup speed directly determines developer experience and shell responsiven
 
 1. **Zero-Boot Fast Paths**: `version` and `help` evaluate immediately at the router level without instantiating application containers or database connection pools.
 2. **Lazy Service Resolution**: `CommandContext.getApplication()`, `getDatabaseManager()`, and `getMigrationRegistry()` are loaded only when requested by a command.
-3. **No External Runtime Dependencies**: `@django-js/cli` uses pure TypeScript and standard library runtimes without bloated parsing libraries.
+3. **No External Runtime Dependencies**: `@jsango/cli` uses pure TypeScript and standard library runtimes without bloated parsing libraries.
 4. **Deterministic In-Memory Registry**: Lookup is backed by native `Map` structures yielding tens of millions of operations per second.
 
 ## Benchmark Results (`benchmarks/cli/cli.bench.ts`)

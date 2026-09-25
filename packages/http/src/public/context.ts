@@ -1,6 +1,6 @@
-import type { ILogger } from '@django-js/core';
-import { NoopLogger } from '@django-js/core';
-import type { IContainer } from '@django-js/container';
+import type { ILogger } from '@jsango/core';
+import { NoopLogger } from '@jsango/core';
+import type { IContainer } from '@jsango/container';
 import type { HttpRequest } from './request.js';
 import { HttpResponse } from './response.js';
 

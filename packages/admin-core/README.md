@@ -1,19 +1,19 @@
-# @django-js/admin-core
+# @jsango/admin-core
 
 > Declarative admin resource definitions, auto-generation from ORM metadata, field formatting, and registry.
 
-Part of the **[django-js](https://github.com/django-js/django-js)** backend framework for TypeScript.
+Part of the **[jsango](https://github.com/jsango/jsango)** backend framework for TypeScript.
 
 ## Installation
 
 ```bash
-pnpm add @django-js/admin-core
+pnpm add @jsango/admin-core
 ```
 
 ## Usage
 
 ```typescript
-import { AdminRegistry, defineAdminResource, fields } from '@django-js/admin-core';
+import { AdminRegistry, defineAdminResource, fields } from '@jsango/admin-core';
 
 const registry = new AdminRegistry();
 const userResource = defineAdminResource({
@@ -26,8 +26,8 @@ registry.register(userResource);
 
 ## Documentation
 
-For full architecture documentation and guides, visit the [django-js documentation](https://github.com/django-js/django-js/tree/main/docs).
+For full architecture documentation and guides, visit the [jsango documentation](https://github.com/jsango/jsango/tree/main/docs).
 
 ## License
 
-MIT © django-js contributors
+MIT © jsango contributors

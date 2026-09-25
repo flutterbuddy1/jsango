@@ -1,11 +1,11 @@
-import type { IDatabaseConnection, IDatabaseTransaction } from '@django-js/database';
+import type { IDatabaseConnection, IDatabaseTransaction } from '@jsango/database';
 import type { MigrationRecord } from '../public/types.js';
 import type { Migration } from '../public/migration.js';
 
 export type DatabaseExecutor = IDatabaseConnection | IDatabaseTransaction;
 
 export class MigrationStorage {
-  public static readonly TABLE_NAME = 'django_js_migrations';
+  public static readonly TABLE_NAME = 'jsango_migrations';
 
   public static async ensureTable(connection: DatabaseExecutor): Promise<void> {
     await connection.query(`

@@ -1,4 +1,4 @@
-import { DjangoJsError } from '@django-js/core';
+import { JsangoError } from '@jsango/core';
 import { ExitCode } from './types.js';
 
 export interface CliErrorOptions {
@@ -9,7 +9,7 @@ export interface CliErrorOptions {
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
 }
 
-export class CliError extends DjangoJsError {
+export class CliError extends JsangoError {
   public readonly exitCode: ExitCode;
 
   public constructor(options: CliErrorOptions) {
@@ -101,7 +101,7 @@ export class ProjectNotFoundError extends CliError {
   public constructor(searchPath: string) {
     super({
       code: 'ERR_CLI_PROJECT_NOT_FOUND',
-      message: `Could not locate a valid django-js project starting from "${searchPath}".`,
+      message: `Could not locate a valid jsango project starting from "${searchPath}".`,
       exitCode: ExitCode.CONFIG_ERROR,
       metadata: { searchPath },
     });

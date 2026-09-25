@@ -1,12 +1,12 @@
 import { BaseCommand } from '../public/command.js';
 import type { CommandContext } from '../public/context.js';
 import { ExitCode } from '../public/types.js';
-import { HealthRegistry, type OverallHealth } from '@django-js/observability';
+import { HealthRegistry, type OverallHealth } from '@jsango/observability';
 
 export class HealthCommand extends BaseCommand {
   public readonly name = 'health';
   public readonly description = 'Run application health checks';
-  public readonly usage = 'django-js health [options]';
+  public readonly usage = 'jsango health [options]';
 
   public async execute(context: CommandContext): Promise<number> {
     const app = await context.getApplication();

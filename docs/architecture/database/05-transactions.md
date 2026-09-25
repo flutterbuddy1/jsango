@@ -1,6 +1,6 @@
 # Database Transactions
 
-`@django-js/database` provides transaction isolation, state machine guards, and automatic rollback on failure.
+`@jsango/database` provides transaction isolation, state machine guards, and automatic rollback on failure.
 
 ## Transaction State Machine
 

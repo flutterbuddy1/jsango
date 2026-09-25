@@ -1,12 +1,12 @@
 import { BaseCommand } from '../public/command.js';
 import type { CommandContext } from '../public/context.js';
 import { ExitCode } from '../public/types.js';
-import { DiagnosticsProvider, type DiagnosticInfo } from '@django-js/observability';
+import { DiagnosticsProvider, type DiagnosticInfo } from '@jsango/observability';
 
 export class DiagnosticsCommand extends BaseCommand {
   public readonly name = 'diagnostics';
   public readonly description = 'Display safe runtime and subsystem diagnostics';
-  public readonly usage = 'django-js diagnostics [options]';
+  public readonly usage = 'jsango diagnostics [options]';
   public readonly aliases = ['diag'];
 
   public async execute(context: CommandContext): Promise<number> {

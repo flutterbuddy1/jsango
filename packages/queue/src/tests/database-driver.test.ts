@@ -1,7 +1,7 @@
 import { describe } from 'vitest';
 import { runQueueDriverContractTests } from '../public/testing/contract.js';
 import { DatabaseQueueDriver } from '../public/drivers/database.js';
-import { DatabaseManager } from '@django-js/database';
+import { DatabaseManager } from '@jsango/database';
 
 describe('DatabaseQueueDriver Contract Tests', () => {
   runQueueDriverContractTests('DatabaseQueueDriver', async () => {

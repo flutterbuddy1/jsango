@@ -1,13 +1,13 @@
 import { BaseCommand } from '../public/command.js';
 import type { CommandContext } from '../public/context.js';
 import { ExitCode } from '../public/types.js';
-import { DriftDetector } from '@django-js/migrations';
+import { DriftDetector } from '@jsango/migrations';
 
 export class MigrateCheckCommand extends BaseCommand {
   public readonly name = 'migrate:check';
   public readonly description =
     'Detect schema drift between ORM models and database schema without modifying the database';
-  public readonly usage = 'django-js migrate:check [options]';
+  public readonly usage = 'jsango migrate:check [options]';
   public readonly options = [
     {
       name: 'connection',
@@ -69,7 +69,7 @@ export class MigrateCheckCommand extends BaseCommand {
       }
       context.output.text();
       context.output.text(
-        `Run ${colors.cyan('django-js migrate:generate')} or ${colors.cyan('django-js migrate')} to synchronize.`
+        `Run ${colors.cyan('jsango migrate:generate')} or ${colors.cyan('jsango migrate')} to synchronize.`
       );
 
       return ExitCode.MIGRATION_ERROR;

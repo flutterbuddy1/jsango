@@ -1,4 +1,4 @@
-import type { FieldType } from '@django-js/orm';
+import type { FieldType } from '@jsango/orm';
 import type { MigrationContext } from './migration.js';
 
 export type ColumnType = FieldType;

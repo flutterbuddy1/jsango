@@ -1,8 +1,8 @@
 import type { IncomingMessage, Server as HttpServer } from 'node:http';
 import type { Duplex } from 'node:stream';
 import { WebSocketServer as WSServer, WebSocket as WSWebSocket } from 'ws';
-import type { ILogger } from '@django-js/core';
-import { NoopLogger } from '@django-js/core';
+import type { ILogger } from '@jsango/core';
+import { NoopLogger } from '@jsango/core';
 import type {
   IWebSocketServer,
   WebSocketServerConfig,

@@ -1,4 +1,4 @@
-import type { HttpRequest, RequestContext } from '@django-js/http';
+import type { HttpRequest, RequestContext } from '@jsango/http';
 
 export type IdentityType = 'user' | 'service_account' | 'api_client' | 'system' | 'anonymous';
 

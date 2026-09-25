@@ -1,7 +1,7 @@
 {
-  "name": "@django-js/admin-auth",
+  "name": "@jsango/admin-auth",
   "version": "1.0.0",
-  "description": "Authentication and authorization integration for django-js Admin",
+  "description": "Authentication and authorization integration for jsango Admin",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,9 +17,9 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@django-js/core": "workspace:*",
-    "@django-js/auth": "workspace:*",
-    "@django-js/admin-core": "workspace:*"
+    "@jsango/core": "workspace:*",
+    "@jsango/auth": "workspace:*",
+    "@jsango/admin-core": "workspace:*"
   },
   "files": [
     "dist"
@@ -27,7 +27,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/django-js/django-js.git",
+    "url": "https://github.com/jsango/jsango.git",
     "directory": "packages/admin-auth"
   },
   "publishConfig": {

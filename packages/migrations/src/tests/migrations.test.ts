@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import * as Migrations from '../index.js';
 
-describe('@django-js/migrations package', () => {
+describe('@jsango/migrations package', () => {
   it('should export all public classes, types, and functions', () => {
     expect(Migrations.SchemaSnapshot).toBeDefined();
     expect(Migrations.TableSchema).toBeDefined();

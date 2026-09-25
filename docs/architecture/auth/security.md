@@ -2,7 +2,7 @@
 
 ## 1. Zero External Dependencies
 
-`@django-js/auth` relies entirely on native Web Cryptography and runtime primitives (`node:crypto`), ensuring zero supply-chain risk and cross-runtime compatibility (Node.js and Bun).
+`@jsango/auth` relies entirely on native Web Cryptography and runtime primitives (`node:crypto`), ensuring zero supply-chain risk and cross-runtime compatibility (Node.js and Bun).
 
 ## 2. Password Hashing: Scrypt (RFC 7914)
 

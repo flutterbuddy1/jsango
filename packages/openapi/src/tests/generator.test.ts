@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Router } from '@django-js/router';
-import { HttpResponse } from '@django-js/http';
+import { Router } from '@jsango/router';
+import { HttpResponse } from '@jsango/http';
 import { OpenApiGenerator } from '../public/generator.js';
 import { OpenApiRegistry } from '../public/registry.js';
 import { SchemaBuilder } from '../public/schema-builder.js';

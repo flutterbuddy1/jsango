@@ -1,8 +1,8 @@
-# @django-js/auth Architecture Overview
+# @jsango/auth Architecture Overview
 
 ## 1. Core Mission & Philosophy
 
-`@django-js/auth` establishes the security, identity, and access-control foundation for the Nexora (`django-js`) framework. It is strictly engineered around two fundamental questions:
+`@jsango/auth` establishes the security, identity, and access-control foundation for the JSango (`jsango`) framework. It is strictly engineered around two fundamental questions:
 
 1. **Authentication**: _"Who is this principal?"_
 2. **Authorization**: _"What is this principal allowed to do?"_

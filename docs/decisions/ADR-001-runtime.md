@@ -10,7 +10,7 @@ Modern JavaScript backend development is no longer confined to Node.js. High-per
 
 ## Decision
 
-We introduce an explicit runtime abstraction layer (`@django-js/runtime`) centered around the `IRuntimeAdapter` contract.
+We introduce an explicit runtime abstraction layer (`@jsango/runtime`) centered around the `IRuntimeAdapter` contract.
 
 - The framework packages must never directly reference host-specific globals like `process.env` or `Bun`.
 - In Phase 0, `NodeRuntimeAdapter` provides the reference implementation.

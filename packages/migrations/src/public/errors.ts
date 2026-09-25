@@ -1,6 +1,6 @@
-import { DjangoJsError } from '@django-js/core';
+import { JsangoError } from '@jsango/core';
 
-export class MigrationError extends DjangoJsError {
+export class MigrationError extends JsangoError {
   public constructor(options: {
     code?: string;
     message: string;

@@ -50,7 +50,7 @@ describe('CLI Performance Benchmarks', () => {
         port: 5432,
         user: 'admin',
         password: 'super-secret-password-12345',
-        database: 'nexora_db',
+        database: 'jsango_db',
       },
     },
     auth: {

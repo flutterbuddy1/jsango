@@ -7,7 +7,7 @@ import type {
   ISessionStore,
   Session,
 } from '../types.js';
-import type { HttpRequest, RequestContext } from '@django-js/http';
+import type { HttpRequest, RequestContext } from '@jsango/http';
 
 export class MemorySessionStore implements ISessionStore {
   private readonly sessions = new Map<string, Session>();

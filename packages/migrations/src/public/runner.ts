@@ -1,4 +1,4 @@
-import type { DatabaseManager, IDatabaseConnection } from '@django-js/database';
+import type { DatabaseManager, IDatabaseConnection } from '@jsango/database';
 import { defaultMigrationRegistry, MigrationRegistry } from './registry.js';
 import { MigrationStorage } from '../internal/storage.js';
 import { MigrationLock } from './lock.js';

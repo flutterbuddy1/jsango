@@ -1,4 +1,4 @@
-import type { HttpMethod, HttpResponse, RequestContext } from '@django-js/http';
+import type { HttpMethod, HttpResponse, RequestContext } from '@jsango/http';
 import type { RouteConstraintDefinition } from './constraints.js';
 
 export type RouteHandler = (

@@ -1,13 +1,13 @@
 import { BaseCommand } from '../public/command.js';
 import type { CommandContext } from '../public/context.js';
 import { ExitCode } from '../public/types.js';
-import { MigrationRunner } from '@django-js/migrations';
+import { MigrationRunner } from '@jsango/migrations';
 import { DestructiveOperationError } from '../public/errors.js';
 
 export class MigrateRollbackCommand extends BaseCommand {
   public readonly name = 'migrate:rollback';
   public readonly description = 'Rollback applied database migrations';
-  public readonly usage = 'django-js migrate:rollback [options]';
+  public readonly usage = 'jsango migrate:rollback [options]';
   public readonly options = [
     {
       name: 'connection',

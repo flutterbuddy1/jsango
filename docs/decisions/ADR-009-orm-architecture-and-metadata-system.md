@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-In `django-js`, the Object-Relational Mapping (ORM) layer must serve as much more than a simple CRUD query generator. It provides the architectural foundation for several planned future phases:
+In `jsango`, the Object-Relational Mapping (ORM) layer must serve as much more than a simple CRUD query generator. It provides the architectural foundation for several planned future phases:
 
 - **Phase 7: Migrations** (deriving schema states, table definitions, column types, constraints, and indexes)
 - **Phase 8: Validation** (consuming structural field constraints like lengths, nullability, and types)
@@ -55,7 +55,7 @@ We chose an Active Record + QuerySet hybrid:
 
 ### 4. Zero N+1 Eager Loading
 
-Implicit lazy loading via property access is strictly forbidden in `django-js` to prevent hidden database traffic and production degradation.
+Implicit lazy loading via property access is strictly forbidden in `jsango` to prevent hidden database traffic and production degradation.
 Relationships are loaded explicitly via `.with('posts', 'profile')`. The `EagerLoader` batches parent IDs into a single `WHERE foreign_key IN (...)` query and attaches resolved child records. Loading relationships across $N$ parent records requires exactly $1 + R$ database queries (where $R$ is the number of relations), completely eliminating N+1 bottlenecks.
 
 ### 5. AST-Based SQL Compilation and Security

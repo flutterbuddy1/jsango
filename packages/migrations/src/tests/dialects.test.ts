@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { SqliteSchemaIntrospector } from '../internal/introspectors/sqlite-introspector.js';
 import { PostgresSchemaIntrospector } from '../internal/introspectors/postgres-introspector.js';
-import type { IDatabaseConnection } from '@django-js/database';
+import type { IDatabaseConnection } from '@jsango/database';
 
 describe('Dialect Schema Introspectors', () => {
   it('should introspect SQLite schema from pragma queries', async () => {

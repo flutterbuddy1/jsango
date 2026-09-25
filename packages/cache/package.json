@@ -1,7 +1,7 @@
 {
-  "name": "@django-js/cache",
+  "name": "@jsango/cache",
   "version": "1.0.0",
-  "description": "Cache abstraction, drivers, stampede defense, and serialization for django-js",
+  "description": "Cache abstraction, drivers, stampede defense, and serialization for jsango",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -21,10 +21,10 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@django-js/runtime": "workspace:*",
-    "@django-js/core": "workspace:*",
-    "@django-js/container": "workspace:*",
-    "@django-js/config": "workspace:*"
+    "@jsango/runtime": "workspace:*",
+    "@jsango/core": "workspace:*",
+    "@jsango/container": "workspace:*",
+    "@jsango/config": "workspace:*"
   },
   "files": [
     "dist"
@@ -32,7 +32,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/django-js/django-js.git",
+    "url": "https://github.com/jsango/jsango.git",
     "directory": "packages/cache"
   },
   "publishConfig": {

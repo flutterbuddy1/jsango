@@ -5,7 +5,7 @@ import { ExitCode } from '../public/types.js';
 export class ModelShowCommand extends BaseCommand {
   public readonly name = 'model:show';
   public readonly description = 'Show detailed information about a specific ORM model';
-  public readonly usage = 'django-js model:show <modelName>';
+  public readonly usage = 'jsango model:show <modelName>';
   public readonly arguments = [
     {
       name: 'modelName',

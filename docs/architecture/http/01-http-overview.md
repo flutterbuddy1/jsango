@@ -2,7 +2,7 @@
 
 ## Objective & Scope
 
-The `@django-js/http` package forms the runtime-independent foundation for all HTTP interactions across the framework. It models HTTP abstractions (`HttpRequest`, `HttpResponse`, `HttpHeaders`, `Cookies`, `RequestContext`, `HttpServer`) without coupling to Node.js standard library specifics or higher-level concerns (routing, middleware, ORM, authentication).
+The `@jsango/http` package forms the runtime-independent foundation for all HTTP interactions across the framework. It models HTTP abstractions (`HttpRequest`, `HttpResponse`, `HttpHeaders`, `Cookies`, `RequestContext`, `HttpServer`) without coupling to Node.js standard library specifics or higher-level concerns (routing, middleware, ORM, authentication).
 
 ---
 
@@ -20,7 +20,7 @@ The `@django-js/http` package forms the runtime-independent foundation for all H
 +------------------------------------------+
                     ↓
 +------------------------------------------+
-|         django-js HTTP Layer             |
+|         jsango HTTP Layer             |
 |   (HttpRequest, HttpResponse, Context)   |
 +------------------------------------------+
                     ↓

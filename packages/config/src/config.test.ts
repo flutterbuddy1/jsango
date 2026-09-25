@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createConfigProvider } from './index.js';
 
-describe('@django-js/config', () => {
+describe('@jsango/config', () => {
   it('should read config values with type safety', () => {
     const config = createConfigProvider({
       PORT: '8080',

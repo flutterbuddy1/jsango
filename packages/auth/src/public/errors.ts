@@ -1,4 +1,4 @@
-import { DjangoJsError } from '@django-js/core';
+import { JsangoError } from '@jsango/core';
 
 export interface AuthErrorOptions {
   readonly code: string;
@@ -8,7 +8,7 @@ export interface AuthErrorOptions {
   readonly statusCode?: number | undefined;
 }
 
-export class AuthenticationError extends DjangoJsError {
+export class AuthenticationError extends JsangoError {
   public constructor(options: AuthErrorOptions) {
     super({
       code: options.code,
@@ -66,7 +66,7 @@ export class SessionExpiredError extends AuthenticationError {
   }
 }
 
-export class AuthorizationError extends DjangoJsError {
+export class AuthorizationError extends JsangoError {
   public constructor(options: AuthErrorOptions) {
     super({
       code: options.code,

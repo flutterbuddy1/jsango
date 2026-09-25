@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { defineModel, fields } from '@django-js/orm';
+import { defineModel, fields } from '@jsango/orm';
 import { DriftDetector } from '../public/drift.js';
 import { createTestDatabase, resetTestState } from './test-utils.js';
 

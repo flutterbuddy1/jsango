@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { DiagnosticsProvider, createDiagnosticsHandler } from '../public/diagnostics.js';
-import { HttpRequest, RequestContext, HttpResponse } from '@django-js/http';
+import { HttpRequest, RequestContext, HttpResponse } from '@jsango/http';
 
 describe('Diagnostics Subsystem', () => {
   it('collects runtime information, memory, and component statuses', async () => {

@@ -1,27 +1,27 @@
-# @django-js/core
+# @jsango/core
 
-> Application lifecycle coordinator, structured error hierarchy, and foundational abstractions for django-js.
+> Application lifecycle coordinator, structured error hierarchy, and foundational abstractions for jsango.
 
-Part of the **[django-js](https://github.com/django-js/django-js)** backend framework for TypeScript.
+Part of the **[jsango](https://github.com/jsango/jsango)** backend framework for TypeScript.
 
 ## Installation
 
 ```bash
-pnpm add @django-js/core
+pnpm add @jsango/core
 ```
 
 ## Usage
 
 ```typescript
-import { DjangoJsError } from '@django-js/core';
+import { JsangoError } from '@jsango/core';
 
-throw new DjangoJsError('Invalid state', 'ERR_INVALID_STATE', 400);
+throw new JsangoError('Invalid state', 'ERR_INVALID_STATE', 400);
 ```
 
 ## Documentation
 
-For full architecture documentation and guides, visit the [django-js documentation](https://github.com/django-js/django-js/tree/main/docs).
+For full architecture documentation and guides, visit the [jsango documentation](https://github.com/jsango/jsango/tree/main/docs).
 
 ## License
 
-MIT © django-js contributors
+MIT © jsango contributors

@@ -1,4 +1,4 @@
-import { DjangoJsError } from '@django-js/core';
+import { JsangoError } from '@jsango/core';
 
 export interface CookieOptions {
   readonly maxAge?: number;
@@ -68,7 +68,7 @@ function isInvalidCookieName(name: string): boolean {
 
 export function serializeCookie(name: string, value: string, options: CookieOptions = {}): string {
   if (isInvalidCookieName(name)) {
-    throw new DjangoJsError({
+    throw new JsangoError({
       code: 'ERR_INVALID_COOKIE_NAME',
       message: `Invalid cookie name: "${name}"`,
       statusCode: 400,
@@ -77,7 +77,7 @@ export function serializeCookie(name: string, value: string, options: CookieOpti
 
   // Prevent CRLF injection in cookie values
   if (/[\r\n]/.test(value)) {
-    throw new DjangoJsError({
+    throw new JsangoError({
       code: 'ERR_COOKIE_INJECTION',
       message: 'Cookie value must not contain CRLF characters.',
       statusCode: 400,
@@ -101,7 +101,7 @@ export function serializeCookie(name: string, value: string, options: CookieOpti
 
   if (options.domain) {
     if (/[\r\n;]/.test(options.domain)) {
-      throw new DjangoJsError({
+      throw new JsangoError({
         code: 'ERR_COOKIE_INJECTION',
         message: 'Cookie domain contains forbidden characters.',
         statusCode: 400,
@@ -112,7 +112,7 @@ export function serializeCookie(name: string, value: string, options: CookieOpti
 
   const path = options.path ?? '/';
   if (/[\r\n;]/.test(path)) {
-    throw new DjangoJsError({
+    throw new JsangoError({
       code: 'ERR_COOKIE_INJECTION',
       message: 'Cookie path contains forbidden characters.',
       statusCode: 400,

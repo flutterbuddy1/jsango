@@ -8,11 +8,11 @@ import {
 
 describe('HttpBody', () => {
   it('should parse JSON payload', async () => {
-    const raw = JSON.stringify({ name: 'django-js', version: '0.0.1' });
+    const raw = JSON.stringify({ name: 'jsango', version: '0.0.1' });
     const body = new HttpBody(raw);
 
     const parsed = await body.json<{ name: string; version: string }>();
-    expect(parsed.name).toBe('django-js');
+    expect(parsed.name).toBe('jsango');
     expect(parsed.version).toBe('0.0.1');
     expect(body.isConsumed).toBe(true);
   });

@@ -1,7 +1,7 @@
 {
-  "name": "@django-js/admin-server",
+  "name": "@jsango/admin-server",
   "version": "1.0.0",
-  "description": "Admin HTTP API server — CRUD service layer, REST endpoints, and framework integration for django-js Admin",
+  "description": "Admin HTTP API server — CRUD service layer, REST endpoints, and framework integration for jsango Admin",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,13 +17,13 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@django-js/core": "workspace:*",
-    "@django-js/http": "workspace:*",
-    "@django-js/router": "workspace:*",
-    "@django-js/auth": "workspace:*",
-    "@django-js/admin-core": "workspace:*",
-    "@django-js/admin-auth": "workspace:*",
-    "@django-js/admin-audit": "workspace:*"
+    "@jsango/core": "workspace:*",
+    "@jsango/http": "workspace:*",
+    "@jsango/router": "workspace:*",
+    "@jsango/auth": "workspace:*",
+    "@jsango/admin-core": "workspace:*",
+    "@jsango/admin-auth": "workspace:*",
+    "@jsango/admin-audit": "workspace:*"
   },
   "files": [
     "dist"
@@ -31,7 +31,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/django-js/django-js.git",
+    "url": "https://github.com/jsango/jsango.git",
     "directory": "packages/admin-server"
   },
   "publishConfig": {

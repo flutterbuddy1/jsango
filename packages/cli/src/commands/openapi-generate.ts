@@ -3,12 +3,12 @@ import * as path from 'node:path';
 import { BaseCommand } from '../public/command.js';
 import type { CommandContext } from '../public/context.js';
 import { ExitCode } from '../public/types.js';
-import { OpenApiGenerator, OpenApiFormatter } from '@django-js/openapi';
+import { OpenApiGenerator, OpenApiFormatter } from '@jsango/openapi';
 
 export class OpenApiGenerateCommand extends BaseCommand {
   public readonly name = 'openapi:generate';
   public readonly description = 'Generate OpenAPI 3.x specification document for the application';
-  public readonly usage = 'django-js openapi:generate [options]';
+  public readonly usage = 'jsango openapi:generate [options]';
   public readonly aliases = ['openapi:gen', 'openapi'];
   public readonly options = [
     {
@@ -44,7 +44,7 @@ export class OpenApiGenerateCommand extends BaseCommand {
 
   public async execute(context: CommandContext): Promise<number> {
     const app = await context.getApplication();
-    const title = (context.options['title'] as string | undefined) ?? 'Nexora API';
+    const title = (context.options['title'] as string | undefined) ?? 'JSango API';
     const version = (context.options['version'] as string | undefined) ?? '1.0.0';
     const includeAdmin = (context.options['include-admin'] as boolean | undefined) ?? false;
     const format = ((context.options['format'] as string | undefined) ?? 'json').toLowerCase();

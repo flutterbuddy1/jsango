@@ -2,22 +2,22 @@
 
 ## Package Responsibilities
 
-Each package in the `django-js` monorepo has exactly one clear responsibility:
+Each package in the `jsango` monorepo has exactly one clear responsibility:
 
-| Package                 | Responsibility                                                                                    |
-| :---------------------- | :------------------------------------------------------------------------------------------------ |
-| `@django-js/runtime`    | Runtime abstraction and platform-specific runtime adapters (Node.js, Bun).                        |
-| `@django-js/core`       | Application lifecycle, framework primitives, structured error handling, and logging abstractions. |
-| `@django-js/container`  | Dependency injection container, service resolution, and lifecycle scoping.                        |
-| `@django-js/config`     | Centralized configuration loading, type casting, schema validation, and environment isolation.    |
-| `@django-js/http`       | HTTP request/response abstractions, status codes, and header management.                          |
-| `@django-js/router`     | Route registration, URL pattern parsing, parameter extraction, and route matching.                |
-| `@django-js/middleware` | Middleware pipeline abstractions, onion execution model, and handler chaining.                    |
-| `@django-js/database`   | Database connection management, driver contracts, and transaction boundaries.                     |
-| `@django-js/orm`        | Model definitions, active query builders, relationships, and entity persistence.                  |
-| `@django-js/validation` | Input validation contracts, schema validators, and structured error reporting.                    |
-| `@django-js/cli`        | Command-line interface definitions, scaffolding commands, and code generation utilities.          |
-| `@django-js/testing`    | Test context creation, isolation helpers, and framework test doubles.                             |
+| Package              | Responsibility                                                                                    |
+| :------------------- | :------------------------------------------------------------------------------------------------ |
+| `@jsango/runtime`    | Runtime abstraction and platform-specific runtime adapters (Node.js, Bun).                        |
+| `@jsango/core`       | Application lifecycle, framework primitives, structured error handling, and logging abstractions. |
+| `@jsango/container`  | Dependency injection container, service resolution, and lifecycle scoping.                        |
+| `@jsango/config`     | Centralized configuration loading, type casting, schema validation, and environment isolation.    |
+| `@jsango/http`       | HTTP request/response abstractions, status codes, and header management.                          |
+| `@jsango/router`     | Route registration, URL pattern parsing, parameter extraction, and route matching.                |
+| `@jsango/middleware` | Middleware pipeline abstractions, onion execution model, and handler chaining.                    |
+| `@jsango/database`   | Database connection management, driver contracts, and transaction boundaries.                     |
+| `@jsango/orm`        | Model definitions, active query builders, relationships, and entity persistence.                  |
+| `@jsango/validation` | Input validation contracts, schema validators, and structured error reporting.                    |
+| `@jsango/cli`        | Command-line interface definitions, scaffolding commands, and code generation utilities.          |
+| `@jsango/testing`    | Test context creation, isolation helpers, and framework test doubles.                             |
 
 ---
 

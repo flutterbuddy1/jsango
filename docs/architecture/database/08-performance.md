@@ -1,6 +1,6 @@
 # Database Performance & Benchmarks
 
-`@django-js/database` is architected for high-concurrency environments, avoiding unnecessary memory allocations, intermediate promises, and heavy abstractions in hot paths.
+`@jsango/database` is architected for high-concurrency environments, avoiding unnecessary memory allocations, intermediate promises, and heavy abstractions in hot paths.
 
 ## Key Performance Design Decisions
 

@@ -48,7 +48,7 @@ describe('HTTP Benchmarks', () => {
   });
 
   bench('6. Text response creation', () => {
-    HttpResponse.text('Hello World from django-js');
+    HttpResponse.text('Hello World from jsango');
   });
 
   bench('7. Raw Response creation', () => {

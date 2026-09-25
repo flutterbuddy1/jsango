@@ -56,7 +56,7 @@ export class MigrationGenerator {
 
 import {
   ${sortedImports},
-} from '@django-js/migrations';
+} from '@jsango/migrations';
 
 export const id = '${id}';
 export const name = '${cleanName}';

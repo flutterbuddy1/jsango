@@ -2,13 +2,13 @@ import { BaseCommand } from '../public/command.js';
 import type { CommandContext } from '../public/context.js';
 import { ExitCode } from '../public/types.js';
 import { DestructiveOperationError } from '../public/errors.js';
-import { CacheManager } from '@django-js/cache';
+import { CacheManager } from '@jsango/cache';
 
 export class CacheClearCommand extends BaseCommand {
   public readonly name = 'cache:clear';
   public readonly description =
     'Clear all entries from the specified cache store (or default store)';
-  public readonly usage = 'django-js cache:clear [options]';
+  public readonly usage = 'jsango cache:clear [options]';
   public readonly options = [
     {
       name: 'store',

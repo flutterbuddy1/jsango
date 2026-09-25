@@ -11,7 +11,7 @@ A backend framework must process HTTP requests efficiently while remaining porta
 ## Decision
 
 1. **Runtime-Agnostic Abstractions**:
-   We define `HttpRequest`, `HttpResponse`, `HttpHeaders`, `Cookies`, `HttpQuery`, and `RequestContext` in `@django-js/http`. These types contain zero Node.js or Bun specific class references.
+   We define `HttpRequest`, `HttpResponse`, `HttpHeaders`, `Cookies`, `HttpQuery`, and `RequestContext` in `@jsango/http`. These types contain zero Node.js or Bun specific class references.
 2. **Adapter Isolation**:
    The `NodeHttpServer` adapter in `src/internal/node/` exclusively interacts with Node's `node:http` module and converts bidirectional data to and from framework abstractions.
 3. **Response State Machine**:

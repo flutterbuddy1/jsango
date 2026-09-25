@@ -10,7 +10,7 @@ Standard JavaScript `Error` objects lack machine-readable error codes, contextua
 
 ## Decision
 
-We establish a structured error model centered on `DjangoJsError`:
+We establish a structured error model centered on `JsangoError`:
 
 - Every framework error contains an explicit error code (`code`), human message (`message`), optional underlying error cause (`cause`), and contextual metadata (`metadata`).
 - All framework errors implement `toSafeJSON(isProduction: boolean)`.
@@ -25,4 +25,4 @@ We establish a structured error model centered on `DjangoJsError`:
 ## Consequences
 
 - **Positive**: Machine-readable error handling; prevention of sensitive data leakage; predictable HTTP error mapping; compliance with security rules.
-- **Negative**: Developers must instantiate `DjangoJsError` with structured options instead of throwing raw strings or plain native errors.
+- **Negative**: Developers must instantiate `JsangoError` with structured options instead of throwing raw strings or plain native errors.

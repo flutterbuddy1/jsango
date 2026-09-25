@@ -1,6 +1,6 @@
 # OpenAPI Documentation
 
-See [`docs/architecture/openapi/README.md`](file:///Users/mayankdiwakar/Documents/Development/django-js/docs/architecture/openapi/README.md) for full architectural details.
+See [`docs/architecture/openapi/README.md`](file:///Users/mayankdiwakar/Documents/Development/jsango/docs/architecture/openapi/README.md) for full architectural details.
 
 ## Quick Start
 
@@ -40,11 +40,11 @@ router.get('/users/:id', getUserHandler, {
 
 ```bash
 # Generate JSON spec to file
-django-js openapi:generate --output openapi.json
+jsango openapi:generate --output openapi.json
 
 # Generate YAML spec to stdout
-django-js openapi:generate --format yaml
+jsango openapi:generate --format yaml
 
 # Validate spec
-django-js openapi:validate --file openapi.json
+jsango openapi:validate --file openapi.json
 ```

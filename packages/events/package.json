@@ -1,7 +1,7 @@
 {
-  "name": "@django-js/events",
+  "name": "@jsango/events",
   "version": "1.0.0",
-  "description": "Typed event bus, handlers, middleware, and queue integration for django-js",
+  "description": "Typed event bus, handlers, middleware, and queue integration for jsango",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -21,7 +21,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@django-js/core": "workspace:*"
+    "@jsango/core": "workspace:*"
   },
   "files": [
     "dist"
@@ -29,7 +29,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/django-js/django-js.git",
+    "url": "https://github.com/jsango/jsango.git",
     "directory": "packages/events"
   },
   "publishConfig": {

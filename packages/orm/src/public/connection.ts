@@ -1,4 +1,4 @@
-import type { DatabaseManager } from '@django-js/database';
+import type { DatabaseManager } from '@jsango/database';
 
 let activeDatabaseManager: DatabaseManager | undefined;
 

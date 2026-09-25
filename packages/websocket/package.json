@@ -1,7 +1,7 @@
 {
-  "name": "@django-js/websocket",
+  "name": "@jsango/websocket",
   "version": "1.0.0",
-  "description": "WebSocket server abstraction, rooms, broadcasting, and Node adapter for django-js",
+  "description": "WebSocket server abstraction, rooms, broadcasting, and Node adapter for jsango",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -21,8 +21,8 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@django-js/core": "workspace:*",
-    "@django-js/http": "workspace:*",
+    "@jsango/core": "workspace:*",
+    "@jsango/http": "workspace:*",
     "ws": "^8.18.0"
   },
   "devDependencies": {
@@ -34,7 +34,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/django-js/django-js.git",
+    "url": "https://github.com/jsango/jsango.git",
     "directory": "packages/websocket"
   },
   "publishConfig": {

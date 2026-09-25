@@ -2,7 +2,7 @@
 
 ## Context
 
-Booting database connection pools, ORM registries, or HTTP server instances takes tens to hundreds of milliseconds. Simple CLI commands such as `django-js --version` and `django-js --help` must execute instantaneously. Furthermore, long-running CLI operations (such as migrations or diagnostics) must support graceful cancellation upon `SIGINT` (Ctrl+C).
+Booting database connection pools, ORM registries, or HTTP server instances takes tens to hundreds of milliseconds. Simple CLI commands such as `jsango --version` and `jsango --help` must execute instantaneously. Furthermore, long-running CLI operations (such as migrations or diagnostics) must support graceful cancellation upon `SIGINT` (Ctrl+C).
 
 ## Decision
 

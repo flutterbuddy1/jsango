@@ -1,19 +1,19 @@
-# @django-js/migrations
+# @jsango/migrations
 
 > Schema diffing engine, DDL compilers, migration generator, distributed migration locking, and reversible runner.
 
-Part of the **[django-js](https://github.com/django-js/django-js)** backend framework for TypeScript.
+Part of the **[jsango](https://github.com/jsango/jsango)** backend framework for TypeScript.
 
 ## Installation
 
 ```bash
-pnpm add @django-js/migrations
+pnpm add @jsango/migrations
 ```
 
 ## Usage
 
 ```typescript
-import { MigrationRunner, MigrationRegistry, MigrationStorage } from '@django-js/migrations';
+import { MigrationRunner, MigrationRegistry, MigrationStorage } from '@jsango/migrations';
 
 const runner = new MigrationRunner(driver, registry, storage);
 await runner.run();
@@ -21,8 +21,8 @@ await runner.run();
 
 ## Documentation
 
-For full architecture documentation and guides, visit the [django-js documentation](https://github.com/django-js/django-js/tree/main/docs).
+For full architecture documentation and guides, visit the [jsango documentation](https://github.com/jsango/jsango/tree/main/docs).
 
 ## License
 
-MIT © django-js contributors
+MIT © jsango contributors

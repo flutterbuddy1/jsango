@@ -1,7 +1,7 @@
 {
-  "name": "@django-js/migrations",
+  "name": "@jsango/migrations",
   "version": "1.0.0",
-  "description": "Database schema management and migrations for django-js",
+  "description": "Database schema management and migrations for jsango",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,9 +17,9 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@django-js/core": "workspace:*",
-    "@django-js/database": "workspace:*",
-    "@django-js/orm": "workspace:*"
+    "@jsango/core": "workspace:*",
+    "@jsango/database": "workspace:*",
+    "@jsango/orm": "workspace:*"
   },
   "files": [
     "dist"
@@ -27,7 +27,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/django-js/django-js.git",
+    "url": "https://github.com/jsango/jsango.git",
     "directory": "packages/migrations"
   },
   "publishConfig": {

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createTestContext } from './index.js';
 
-describe('@django-js/testing', () => {
+describe('@jsango/testing', () => {
   it('should create test context', async () => {
     const ctx = createTestContext();
     expect(ctx).toBeDefined();

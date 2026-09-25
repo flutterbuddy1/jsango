@@ -1,19 +1,19 @@
-# @django-js/config
+# @jsango/config
 
 > Centralized, immutable configuration provider with type casting and schema validation.
 
-Part of the **[django-js](https://github.com/django-js/django-js)** backend framework for TypeScript.
+Part of the **[jsango](https://github.com/jsango/jsango)** backend framework for TypeScript.
 
 ## Installation
 
 ```bash
-pnpm add @django-js/config
+pnpm add @jsango/config
 ```
 
 ## Usage
 
 ```typescript
-import { ConfigProvider } from '@django-js/config';
+import { ConfigProvider } from '@jsango/config';
 
 const config = new ConfigProvider({
   APP_ENV: process.env.NODE_ENV || 'development',
@@ -24,8 +24,8 @@ const port = config.get('PORT');
 
 ## Documentation
 
-For full architecture documentation and guides, visit the [django-js documentation](https://github.com/django-js/django-js/tree/main/docs).
+For full architecture documentation and guides, visit the [jsango documentation](https://github.com/jsango/jsango/tree/main/docs).
 
 ## License
 
-MIT © django-js contributors
+MIT © jsango contributors

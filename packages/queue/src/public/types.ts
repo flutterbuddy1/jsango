@@ -1,4 +1,4 @@
-import type { ILogger } from '@django-js/core';
+import type { ILogger } from '@jsango/core';
 
 export type JobStatus =
   'pending' | 'scheduled' | 'processing' | 'completed' | 'failed' | 'cancelled';

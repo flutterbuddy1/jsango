@@ -1,6 +1,6 @@
-import { DjangoJsError, type ErrorMetadata } from '@django-js/core';
+import { JsangoError, type ErrorMetadata } from '@jsango/core';
 
-export class RouterError extends DjangoJsError {
+export class RouterError extends JsangoError {
   constructor(code: string, message: string, metadata?: ErrorMetadata) {
     super({
       code,

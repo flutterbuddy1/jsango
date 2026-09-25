@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { CliApplication } from '../public/app.js';
 import { CliOutput } from '../public/output.js';
 import { ExitCode } from '../public/types.js';
-import { CacheManager } from '@django-js/cache';
-import { QueueManager } from '@django-js/queue';
+import { CacheManager } from '@jsango/cache';
+import { QueueManager } from '@jsango/queue';
 
 describe('CLI: Cache & Queue Commands', () => {
   let app: CliApplication;

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const binPath = path.resolve(__dirname, '../../dist/bin/django-js.js');
+const binPath = path.resolve(__dirname, '../../dist/bin/jsango.js');
 
 describe('CLI Process Integration Tests', () => {
   it('executes --version with exit code 0 and stdout output', () => {
@@ -13,7 +13,7 @@ describe('CLI Process Integration Tests', () => {
       encoding: 'utf8',
     });
     expect(res.status).toBe(0);
-    expect(res.stdout).toContain('django-js v1.0.0');
+    expect(res.stdout).toContain('jsango v1.0.0');
     expect(res.stderr).toBe('');
   });
 
@@ -22,7 +22,7 @@ describe('CLI Process Integration Tests', () => {
       encoding: 'utf8',
     });
     expect(res.status).toBe(0);
-    expect(res.stdout).toContain('django-js — Production-grade TypeScript backend framework');
+    expect(res.stdout).toContain('jsango — Production-grade TypeScript backend framework');
     expect(res.stderr).toBe('');
   });
 
@@ -32,7 +32,7 @@ describe('CLI Process Integration Tests', () => {
     });
     expect(res.status).toBe(0);
     const parsed = JSON.parse(res.stdout.trim()) as { framework: string; commands: unknown[] };
-    expect(parsed.framework).toBe('django-js');
+    expect(parsed.framework).toBe('jsango');
     expect(Array.isArray(parsed.commands)).toBe(true);
   });
 
@@ -57,7 +57,7 @@ describe('CLI Process Integration Tests', () => {
       encoding: 'utf8',
     });
     expect(res.status).toBe(0);
-    expect(res.stdout).toContain('Nexora Diagnostic Report');
+    expect(res.stdout).toContain('JSango Diagnostic Report');
     expect(res.stdout).toContain('Node.js Version');
   });
 });

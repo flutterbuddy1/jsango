@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { UserIdentity, AnonymousIdentity } from '@django-js/auth';
-import { AdminResource } from '@django-js/admin-core';
+import { UserIdentity, AnonymousIdentity } from '@jsango/auth';
+import { AdminResource } from '@jsango/admin-core';
 import { AdminPermissionChecker } from '../public/checker.js';
 
 describe('AdminPermissionChecker', () => {

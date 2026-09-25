@@ -39,7 +39,7 @@ class ArticlePolicy extends BasePolicy<Article> {
 `PolicyRegistry.resolvePolicy()` supports Phase 6 ORM model metadata:
 
 - If a resource instance is passed, it extracts `resource.constructor.metadata.name` or `resource.constructor.modelName`.
-- This decouples `@django-js/auth` from direct dependency on `@django-js/orm` while allowing seamless object-level authorization on model instances.
+- This decouples `@jsango/auth` from direct dependency on `@jsango/orm` while allowing seamless object-level authorization on model instances.
 
 ## 4. Policy Composition Combinators
 

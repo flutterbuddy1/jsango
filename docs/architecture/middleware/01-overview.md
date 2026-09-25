@@ -2,7 +2,7 @@
 
 ## Identity and Responsibilities
 
-`@django-js/middleware` provides the core application request pipeline and middleware engine of Nexora. It integrates the foundational layers (`Runtime`, `Core`, `Container`, `Config`, `HTTP`, and `Router`) into an asynchronous, onion-style request lifecycle.
+`@jsango/middleware` provides the core application request pipeline and middleware engine of JSango. It integrates the foundational layers (`Runtime`, `Core`, `Container`, `Config`, `HTTP`, and `Router`) into an asynchronous, onion-style request lifecycle.
 
 ## Architectural Layers Integrated
 

@@ -1,8 +1,8 @@
-# @django-js/events Architecture Overview
+# @jsango/events Architecture Overview
 
 ## 1. Core Mission & Philosophy
 
-`@django-js/events` provides a production-grade, typed in-process and background event dispatching system for the Nexora (`django-js`) framework. It enables loosely-coupled component communication, telemetry integration, domain event propagation, and background job decoupling.
+`@jsango/events` provides a production-grade, typed in-process and background event dispatching system for the JSango (`jsango`) framework. It enables loosely-coupled component communication, telemetry integration, domain event propagation, and background job decoupling.
 
 Key design principles:
 
@@ -10,7 +10,7 @@ Key design principles:
 - **Execution Modes**: Handlers declare their execution semantics (`sync`, `async`, `queued`).
 - **Priority-Based Dispatch**: Handlers are executed deterministically sorted by priority.
 - **Middleware Pipeline**: Dedicated event middleware (onion pattern) separate from HTTP and Queue middleware.
-- **Zero Hard Queue Dependency**: Integrates with `@django-js/queue` through the `IEventQueueAdapter` contract without compile-time coupling.
+- **Zero Hard Queue Dependency**: Integrates with `@jsango/queue` through the `IEventQueueAdapter` contract without compile-time coupling.
 - **Admin & Telemetry Introspection**: `EventRegistry.inspect()` provides structured data for diagnostics and Admin UI.
 
 ---
@@ -29,7 +29,7 @@ Application / Domain Logic
     │                 ↓
     │          IEventQueueAdapter
     │                 ↓
-    │           @django-js/queue
+    │           @jsango/queue
     └── EventLifecycleHooks (onDispatched, onHandlerStarted, onHandlerCompleted, onHandlerFailed)
 ```
 
@@ -65,7 +65,7 @@ Application / Domain Logic
 
 ### 3.5 QueueEventAdapter
 
-- Implements `IEventQueueAdapter` to serialize events into background job payloads (`event:<type>`) dispatched via `@django-js/queue`.
+- Implements `IEventQueueAdapter` to serialize events into background job payloads (`event:<type>`) dispatched via `@jsango/queue`.
 
 ---
 

@@ -1,12 +1,12 @@
-# django-js Framework Migration & Upgrade Guide
+# jsango Framework Migration & Upgrade Guide
 
-This guide describes versioning conventions, upgrade procedures, and API stability expectations for applications built on `django-js`.
+This guide describes versioning conventions, upgrade procedures, and API stability expectations for applications built on `jsango`.
 
 ---
 
 ## Semantic Versioning Policy
 
-`django-js` adheres strictly to [Semantic Versioning 2.0.0](https://semver.org/):
+`jsango` adheres strictly to [Semantic Versioning 2.0.0](https://semver.org/):
 
 - **MAJOR (`X.0.0`)**: Incompatible public API changes, architectural rewrites, or minimum Node.js runtime version bumps.
 - **MINOR (`0.X.0` or `X.Y.0`)**: Backwards-compatible new features, new packages, and additive abstractions.
@@ -19,26 +19,26 @@ This guide describes versioning conventions, upgrade procedures, and API stabili
 
 ### 1. Package Synchronization
 
-Ensure all `@django-js/*` packages in your `package.json` are pinned to the same release candidate version:
+Ensure all `@jsango/*` packages in your `package.json` are pinned to the same release candidate version:
 
 ```json
 {
   "dependencies": {
-    "@django-js/core": "^0.1.0-rc.1",
-    "@django-js/http": "^0.1.0-rc.1",
-    "@django-js/router": "^0.1.0-rc.1",
-    "@django-js/middleware": "^0.1.0-rc.1",
-    "@django-js/database": "^0.1.0-rc.1",
-    "@django-js/orm": "^0.1.0-rc.1",
-    "@django-js/migrations": "^0.1.0-rc.1",
-    "@django-js/auth": "^0.1.0-rc.1",
-    "@django-js/cache": "^0.1.0-rc.1",
-    "@django-js/queue": "^0.1.0-rc.1",
-    "@django-js/events": "^0.1.0-rc.1",
-    "@django-js/websocket": "^0.1.0-rc.1",
-    "@django-js/admin-core": "^0.1.0-rc.1",
-    "@django-js/openapi": "^0.1.0-rc.1",
-    "@django-js/observability": "^0.1.0-rc.1"
+    "@jsango/core": "^0.1.0-rc.1",
+    "@jsango/http": "^0.1.0-rc.1",
+    "@jsango/router": "^0.1.0-rc.1",
+    "@jsango/middleware": "^0.1.0-rc.1",
+    "@jsango/database": "^0.1.0-rc.1",
+    "@jsango/orm": "^0.1.0-rc.1",
+    "@jsango/migrations": "^0.1.0-rc.1",
+    "@jsango/auth": "^0.1.0-rc.1",
+    "@jsango/cache": "^0.1.0-rc.1",
+    "@jsango/queue": "^0.1.0-rc.1",
+    "@jsango/events": "^0.1.0-rc.1",
+    "@jsango/websocket": "^0.1.0-rc.1",
+    "@jsango/admin-core": "^0.1.0-rc.1",
+    "@jsango/openapi": "^0.1.0-rc.1",
+    "@jsango/observability": "^0.1.0-rc.1"
   }
 }
 ```

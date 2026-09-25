@@ -1,12 +1,12 @@
 import { BaseCommand } from '../public/command.js';
 import type { CommandContext } from '../public/context.js';
 import { ExitCode } from '../public/types.js';
-import { MigrationRunner } from '@django-js/migrations';
+import { MigrationRunner } from '@jsango/migrations';
 
 export class MigrateStatusCommand extends BaseCommand {
   public readonly name = 'migrate:status';
   public readonly description = 'Show current migration status and pending migrations';
-  public readonly usage = 'django-js migrate:status [options]';
+  public readonly usage = 'jsango migrate:status [options]';
   public readonly options = [
     {
       name: 'connection',

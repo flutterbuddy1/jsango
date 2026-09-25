@@ -1,6 +1,6 @@
 # Database Configuration
 
-Database configuration is integrated with `@django-js/config` to avoid hardcoding `process.env` lookups across framework packages.
+Database configuration is integrated with `@jsango/config` to avoid hardcoding `process.env` lookups across framework packages.
 
 ## Configuration Structure
 
@@ -27,8 +27,8 @@ export interface ConnectionConfig {
 ## Loading Configuration
 
 ```typescript
-import { loadDatabaseConfig } from '@django-js/database';
-import { MemoryConfigProvider } from '@django-js/config';
+import { loadDatabaseConfig } from '@jsango/database';
+import { MemoryConfigProvider } from '@jsango/config';
 
 const configProvider = new MemoryConfigProvider({
   'database.default': 'primary',

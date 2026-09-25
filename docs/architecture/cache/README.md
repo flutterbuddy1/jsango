@@ -1,8 +1,8 @@
-# @django-js/cache Architecture Overview
+# @jsango/cache Architecture Overview
 
 ## 1. Core Mission & Philosophy
 
-`@django-js/cache` provides a production-grade, driver-agnostic caching abstraction for the Nexora (`django-js`) framework. It is designed around the principle that caching is infrastructure, not domain logic — the application layer interacts with a high-level `CacheStore` interface, while backend storage details are encapsulated behind pluggable drivers.
+`@jsango/cache` provides a production-grade, driver-agnostic caching abstraction for the JSango (`jsango`) framework. It is designed around the principle that caching is infrastructure, not domain logic — the application layer interacts with a high-level `CacheStore` interface, while backend storage details are encapsulated behind pluggable drivers.
 
 Key design principles:
 

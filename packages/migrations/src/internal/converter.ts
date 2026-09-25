@@ -1,4 +1,4 @@
-import type { ModelMetadata, ModelStatic } from '@django-js/orm';
+import type { ModelMetadata, ModelStatic } from '@jsango/orm';
 import { SchemaSnapshot } from '../public/schema.js';
 import type {
   ColumnDefinition,

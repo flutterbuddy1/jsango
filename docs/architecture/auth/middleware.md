@@ -35,4 +35,4 @@ app.get('/public', handler, {
 });
 ```
 
-If unauthenticated, `ctx.state.get('django-js:auth').identity` returns an `AnonymousIdentity` (`isAuthenticated: false`).
+If unauthenticated, `ctx.state.get('jsango:auth').identity` returns an `AnonymousIdentity` (`isAuthenticated: false`).

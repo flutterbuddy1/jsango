@@ -1,4 +1,4 @@
-import type { ModelMetadata } from '@django-js/orm';
+import type { ModelMetadata } from '@jsango/orm';
 
 export type AdminFieldType =
   | 'text'

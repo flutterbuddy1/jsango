@@ -3,7 +3,7 @@ import {
   MemorySessionStore,
   SessionAuthenticationStrategy,
 } from '../public/authentication/session.js';
-import { HttpRequest, RequestContext } from '@django-js/http';
+import { HttpRequest, RequestContext } from '@jsango/http';
 
 describe('Session Authentication & Store', () => {
   it('creates, retrieves, updates, and touches sessions in MemorySessionStore', async () => {

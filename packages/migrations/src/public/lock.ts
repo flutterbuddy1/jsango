@@ -1,4 +1,4 @@
-import type { IDatabaseConnection } from '@django-js/database';
+import type { IDatabaseConnection } from '@jsango/database';
 import { MigrationLockedError } from './errors.js';
 
 export interface MigrationLockOptions {
@@ -9,7 +9,7 @@ export interface MigrationLockOptions {
 }
 
 export class MigrationLock {
-  public static readonly TABLE_NAME = 'django_js_migration_lock';
+  public static readonly TABLE_NAME = 'jsango_migration_lock';
   private readonly connection: IDatabaseConnection;
   private readonly acquireTimeoutMs: number;
   private readonly lockExpiryMs: number;

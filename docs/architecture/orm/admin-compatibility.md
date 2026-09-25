@@ -27,7 +27,7 @@ Admin controllers and UI generators will query `ModelMetadata` for:
 1. **Model Discovery**:
 
    ```typescript
-   import { getAllModels, getMetadata } from '@django-js/orm';
+   import { getAllModels, getMetadata } from '@jsango/orm';
 
    const models = getAllModels(); // All registered models in the application
    ```

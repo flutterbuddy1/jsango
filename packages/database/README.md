@@ -1,19 +1,19 @@
-# @django-js/database
+# @jsango/database
 
 > Database connection management, FIFO connection pool, transaction state machines, and dialect abstractions.
 
-Part of the **[django-js](https://github.com/django-js/django-js)** backend framework for TypeScript.
+Part of the **[jsango](https://github.com/jsango/jsango)** backend framework for TypeScript.
 
 ## Installation
 
 ```bash
-pnpm add @django-js/database
+pnpm add @jsango/database
 ```
 
 ## Usage
 
 ```typescript
-import { DatabaseManager, MemoryDatabaseDriver } from '@django-js/database';
+import { DatabaseManager, MemoryDatabaseDriver } from '@jsango/database';
 
 const db = new DatabaseManager({
   default: new MemoryDatabaseDriver(),
@@ -25,8 +25,8 @@ await db.transaction(async (tx) => {
 
 ## Documentation
 
-For full architecture documentation and guides, visit the [django-js documentation](https://github.com/django-js/django-js/tree/main/docs).
+For full architecture documentation and guides, visit the [jsango documentation](https://github.com/jsango/jsango/tree/main/docs).
 
 ## License
 
-MIT © django-js contributors
+MIT © jsango contributors

@@ -1,6 +1,6 @@
-# Contributing to django-js
+# Contributing to jsango
 
-Thank you for contributing to **django-js**. As a production-grade framework designed for enterprise workloads, we maintain strict architectural standards and quality gates.
+Thank you for contributing to **jsango**. As a production-grade framework designed for enterprise workloads, we maintain strict architectural standards and quality gates.
 
 ---
 
@@ -105,6 +105,6 @@ pnpm build
 
 - **No `any`**: Strict TypeScript is enforced without exceptions.
 - **No `console.log`**: Use the framework logger abstraction (`ILogger`).
-- **No Leaking Globals**: Do not access `process.env` directly outside `@django-js/runtime`.
+- **No Leaking Globals**: Do not access `process.env` directly outside `@jsango/runtime`.
 - **No Unjustified Dependencies**: Check bundle size, security history, and runtime cost before introducing any external dependency.
 - **Test Coverage**: Every new feature or bug fix must include comprehensive tests.

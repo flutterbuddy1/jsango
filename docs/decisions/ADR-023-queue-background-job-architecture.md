@@ -9,7 +9,7 @@ Production applications need deferred execution for tasks like email sending, re
 1. **Driver-Based Architecture**:
    - All queue backends implement the `IQueueDriver` contract with explicit `QueueCapabilities`.
    - `QueueManager` orchestrates named queue connections, worker lifecycle, and driver factories.
-   - Built-in drivers: `MemoryQueueDriver` (development/testing) and `DatabaseQueueDriver` (production via `@django-js/database`).
+   - Built-in drivers: `MemoryQueueDriver` (development/testing) and `DatabaseQueueDriver` (production via `@jsango/database`).
 2. **AT-LEAST-ONCE Delivery**:
    - Jobs are guaranteed to execute at least once. Handlers must be idempotent.
    - Visibility leases (`locked_until`) prevent duplicate processing in multi-worker environments.

@@ -5,8 +5,8 @@
 Routes are registered using method-specific convenience functions on the `Router` instance:
 
 ```typescript
-import { Router } from '@django-js/router';
-import { HttpResponse } from '@django-js/http';
+import { Router } from '@jsango/router';
+import { HttpResponse } from '@jsango/http';
 
 const router = new Router();
 

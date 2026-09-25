@@ -18,5 +18,5 @@ CLI tools frequently corrupt piped output when terminal colors, diagnostic logs,
 
 ## Consequences
 
-- Direct scriptability: `django-js route:list --json | jq .routes` works cleanly without errors.
+- Direct scriptability: `jsango route:list --json | jq .routes` works cleanly without errors.
 - Uncorrupted logging in CI environments.

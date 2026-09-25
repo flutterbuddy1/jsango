@@ -1,7 +1,7 @@
 /**
  * Shared types for the Admin server layer.
  */
-import type { AdminSortDirection } from '@django-js/admin-core';
+import type { AdminSortDirection } from '@jsango/admin-core';
 
 export interface AdminListQuery {
   readonly page?: number | undefined;

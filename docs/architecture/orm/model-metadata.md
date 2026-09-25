@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `django-js` Model Metadata system is a first-class architectural component. It decouples model schema definitions from database queries and runtime drivers.
+The `jsango` Model Metadata system is a first-class architectural component. It decouples model schema definitions from database queries and runtime drivers.
 
 Future systems—such as Admin (Phase 13), Migrations (Phase 7), and Validation (Phase 8)—depend directly on this metadata.
 

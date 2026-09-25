@@ -1,8 +1,16 @@
-# django-js Project Status
+# JSango Project Status
+
+**Framework:** JSango
+**Previous Development Name:** django-js
+**Migration Status:** Complete
+**Package Namespace:** `@jsango/*`
+**CLI:** `jsango`
+**Admin:** JSango Admin
 
 ## Current Phase
 
-**PHASE 17 — FINAL 1.0 RELEASE + PUBLIC API FREEZE** (Completed — v1.0.0 Stable GA)
+**COMPLETE PROJECT REBRAND (django-js → JSango)** (Completed — v1.0.0 Stable)
+**PHASE 18 — JSANGO ENTERPRISE ADMIN UI FOUNDATION** (Completed — v1.0.0 Stable)
 
 ---
 
@@ -17,12 +25,12 @@
 - [x] **Package Scaffolding (Phase 0)**:
   - 13 single-responsibility packages scaffolded.
 - [x] **Foundational Abstractions (Phase 0 & 1)**:
-  - Structured error hierarchy (`DjangoJsError`) with production-safe serialization.
+  - Structured error hierarchy (`JsangoError`) with production-safe serialization.
   - Pluggable logging contract (`ILogger`, `NoopLogger`).
   - Runtime abstraction contract (`IRuntimeAdapter`, `NodeRuntimeAdapter`).
   - Configuration boundary contract (`IConfigProvider`, `MemoryConfigProvider`).
   - Dependency injection container contract (`IContainer`, `Container`) with transient, singleton, and scoped lifetimes.
-- [x] **HTTP Core Package (`@django-js/http`) (Phase 2)**:
+- [x] **HTTP Core Package (`@jsango/http`) (Phase 2)**:
   - **`HttpRequest`**: Runtime-independent request abstraction with immutable properties, URL, query, headers, cookies, body streaming, correlation ID, and AbortSignal.
   - **`HttpResponse`**: Response abstraction with lifecycle state machine (`created` → `configured` → `committed` → `completed`), post-commit mutation blocking, and static factories (`json`, `text`, `html`, `redirect`, `empty`, `stream`).
   - **`HttpHeaders`**: Safe case-insensitive headers with CRLF injection prevention.
@@ -32,7 +40,7 @@
   - **Structured HTTP Errors**: Comprehensive hierarchy (`BadRequestError`, `NotFoundError`, `PayloadTooLargeError`, etc.) with production-safe masking.
   - **`RequestContext`**: Unified context holding request, response, correlation ID, logger, abort signal, and scoped container slot.
   - **`NodeHttpServer`**: Production Node.js HTTP server adapter completely encapsulating Node's `IncomingMessage` and `ServerResponse`, supporting graceful shutdown.
-- [x] **High-Performance Router (`@django-js/router`) (Phase 3)**:
+- [x] **High-Performance Router (`@jsango/router`) (Phase 3)**:
   - **`RadixTree` / `RadixNode`**: Segment-based trie delivering $O(k)$ lookup time (>3.2M ops/sec).
   - **Deterministic Precedence**: Static > Constrained Param > Generic Param > Wildcard.
   - **Parameter Constraints**: Typed inline (`:id<number>`, `:id<uuid>`, `:slug<slug>`, etc.) and route options (custom regex and functions).
@@ -40,7 +48,7 @@
   - **Route Groups**: Prefix composition and hierarchical metadata inheritance.
   - **Named Routes & Reverse URLs**: Bidirectional URL generation (`router.url()`) with query parameter serialization.
   - **Lifecycle & Immutability**: Two-phase `registering` → `compile()` locking preventing concurrency hazards.
-- [x] **Middleware & Application Lifecycle (`@django-js/middleware`) (Phase 4)**:
+- [x] **Middleware & Application Lifecycle (`@jsango/middleware`) (Phase 4)**:
   - **`MiddlewarePipeline`**: Pure onion-style recursive pipeline executor with explicit double-calling protection (`MultipleNextCallsError`).
   - **Flexible Middleware Types**: Support for function middleware (`(ctx, next) => ...`), class middleware (`IMiddleware.handle`), and named middleware aliases.
   - **`MiddlewareRegistry`**: Centralized string identifier to middleware resolution for modular, testable decoupling.
@@ -50,7 +58,7 @@
   - **RFC 7231 Lifecycle Compliance**: 404 Not Found and 405 Method Not Allowed with `Allow` header skip route middleware; HEAD fallback suppresses body while preserving headers.
   - **Robust Error Boundary**: Request-scoped error isolation; custom `ErrorHandler` support; production stack masking with structured code and status.
   - **Guaranteed Resource Cleanup**: Scoped DI container disposed in a `finally` block on every request.
-- [x] **Database Abstraction Layer (`@django-js/database`) (Phase 5)**:
+- [x] **Database Abstraction Layer (`@jsango/database`) (Phase 5)**:
   - **`DatabaseManager`**: Named database connection registry supporting multiple isolated databases (`default`, `analytics`, `readonly`), health checks, and graceful shutdown lifecycle integration.
   - **Zero-Dependency `ConnectionPool`**: High-concurrency resource pool with FIFO acquisition queue, configurable min/max bounds, acquisition timeouts, idle reaping, and max lifetime eviction.
   - **`DatabaseConnection`**: Thread-safe client connection wrapper managing parameterized queries, dialect placeholder translations, scoped transactions, and automated release.
@@ -59,7 +67,7 @@
   - **`MemoryDatabaseDriver`**: High-fidelity, deterministic in-memory database engine supporting table storage, transaction snapshots, savepoint rollbacks, and simulated latency/cancellation.
   - **Dialect Placeholder Translation**: Universal `?` placeholder normalization into driver native syntax (`$1, $2` for PostgreSQL).
   - **Security by Default**: Zero credential leaks; `maskConnectionString` and `maskConnectionConfig` preventing password exposure in errors, logs, and diagnostics.
-- [x] **ORM / Object-Relational Mapping Layer (`@django-js/orm`) (Phase 6)**:
+- [x] **ORM / Object-Relational Mapping Layer (`@jsango/orm`) (Phase 6)**:
   - **Rich Model Metadata System**: Complete immutable runtime introspection (`ModelMetadata`, `FieldMetadata`, `RelationMetadata`, `IndexMetadata`) serving future Admin, Migrations, Validation, and OpenAPI.
   - **Declarative Field System**: Strongly typed field factories (`string`, `text`, `integer`, `bigint`, `float`, `decimal`, `boolean`, `dateTime`, `date`, `time`, `json`, `uuid`, `binary`).
   - **Relationship Engine**: Declarative associations (`belongsTo`, `hasOne`, `hasMany`, `manyToMany`) with lazy resolver functions and static `WeakMap` resolution caches preserving full immutability.
@@ -70,7 +78,7 @@
   - **Factory & Prototype Proxies**: `defineModel()` factory constructing typed models with zero decorator magic and zero property access latency.
   - **Connection Lifecycle & Transaction Propagation**: Automatic connection pooling integration with safe release via `finally` blocks, and multi-connection transaction propagation (`.using(tx)`).
   - **Central Model Registry**: `ModelRegistry` enabling model registration, discovery, and duplicate collision prevention.
-- [x] **Migrations + Database Schema Management (`@django-js/migrations`) (Phase 7)**:
+- [x] **Migrations + Database Schema Management (`@jsango/migrations`) (Phase 7)**:
   - **Normalized Schema Model**: Immutable, dialect-neutral `SchemaSnapshot`, `TableSchema`, `ColumnSchema`, `IndexSchema`, `ForeignKeySchema`, `UniqueConstraintSchema` with structural checksums.
   - **Model-to-Schema Converter**: Translates ORM `ModelMetadata` into normalized `SchemaSnapshot` structures including timestamps, soft delete columns, and foreign keys.
   - **Schema Introspector**: Dialect-specific metadata reflection (`PostgresSchemaIntrospector`, `SqliteSchemaIntrospector`, `MemorySchemaIntrospector`) mapping vendor catalogs to canonical snapshots.
@@ -79,10 +87,10 @@
   - **Safety Guard Policy**: Rejects destructive operations (`DropTable`, `DropColumn`, incompatible alterations) unless `allowDestructive: true` is explicitly passed; requires `'YES_I_AM_SURE'` confirmation for database resets.
   - **DDL SQL Compiler**: Generates ANSI-quoted, dialect-specialized SQL with strict alphanumeric identifier validation defending against SQL injection.
   - **Migration Generator**: Generates timestamped, typed TypeScript migration files (`YYYYMMDDHHmmss_name.ts`) with SHA-256 content checksums.
-  - **Distributed Locking**: `MigrationLock` table (`django_js_migration_lock`) with optimistic locking and automatic stale lock recovery (configurable TTL).
-  - **Migration Runner**: Atomic execution with batch tracking (`django_js_migrations`), transaction isolation honoring `supportsTransactionalDDL`, step-based or batch rollback, and drift detection.
+  - **Distributed Locking**: `MigrationLock` table (`jsango_migration_lock`) with optimistic locking and automatic stale lock recovery (configurable TTL).
+  - **Migration Runner**: Atomic execution with batch tracking (`jsango_migrations`), transaction isolation honoring `supportsTransactionalDDL`, step-based or batch rollback, and drift detection.
   - **Drift Detector**: Programmatic verification between active database introspection and ORM models.
-- [x] **CLI + Developer Tooling (`@django-js/cli`) (Phase 9)**:
+- [x] **CLI + Developer Tooling (`@jsango/cli`) (Phase 9)**:
   - **Command Architecture**: Strict decoupling (CLI $\to$ `CommandRegistry` $\to$ `Command` $\to$ `ArgParser` $\to$ `CommandContext` $\to$ Application Services). CLI contains zero business logic belonging to lower packages.
   - **Deterministic Registry & Namespaces**: Colon-delimited namespaces (`migrate:status`, `route:list`, `model:list`) with top-level DX aliases (`migrate`, `routes`, `models`) and space-delimited fallback.
   - **Zero-Dependency ArgParser**: High-throughput parsing (>1.3M ops/sec) with positional args, long/short options, inline `=`, boolean negation (`--no-flag`), enum choices, array accumulation, and typo suggestions via Levenshtein distance.
@@ -99,10 +107,10 @@
     - `migrate:run` & `migrate:status` & `migrate:rollback`: Full schema lifecycle with destructive operation guards (`--yes`, `--force`).
     - `migrate:generate <name>`: Generates timestamped migrations from ORM model diffs.
     - `migrate:check`: Verifies schema drift in CI/CD pipelines without altering databases, exiting non-zero on drift.
-    - `create <name>`: Scaffolds complete django-js projects safely without overwriting non-empty directories.
+    - `create <name>`: Scaffolds complete jsango projects safely without overwriting non-empty directories.
   - **Plugin Extension Architecture**: `ICommandProvider` allowing external and future packages (Admin, Queue, etc.) to register CLI commands cleanly.
   - **Lifecycle & Cancellation**: `AbortSignal` propagation on `SIGINT` / `SIGTERM` with registered cleanup hooks and graceful pool closing.
-- [x] **Authentication + Authorization (`@django-js/auth`) (Phase 10)**:
+- [x] **Authentication + Authorization (`@jsango/auth`) (Phase 10)**:
   - **Decoupled Architecture**: Strict separation of Authentication ("Who is this principal?") from Authorization ("What is this identity allowed to do?").
   - **Immutable Identity Abstraction**: `Identity`, `UserIdentity`, `ServiceAccountIdentity`, `AnonymousIdentity`, `SystemIdentity`, with non-leaking `toJSON()` serialization.
   - **Pluggable Authentication Strategies**:
@@ -124,7 +132,7 @@
     - `authorize()` middleware cleanly separating 401 Unauthorized (`UnauthenticatedError`) from 403 Forbidden (`ForbiddenError`).
     - Strict request-scoped identity isolation in `RequestContext.state` and DI container with zero mutable global state.
   - **Admin & Multi-Tenancy Readiness**: Tenant context slots in `Identity` and `AuthContext`, object-level and bulk policy evaluation.
-- [x] **Cache Abstraction (`@django-js/cache`) (Phase 11)**:
+- [x] **Cache Abstraction (`@jsango/cache`) (Phase 11)**:
   - **`CacheManager`**: Multi-store orchestrator with named store resolution, driver factories, fallback modes (`fail-fast`, `fallback-to-memory`, `bypass`), and lifecycle shutdown.
   - **`CacheStore`**: High-level caching interface with key normalization (`CacheKeyBuilder`), safe serialization (`SafeCacheSerializer` with Date/BigInt support), Promise-based stampede protection, hit/miss statistics, and `namespace()` isolation.
   - **`ICacheDriver`**: Universal driver contract with `CacheCapabilities` — `get`, `set`, `has`, `delete`, `clear`, `increment`, `decrement`, `expire`, `ttl`, `getMany`, `setMany`, `deleteMany`, `close`.
@@ -132,12 +140,12 @@
   - **Redis Adapter**: Follows identical `ICacheDriver` contract for seamless backend swapping.
   - **CLI**: `cache:clear [--store] [--force]` with destructive confirmation guard.
   - **Contract Tests**: Reusable driver compliance suite; `FakeCacheDriver` for application test isolation.
-- [x] **Queue & Background Jobs (`@django-js/queue`) (Phase 11)**:
+- [x] **Queue & Background Jobs (`@jsango/queue`) (Phase 11)**:
   - **`QueueManager`**: Multi-connection orchestrator with named queues, worker management, job registry, failed job store, and graceful shutdown.
   - **`Queue`**: Named queue handle with typed `dispatch()`, `delay()`, `schedule()`, `depth()`, `stats()`, and `clear()`.
   - **`IQueueDriver`**: Universal driver contract with `QueueCapabilities` — `enqueue`, `claim` (visibility leases), `acknowledge`, `release`, `fail`, `cancel`, `getJob`, `getStats`, `getQueueDepth`, `clear`, `close`.
   - **`MemoryQueueDriver`**: In-memory driver with priority sorting, delayed jobs, and visibility lease support.
-  - **`DatabaseQueueDriver`**: Persistent driver using `@django-js/database` with `locked_until` visibility lease enforcement for multi-worker environments.
+  - **`DatabaseQueueDriver`**: Persistent driver using `@jsango/database` with `locked_until` visibility lease enforcement for multi-worker environments.
   - **`Worker`**: Long-running polling process with configurable concurrency, idle backoff, lease timeout, job timeout via `AbortSignal`, retry orchestration (`RetryCalculator` with fixed/exponential/jitter), and graceful shutdown.
   - **`JobRegistry`**: Type-safe job type → handler resolution with duplicate prevention.
   - **`MiddlewarePipeline`** (Queue): Separate onion-style middleware scoped to job execution (not HTTP middleware).
@@ -145,15 +153,15 @@
   - **AT-LEAST-ONCE Delivery**: Visibility leases prevent duplicate processing; handlers must be idempotent.
   - **CLI**: `queue:work [--once]`, `queue:status`, `queue:failed`, `queue:retry`, `queue:clear [--force]`.
   - **Contract Tests**: Reusable driver compliance suite; `FakeQueueDriver` for application test isolation.
-- [x] **Event System (`@django-js/events`) (Phase 12)**:
+- [x] **Event System (`@jsango/events`) (Phase 12)**:
   - **`EventBus`**: Multi-mode typed event dispatcher supporting `sync` (priority sequential), `async` (concurrent `Promise.allSettled`), and `queued` (background via queue adapter).
   - **`EventRegistry`**: Priority-based handler registration, duplicate prevention, and inspection API (`inspect()`) for admin and observability.
   - **`EventMiddlewarePipeline`**: Onion-style event middleware pipeline independent of HTTP and Queue middleware.
   - **`EventSerializer`**: Safe JSON serialization and deserialization rejecting non-serializable types (functions, symbols, circular refs).
-  - **`QueueEventAdapter`**: Decoupled integration with `@django-js/queue` implementing `IEventQueueAdapter`.
+  - **`QueueEventAdapter`**: Decoupled integration with `@jsango/queue` implementing `IEventQueueAdapter`.
   - **Lifecycle Hooks**: `onDispatched`, `onHandlerStarted`, `onHandlerCompleted`, `onHandlerFailed`.
   - **Testing**: `FakeEventBus` testing utility.
-- [x] **WebSocket & Real-Time Infrastructure (`@django-js/websocket`) (Phase 12)**:
+- [x] **WebSocket & Real-Time Infrastructure (`@jsango/websocket`) (Phase 12)**:
   - **Runtime-Independent Abstractions**: `IWebSocketServer` and `IWebSocketConnection` encapsulating underlying engines (`ws`).
   - **`WebSocketManager`**: Central real-time coordinator managing connections, rooms, broadcasting, and message routing.
   - **`RoomManager`**: In-memory bidirectional room mapping with join authorization, member lookups, and auto-cleanup.
@@ -161,7 +169,7 @@
   - **Defensive Limits & Backpressure**: Configurable `maxTotalConnections`, `maxConnectionsPerIdentity`, `maxRoomsPerConnection`, `maxMessageSizeBytes`, and `maxBufferedAmountBytes`.
   - **`HeartbeatManager`**: Active ping/pong health monitoring with automatic termination of dead connections.
   - **Transport Abstraction**: `IRealtimeTransport` with `LocalTransport` built-in, extensible to distributed pub/sub backends.
-  - **Authentication Integration**: HTTP upgrade authentication hooks reusing `@django-js/auth` Identity.
+  - **Authentication Integration**: HTTP upgrade authentication hooks reusing `@jsango/auth` Identity.
   - **Bi-Directional Bridges**: `WebSocketEventBridge` (EventBus $\to$ WS room) and `WebSocketToEventBridge` (WS $\to$ EventBus).
   - **CLI**: `events:list` and `ws:status`.
   - **Testing**: `FakeWebSocketConnection` and `FakeWebSocketServer`.
@@ -178,12 +186,12 @@
   - CLI microbenchmarks (`benchmarks/cli/cli.bench.ts`).
   - Auth & Authorization microbenchmarks (`benchmarks/auth/auth.bench.ts`).
 - [x] **Admin Platform Foundation (Phase 13)**:
-  - **`@django-js/admin-core`**: Model-driven `AdminResource` definitions, auto-generation from ORM `ModelMetadata`, extensible field definitions (`textField`, `emailField`, `passwordField`, `jsonField`, `uuidField`, etc.), table/form/filter abstractions, plugin hooks, and central `AdminRegistry`.
-  - **`@django-js/admin-auth`**: Granular `AdminPermissionChecker` validating staff access, resource-level CRUD permissions, row-level actions, and field-level visibility/editability with sensitive field safeguards.
-  - **`@django-js/admin-audit`**: Non-blocking `AdminAuditLogger` producing immutable audit entries, `diffChanges` utility with automatic sensitive field redaction (`/password|secret|token|key|hash|salt|credential/i`), and deterministic `InMemoryAuditStore`.
-  - **`@django-js/admin-media`**: `AdminMediaManager` with strict validation (`maxSizeBytes`, `allowedMimeTypes`, `allowedExtensions`) before storage I/O, backed by `IMediaStorage` and `InMemoryMediaStorage`.
-  - **`@django-js/admin-server`**: Decoupled `IAdminQueryAdapter` bridging ORM and admin server, production-grade `AdminCrudService` orchestrating business logic and audit events, and full REST API mounted on `IRouter` (resource listing, schema, CRUD endpoints, soft-delete restore, row actions, bulk actions, and audit log query).
-- [x] **OpenAPI & API Documentation (`@django-js/openapi`) (Phase 14)**:
+  - **`@jsango/admin-core`**: Model-driven `AdminResource` definitions, auto-generation from ORM `ModelMetadata`, extensible field definitions (`textField`, `emailField`, `passwordField`, `jsonField`, `uuidField`, etc.), table/form/filter abstractions, plugin hooks, and central `AdminRegistry`.
+  - **`@jsango/admin-auth`**: Granular `AdminPermissionChecker` validating staff access, resource-level CRUD permissions, row-level actions, and field-level visibility/editability with sensitive field safeguards.
+  - **`@jsango/admin-audit`**: Non-blocking `AdminAuditLogger` producing immutable audit entries, `diffChanges` utility with automatic sensitive field redaction (`/password|secret|token|key|hash|salt|credential/i`), and deterministic `InMemoryAuditStore`.
+  - **`@jsango/admin-media`**: `AdminMediaManager` with strict validation (`maxSizeBytes`, `allowedMimeTypes`, `allowedExtensions`) before storage I/O, backed by `IMediaStorage` and `InMemoryMediaStorage`.
+  - **`@jsango/admin-server`**: Decoupled `IAdminQueryAdapter` bridging ORM and admin server, production-grade `AdminCrudService` orchestrating business logic and audit events, and full REST API mounted on `IRouter` (resource listing, schema, CRUD endpoints, soft-delete restore, row actions, bulk actions, and audit log query).
+- [x] **OpenAPI & API Documentation (`@jsango/openapi`) (Phase 14)**:
   - **`OpenApiGenerator`**: Deterministic, zero-reflection OpenAPI 3.1.0 document generation from router metadata, validation schemas, ORM metadata, and Admin resources.
   - **`OpenApiRegistry`**: Central registration for components, operations, schemas, parameters, responses, and security schemes with strict collision detection (`DuplicateOperationIdError`, `ConflictingSchemaError`).
   - **Adapters**: `ValidationAdapter` (mapping validation rules to JSON Schema/OpenAPI), `OrmAdapter` (mapping `ModelMetadata` fields), and `AdminAdapter` (isolated Admin API docs).
@@ -191,7 +199,7 @@
   - **`OpenApiFormatter`**: Zero-dependency JSON and YAML serializer.
   - **HTTP Endpoint**: `createOpenApiHandler` serving `/openapi.json` with access control.
   - **CLI**: `openapi:generate [--output] [--format]` and `openapi:validate [--file]`.
-- [x] **Observability Foundation (`@django-js/observability`) (Phase 14)**:
+- [x] **Observability Foundation (`@jsango/observability`) (Phase 14)**:
   - **`StructuredLogger`**: Production structured logging with scoped context chaining (`withContext`), control-character sanitization to prevent log injection, and log level filtering.
   - **`MetricRegistry`**: Bounded metrics engine supporting monotonic `Counter`, stateful `Gauge`, and distribution `Histogram` with high-cardinality protection (capped label permutations).
   - **`Tracer` & `Span`**: Nanosecond-accurate tracing using `performance.now()` monotonic clock with sampling strategies and zero-allocation `NoopSpan`.
@@ -209,23 +217,32 @@
   - **Memory Leak & Hardening Tests**: Regression suite in `tests/performance/leak.test.ts` verifying memory bounds over 5,000 requests, 5,000 DI scopes, 1,000 WebSocket disconnects, and cache prunes.
   - **Concurrency Load Testing**: Concurrency suite in `tests/performance/concurrency.test.ts` verifying 1,000 concurrent HTTP requests, 1,000 event dispatches, and pooled database operations.
   - **Comprehensive Benchmark Suites**: Full coverage across all 15 framework subsystems (HTTP, Router, Middleware, Database, ORM, Migrations, Validation, CLI, Auth, Cache, Queue, Events, WebSockets, Admin, OpenAPI, Observability, Container, Startup).
-- [x] **Documentation & ADRs (Phases 0 - 15)**:
-  - Architecture guides and performance report (`docs/performance/PHASE-15-REPORT.md`).
+- [x] **Release Candidate & Production Readiness (Phase 16)**:
+  - Finalized public API boundaries, package tarball validation, external consumer testing, and release criteria.
+- [x] **Final 1.0 Release & Public API Freeze (Phase 17)**:
+  - Synchronized all 25 `@jsango/*` packages and root config to `1.0.0` stable.
+  - Frozen public API symbols across all packages under SemVer guarantees in `docs/API-FREEZE.md`.
+  - Comprehensive documentation: `docs/API-STABILITY.md`, `docs/SUPPORT.md`, `docs/MIGRATION-1.0.md`, `docs/POST-1.0-ROADMAP.md`, `docs/releases/1.0.0.md`, `CHANGELOG.md`.
+- [x] **Enterprise Admin UI Foundation (Phase 18)**:
+  - **`@jsango/admin-ui`**: Metadata-driven, high-performance frontend console foundation.
+  - **`AdminApiClient`**: Typed HTTP client with token auth and error normalization.
+  - **`QueryClient`**: In-memory query caching, stale-while-revalidate, and automatic mutation invalidation.
+  - **Theme System**: Light, dark, and system themes with semantic CSS variables and design tokens.
+  - **UI Primitives**: Buttons, status badges, inputs, alerts, skeletons, diff viewer, JSON viewer, confirmation modals.
+  - **`Cmd+K` Command Palette**: Fast keyboard navigation across all discovered resources, operations, and theme settings.
+  - **Data Table Engine**: Multi-column sorting, row selection, metadata-driven cell renderers, bulk action bar, search, and filters.
+  - **Resource Form Engine**: Dynamically generated create/edit forms with validation error mapping.
+  - **Views & Layout**: Realtime dashboard, Resource list, Resource detail, Create, Edit, Audit logs timeline with diff viewer, System health status.
+  - **Extension & Plugin System**: Extensible registry for custom widgets, pages, and field renderers.
+- [x] **Documentation & ADRs (Phases 0 - 18)**:
+  - Architecture guides, Admin UI manual (`docs/admin/ADMIN-UI.md`), and performance report (`docs/performance/PHASE-15-REPORT.md`).
   - ADR-001 through ADR-038.
 
 ---
 
 ## Current Work
 
-- Phase 13 Admin Platform Foundation, packages, REST API server, tests, and architecture documentation completed.
-
----
-
-## Next Work
-
-- **PHASE 14 — OPENAPI + OBSERVABILITY**:
-  - Automatic OpenAPI / Swagger specification generation from routes and schemas.
-  - Telemetry, Prometheus metrics exporter, and OpenTelemetry tracing.
+- Phase 18 Enterprise Admin UI Foundation completed and verified.
 
 ---
 
@@ -233,7 +250,7 @@
 
 - **ADR-001**: Runtime Abstraction Layer (`IRuntimeAdapter`).
 - **ADR-002**: Modular Monorepo & Package Separation.
-- **ADR-003**: Structured Error Architecture & Safe Serialization (`DjangoJsError`).
+- **ADR-003**: Structured Error Architecture & Safe Serialization (`JsangoError`).
 - **ADR-004**: Public API Boundaries & Encapsulation.
 - **ADR-005**: HTTP Core Abstraction, Runtime Boundary, and Response Lifecycle.
 - **ADR-006**: Radix Tree Router Architecture and Deterministic Precedence.

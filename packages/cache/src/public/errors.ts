@@ -1,7 +1,7 @@
-import { DjangoJsError, type DjangoJsErrorOptions } from '@django-js/core';
+import { JsangoError, type JsangoErrorOptions } from '@jsango/core';
 
-export class CacheError extends DjangoJsError {
-  constructor(options: DjangoJsErrorOptions) {
+export class CacheError extends JsangoError {
+  constructor(options: JsangoErrorOptions) {
     super(options);
     this.name = 'CacheError';
   }

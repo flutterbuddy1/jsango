@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-Token authentication in Nexora is abstracted through `ITokenVerifier`:
+Token authentication in JSango is abstracted through `ITokenVerifier`:
 
 ```typescript
 export interface ITokenVerifier {

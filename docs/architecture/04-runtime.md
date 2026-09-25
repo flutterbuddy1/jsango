@@ -4,7 +4,7 @@
 
 High-concurrency modern TypeScript backends must not be tightly coupled to any single JavaScript runtime. While Node.js represents the dominant enterprise deployment target, Bun offers high throughput, faster cold starts, and alternative networking primitives.
 
-To avoid vendor lock-in and enable cross-runtime execution without architectural rewrite, `django-js` abstracts the runtime behind the `IRuntimeAdapter` contract:
+To avoid vendor lock-in and enable cross-runtime execution without architectural rewrite, `jsango` abstracts the runtime behind the `IRuntimeAdapter` contract:
 
 ```typescript
 export interface IRuntimeAdapter {

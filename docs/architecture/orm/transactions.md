@@ -2,7 +2,7 @@
 
 ## Transaction Integration
 
-`@django-js/orm` integrates directly with the transaction infrastructure from `@django-js/database` (Phase 5).
+`@jsango/orm` integrates directly with the transaction infrastructure from `@jsango/database` (Phase 5).
 
 ---
 
@@ -11,7 +11,7 @@
 Transactions are managed using the scoped callback pattern:
 
 ```typescript
-import { getDatabaseManager } from '@django-js/orm';
+import { getDatabaseManager } from '@jsango/orm';
 
 const db = getDatabaseManager()!;
 

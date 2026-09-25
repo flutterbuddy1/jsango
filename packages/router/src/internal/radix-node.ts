@@ -1,4 +1,4 @@
-import type { HttpMethod } from '@django-js/http';
+import type { HttpMethod } from '@jsango/http';
 import type { Route } from '../public/route.js';
 import type { CompiledConstraint } from '../public/constraints.js';
 

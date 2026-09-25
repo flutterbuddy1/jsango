@@ -1,7 +1,7 @@
 {
-  "name": "@django-js/database",
+  "name": "@jsango/database",
   "version": "1.0.0",
-  "description": "Database abstraction, connections, transactions and drivers for django-js",
+  "description": "Database abstraction, connections, transactions and drivers for jsango",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,8 +17,8 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@django-js/config": "workspace:*",
-    "@django-js/core": "workspace:*"
+    "@jsango/config": "workspace:*",
+    "@jsango/core": "workspace:*"
   },
   "files": [
     "dist"
@@ -26,7 +26,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/django-js/django-js.git",
+    "url": "https://github.com/jsango/jsango.git",
     "directory": "packages/database"
   },
   "publishConfig": {

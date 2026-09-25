@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { detectRuntime, createRuntimeAdapter } from './index.js';
 
-describe('@django-js/runtime', () => {
+describe('@jsango/runtime', () => {
   it('should detect the running runtime', () => {
     const runtime = detectRuntime();
     expect(['node', 'bun', 'unknown']).toContain(runtime);

@@ -10,7 +10,7 @@ When package entrypoints rely on wildcard exports (`export * from './internal'`)
 
 ## Decision
 
-Every package in `django-js` must enforce a strict separation between public contracts and internal implementation:
+Every package in `jsango` must enforce a strict separation between public contracts and internal implementation:
 
 - Source code is organized into `src/public/` (public contracts, interfaces, and public types) and `src/internal/` (internal classes and algorithms).
 - The package entrypoint `src/index.ts` must use explicit named re-exports only. Blind wildcard exports are prohibited.

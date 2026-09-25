@@ -6,8 +6,8 @@ import { HttpResponse } from '../../public/response.js';
 import { RequestContext } from '../../public/context.js';
 import { formatHttpErrorResponse } from '../../public/errors.js';
 import { type HttpMethod } from '../../public/methods.js';
-import type { ILogger } from '@django-js/core';
-import { NoopLogger } from '@django-js/core';
+import type { ILogger } from '@jsango/core';
+import { NoopLogger } from '@jsango/core';
 
 export interface NodeHttpServerOptions {
   readonly logger?: ILogger | undefined;

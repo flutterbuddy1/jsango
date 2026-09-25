@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { HttpRequest, HttpResponse } from '@django-js/http';
-import { Application } from '@django-js/middleware';
+import { HttpRequest, HttpResponse } from '@jsango/http';
+import { Application } from '@jsango/middleware';
 import {
   authenticate,
   getIdentity,

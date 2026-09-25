@@ -2,7 +2,7 @@
 
 ## Parameter Syntax
 
-Nexora supports three styles of route parameters:
+JSango supports three styles of route parameters:
 
 ### 1. Standard Named Parameters
 
@@ -36,7 +36,7 @@ router.get('/files/:filename', handler, {
 
 ## Built-In Constraints
 
-Nexora provides built-in precompiled regex constraints:
+JSango provides built-in precompiled regex constraints:
 
 - `number`: `^\d+$` (digits only)
 - `uuid`: Standard RFC 4122 UUID pattern

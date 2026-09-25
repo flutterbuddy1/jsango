@@ -1,4 +1,4 @@
-import type { IDatabaseConnection } from '@django-js/database';
+import type { IDatabaseConnection } from '@jsango/database';
 import { SchemaSnapshot, TableSchema } from '../../public/schema.js';
 import type { ColumnDefinition, TableDefinition } from '../../public/types.js';
 
@@ -24,7 +24,7 @@ export class MemorySchemaIntrospector {
       anyConn.rawConnection?.sharedTables;
     if (tablesMap) {
       for (const t of tablesMap.keys()) {
-        if (!t.startsWith('django_js_')) {
+        if (!t.startsWith('jsango_')) {
           tableNames.push(t);
         }
       }

@@ -1,4 +1,4 @@
-import type { IDatabaseConnection } from '@django-js/database';
+import type { IDatabaseConnection } from '@jsango/database';
 import { SchemaSnapshot, TableSchema } from '../../public/schema.js';
 import type { ColumnDefinition, TableDefinition } from '../../public/types.js';
 
@@ -9,7 +9,7 @@ export class PostgresSchemaIntrospector {
       FROM information_schema.tables
       WHERE table_schema = 'public'
         AND table_type = 'BASE TABLE'
-        AND table_name NOT LIKE 'django_js_%'
+        AND table_name NOT LIKE 'jsango_%'
       ORDER BY table_name ASC
     `);
 

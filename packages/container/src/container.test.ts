@@ -6,7 +6,7 @@ import {
   ContainerDisposedError,
 } from './index.js';
 
-describe('@django-js/container', () => {
+describe('@jsango/container', () => {
   it('should register and resolve singleton instances', () => {
     const container = new Container();
     container.registerInstance('config', { port: 8080 });

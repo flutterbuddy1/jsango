@@ -1,4 +1,4 @@
-import { DjangoJsError, type ErrorMetadata, type SafeErrorResponse } from '@django-js/core';
+import { JsangoError, type ErrorMetadata, type SafeErrorResponse } from '@jsango/core';
 import { HttpStatus, type HttpStatusCode } from './status.js';
 
 export interface HttpErrorOptions {
@@ -9,7 +9,7 @@ export interface HttpErrorOptions {
   readonly headers?: Record<string, string> | undefined;
 }
 
-export class HttpError extends DjangoJsError {
+export class HttpError extends JsangoError {
   public readonly headers?: Readonly<Record<string, string>> | undefined;
 
   constructor(statusCode: HttpStatusCode, options: HttpErrorOptions = {}) {
@@ -193,7 +193,7 @@ export class GatewayTimeoutError extends HttpError {
   }
 }
 
-export class PayloadAlreadyConsumedError extends DjangoJsError {
+export class PayloadAlreadyConsumedError extends JsangoError {
   constructor(message = 'Request body has already been consumed.') {
     super({
       code: 'ERR_PAYLOAD_ALREADY_CONSUMED',
@@ -204,7 +204,7 @@ export class PayloadAlreadyConsumedError extends DjangoJsError {
   }
 }
 
-export class ResponseAlreadyCommittedError extends DjangoJsError {
+export class ResponseAlreadyCommittedError extends JsangoError {
   constructor(message = 'Cannot modify response after headers or body have been committed.') {
     super({
       code: 'ERR_RESPONSE_ALREADY_COMMITTED',
@@ -223,7 +223,7 @@ export function formatHttpErrorResponse(
   error: unknown,
   isProduction = true
 ): { statusCode: number; body: HttpErrorResponseBody } {
-  if (error instanceof DjangoJsError) {
+  if (error instanceof JsangoError) {
     return {
       statusCode: error.statusCode,
       body: { error: error.toSafeJSON(isProduction) },

@@ -1,19 +1,19 @@
-# @django-js/testing
+# @jsango/testing
 
-> First-class testing utilities, HTTP client simulator, mock transports, and test assertions for django-js apps.
+> First-class testing utilities, HTTP client simulator, mock transports, and test assertions for jsango apps.
 
-Part of the **[django-js](https://github.com/django-js/django-js)** backend framework for TypeScript.
+Part of the **[jsango](https://github.com/jsango/jsango)** backend framework for TypeScript.
 
 ## Installation
 
 ```bash
-pnpm add @django-js/testing
+pnpm add @jsango/testing
 ```
 
 ## Usage
 
 ```typescript
-import { TestClient } from '@django-js/testing';
+import { TestClient } from '@jsango/testing';
 
 const client = new TestClient(app);
 const res = await client.get('/api/users');
@@ -22,8 +22,8 @@ res.assertStatus(200);
 
 ## Documentation
 
-For full architecture documentation and guides, visit the [django-js documentation](https://github.com/django-js/django-js/tree/main/docs).
+For full architecture documentation and guides, visit the [jsango documentation](https://github.com/jsango/jsango/tree/main/docs).
 
 ## License
 
-MIT © django-js contributors
+MIT © jsango contributors

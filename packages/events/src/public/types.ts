@@ -1,4 +1,4 @@
-import type { ILogger } from '@django-js/core';
+import type { ILogger } from '@jsango/core';
 
 /**
  * Metadata attached to every dispatched event.
@@ -23,7 +23,7 @@ export interface EventDefinition<Payload = unknown> {
  * Handler execution mode.
  * - sync: executes sequentially in-process, blocks dispatch until complete.
  * - async: executes concurrently in-process via Promise.allSettled.
- * - queued: dispatches to @django-js/queue via adapter for background processing.
+ * - queued: dispatches to @jsango/queue via adapter for background processing.
  */
 export type EventHandlerMode = 'sync' | 'async' | 'queued';
 

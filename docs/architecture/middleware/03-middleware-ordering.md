@@ -2,7 +2,7 @@
 
 ## Deterministic Execution Hierarchy
 
-Nexora executes middleware in an explicit, deterministic order based on registration scope and hierarchy:
+JSango executes middleware in an explicit, deterministic order based on registration scope and hierarchy:
 
 ```
 Global Middleware 1 (Before)
@@ -28,4 +28,4 @@ Global Middleware 1 (After)
    - Global middleware **always** executes, ensuring that CORS headers, request IDs, and telemetry are attached even to error responses.
    - Route and group middleware **never** executes when a route is unmatched (404) or requested with an invalid method (405).
 5. **No Implicit Ordering**:
-   Nexora strictly prohibits non-deterministic ordering based on file system scanning, object property iteration, or module import timing. Middleware arrays are preserved and executed in explicit order.
+   JSango strictly prohibits non-deterministic ordering based on file system scanning, object property iteration, or module import timing. Middleware arrays are preserved and executed in explicit order.

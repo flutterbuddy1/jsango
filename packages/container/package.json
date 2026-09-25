@@ -1,7 +1,7 @@
 {
-  "name": "@django-js/container",
+  "name": "@jsango/container",
   "version": "1.0.0",
-  "description": "Dependency injection and lifecycle management for django-js",
+  "description": "Dependency injection and lifecycle management for jsango",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,7 +17,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@django-js/core": "workspace:*"
+    "@jsango/core": "workspace:*"
   },
   "files": [
     "dist"
@@ -25,7 +25,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/django-js/django-js.git",
+    "url": "https://github.com/jsango/jsango.git",
     "directory": "packages/container"
   },
   "publishConfig": {

@@ -6,7 +6,7 @@ import { MaskUtil } from '../internal/mask.js';
 export class ConfigShowCommand extends BaseCommand {
   public readonly name = 'config:show';
   public readonly description = 'Display loaded application configuration (secrets masked)';
-  public readonly usage = 'django-js config:show [options]';
+  public readonly usage = 'jsango config:show [options]';
 
   public execute(context: CommandContext): number {
     const config = context.getConfig();

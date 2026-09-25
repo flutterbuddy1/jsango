@@ -2,7 +2,7 @@
 
 ## Supported Relationship Types
 
-`@django-js/orm` provides declarative relationship definitions:
+`@jsango/orm` provides declarative relationship definitions:
 
 1. `relations.belongsTo(target, options)`: Source model holds a foreign key pointing to the target model.
 2. `relations.hasOne(target, options)`: Target model holds a foreign key pointing to this model.
@@ -45,9 +45,9 @@ export const Post = defineModel({
 
 In traditional ORMs with implicit lazy loading, iterating over 100 users and accessing `user.posts` triggers 1 query for users plus 100 individual queries for each user's posts (101 queries in total).
 
-### The django-js Solution: Batch Eager Loading
+### The jsango Solution: Batch Eager Loading
 
-In `django-js`, relationships are loaded explicitly via `.with(...)`:
+In `jsango`, relationships are loaded explicitly via `.with(...)`:
 
 ```typescript
 const users = await User.query().with('profile', 'posts').get();

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { Router } from './index.js';
-import { createNodeHttpServer, HttpResponse, type IHttpServer } from '@django-js/http';
+import { createNodeHttpServer, HttpResponse, type IHttpServer } from '@jsango/http';
 
 describe('Router HTTP Integration Tests', () => {
   let server: IHttpServer;
@@ -59,12 +59,12 @@ describe('Router HTTP Integration Tests', () => {
     const res = await fetch(`${baseUrl}/api/echo`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ message: 'Hello Nexora!' }),
+      body: JSON.stringify({ message: 'Hello JSango!' }),
     });
 
     expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data).toEqual({ echo: 'Hello Nexora!' });
+    expect(data).toEqual({ echo: 'Hello JSango!' });
   });
 
   it('should handle real HEAD request using automatic RFC 7231 GET fallback', async () => {

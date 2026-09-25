@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { QueueMiddlewarePipeline } from '../public/middleware.js';
 import { QueueError } from '../public/errors.js';
 import type { JobContext } from '../public/types.js';
-import { NoopLogger } from '@django-js/core';
+import { NoopLogger } from '@jsango/core';
 import { DEFAULT_RETRY_POLICY } from '../public/retry.js';
 
 describe('QueueMiddlewarePipeline', () => {

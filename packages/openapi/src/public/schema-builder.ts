@@ -67,7 +67,7 @@ export class SchemaBuilder {
   }
 
   /**
-   * Reusable error response schema matching framework's DjangoJsError / HTTP error format.
+   * Reusable error response schema matching framework's JsangoError / HTTP error format.
    */
   public static errorResponse(): OpenApiSchema {
     return {
@@ -89,7 +89,7 @@ export class SchemaBuilder {
   }
 
   /**
-   * Reusable validation error response schema matching @django-js/validation format.
+   * Reusable validation error response schema matching @jsango/validation format.
    */
   public static validationErrorResponse(): OpenApiSchema {
     return {

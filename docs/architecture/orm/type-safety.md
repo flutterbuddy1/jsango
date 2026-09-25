@@ -2,7 +2,7 @@
 
 ## Design Principles
 
-`@django-js/orm` provides end-to-end compile-time type safety with zero code generation steps and zero runtime reflection.
+`@jsango/orm` provides end-to-end compile-time type safety with zero code generation steps and zero runtime reflection.
 
 ---
 

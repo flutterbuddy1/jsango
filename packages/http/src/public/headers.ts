@@ -1,4 +1,4 @@
-import { DjangoJsError } from '@django-js/core';
+import { JsangoError } from '@jsango/core';
 
 export type HeaderValue = string | readonly string[];
 
@@ -27,7 +27,7 @@ export class HttpHeaders {
 
   private validateName(name: string): void {
     if (!name || typeof name !== 'string') {
-      throw new DjangoJsError({
+      throw new JsangoError({
         code: 'ERR_INVALID_HEADER_NAME',
         message: 'Header name must be a non-empty string.',
         statusCode: 400,
@@ -38,7 +38,7 @@ export class HttpHeaders {
     for (let i = 0; i < name.length; i++) {
       const code = name.charCodeAt(i);
       if (code <= 31 || code === 127) {
-        throw new DjangoJsError({
+        throw new JsangoError({
           code: 'ERR_HEADER_INJECTION',
           message: `Header name contains invalid control characters or CRLF: "${name}"`,
           statusCode: 400,
@@ -49,7 +49,7 @@ export class HttpHeaders {
 
   private validateValue(name: string, value: string): void {
     if (typeof value !== 'string') {
-      throw new DjangoJsError({
+      throw new JsangoError({
         code: 'ERR_INVALID_HEADER_VALUE',
         message: `Header value for "${name}" must be a string.`,
         statusCode: 400,
@@ -58,7 +58,7 @@ export class HttpHeaders {
 
     // Prevents HTTP Response Splitting / CRLF injection
     if (/[\r\n]/.test(value)) {
-      throw new DjangoJsError({
+      throw new JsangoError({
         code: 'ERR_HEADER_INJECTION',
         message: `Header value for "${name}" contains forbidden CRLF characters.`,
         statusCode: 400,

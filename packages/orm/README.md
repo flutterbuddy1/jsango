@@ -1,19 +1,19 @@
-# @django-js/orm
+# @jsango/orm
 
 > Model definitions, dirty tracking, pure batch eager loading (.with()), AST query builder, and relationship resolvers.
 
-Part of the **[django-js](https://github.com/django-js/django-js)** backend framework for TypeScript.
+Part of the **[jsango](https://github.com/jsango/jsango)** backend framework for TypeScript.
 
 ## Installation
 
 ```bash
-pnpm add @django-js/orm
+pnpm add @jsango/orm
 ```
 
 ## Usage
 
 ```typescript
-import { defineModel, fields, relations } from '@django-js/orm';
+import { defineModel, fields, relations } from '@jsango/orm';
 
 export const User = defineModel('User', {
   id: fields.uuid({ primaryKey: true }),
@@ -26,8 +26,8 @@ const users = await User.query().with('posts').where('active', '=', true).all();
 
 ## Documentation
 
-For full architecture documentation and guides, visit the [django-js documentation](https://github.com/django-js/django-js/tree/main/docs).
+For full architecture documentation and guides, visit the [jsango documentation](https://github.com/jsango/jsango/tree/main/docs).
 
 ## License
 
-MIT © django-js contributors
+MIT © jsango contributors

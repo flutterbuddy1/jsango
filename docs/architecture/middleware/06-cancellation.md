@@ -2,7 +2,7 @@
 
 ## AbortSignal Integration
 
-Nexora natively supports request cancellation using standard Web `AbortSignal`:
+JSango natively supports request cancellation using standard Web `AbortSignal`:
 
 1. **Client Disconnect**:
    When the client closes the TCP connection before the response finishes, the underlying `NodeHttpServer` triggers an abort on the request's `AbortController`.

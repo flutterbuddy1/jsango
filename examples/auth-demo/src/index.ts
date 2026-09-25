@@ -1,5 +1,5 @@
-import { HttpResponse, HttpRequest } from '@django-js/http';
-import { Application } from '@django-js/middleware';
+import { HttpResponse, HttpRequest } from '@jsango/http';
+import { Application } from '@jsango/middleware';
 import {
   JwtService,
   JwtTokenVerifier,
@@ -14,7 +14,7 @@ import {
   authorize,
   getIdentity,
   type Identity,
-} from '@django-js/auth';
+} from '@jsango/auth';
 
 // 1. Domain Resource & Policy Definition
 interface Document {

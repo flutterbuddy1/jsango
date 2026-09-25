@@ -1,7 +1,7 @@
 {
-  "name": "@django-js/admin-core",
+  "name": "@jsango/admin-core",
   "version": "1.0.0",
-  "description": "Core Admin registry, resource definitions, fields, forms, tables, and auto-generation for django-js",
+  "description": "Core Admin registry, resource definitions, fields, forms, tables, and auto-generation for jsango",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -21,9 +21,9 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@django-js/core": "workspace:*",
-    "@django-js/orm": "workspace:*",
-    "@django-js/validation": "workspace:*"
+    "@jsango/core": "workspace:*",
+    "@jsango/orm": "workspace:*",
+    "@jsango/validation": "workspace:*"
   },
   "files": [
     "dist"
@@ -31,7 +31,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/django-js/django-js.git",
+    "url": "https://github.com/jsango/jsango.git",
     "directory": "packages/admin-core"
   },
   "publishConfig": {

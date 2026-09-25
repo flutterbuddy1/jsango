@@ -2,7 +2,7 @@
 
 ## Overview
 
-Future django-js packages (e.g., Admin, Queue, Cache, WebSockets) and third-party extensions need to register CLI commands without monkey-patching or modifying core framework packages.
+Future jsango packages (e.g., Admin, Queue, Cache, WebSockets) and third-party extensions need to register CLI commands without monkey-patching or modifying core framework packages.
 
 ## The `ICommandProvider` Contract
 
@@ -18,7 +18,7 @@ export interface ICommandProvider {
 ## Example: Future Admin Package Command Provider
 
 ```typescript
-import { type ICommandProvider, type CommandRegistry, BaseCommand } from '@django-js/cli';
+import { type ICommandProvider, type CommandRegistry, BaseCommand } from '@jsango/cli';
 
 class AdminRoutesCommand extends BaseCommand {
   public readonly name = 'admin:routes';

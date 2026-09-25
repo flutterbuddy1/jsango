@@ -16,7 +16,7 @@ In complex backend frameworks, CLI commands grow rapidly as plugins, ORMs, and m
    - `migrate` $\to$ `migrate:run`
    - `routes` $\to$ `route:list`
    - `models` $\to$ `model:list`
-3. **Space-Delimited Fallback**: If a user runs `django-js migrate status`, the application seamlessly maps the tokens to `migrate:status`.
+3. **Space-Delimited Fallback**: If a user runs `jsango migrate status`, the application seamlessly maps the tokens to `migrate:status`.
 4. **Collision Protection**: `CommandRegistry` throws an explicit error if a command name or alias collides with an existing registration.
 5. **Typo Suggestions**: Unknown commands invoke a Levenshtein distance check to suggest the closest matching command in the error output.
 

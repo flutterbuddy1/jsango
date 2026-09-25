@@ -1,5 +1,5 @@
-import type { Identity, AuthorizationManager } from '@django-js/auth';
-import type { AdminResource } from '@django-js/admin-core';
+import type { Identity, AuthorizationManager } from '@jsango/auth';
+import type { AdminResource } from '@jsango/admin-core';
 
 export interface AdminAuthOptions {
   readonly authorizationManager?: AuthorizationManager | undefined;

@@ -23,4 +23,4 @@ The `Router` operates across an explicit two-phase lifecycle:
 
 ## Concurrency Protection
 
-By locking the routing table before the HTTP server starts accepting traffic, Nexora eliminates all concurrency hazards and race conditions related to route modifications in high-concurrency environments.
+By locking the routing table before the HTTP server starts accepting traffic, JSango eliminates all concurrency hazards and race conditions related to route modifications in high-concurrency environments.

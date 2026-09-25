@@ -5,7 +5,7 @@ import { ExitCode } from '../public/types.js';
 export class ModelListCommand extends BaseCommand {
   public readonly name = 'model:list';
   public readonly description = 'List all registered ORM models';
-  public readonly usage = 'django-js model:list [options]';
+  public readonly usage = 'jsango model:list [options]';
   public readonly aliases = ['models'];
 
   public execute(context: CommandContext): number {

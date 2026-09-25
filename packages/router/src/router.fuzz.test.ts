@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Router } from './index.js';
-import { HttpResponse } from '@django-js/http';
+import { HttpResponse } from '@jsango/http';
 
 describe('Router Fuzz and Edge-Case Tests', () => {
   it('should handle heavily duplicate and trailing slashes safely', () => {

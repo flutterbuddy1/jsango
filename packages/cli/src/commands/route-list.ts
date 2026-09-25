@@ -5,7 +5,7 @@ import { ExitCode } from '../public/types.js';
 export class RouteListCommand extends BaseCommand {
   public readonly name = 'route:list';
   public readonly description = 'List all registered HTTP routes';
-  public readonly usage = 'django-js route:list [options]';
+  public readonly usage = 'jsango route:list [options]';
   public readonly aliases = ['routes'];
   public readonly options = [
     {

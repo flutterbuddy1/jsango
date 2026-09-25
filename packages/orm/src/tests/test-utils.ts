@@ -7,8 +7,8 @@ import type {
   IDriverConnection,
   QueryOptions,
   TransactionOptions,
-} from '@django-js/database';
-import { DatabaseManager } from '@django-js/database';
+} from '@jsango/database';
+import { DatabaseManager } from '@jsango/database';
 import { setDatabaseManager } from '../public/connection.js';
 import { defaultModelRegistry } from '../public/registry.js';
 

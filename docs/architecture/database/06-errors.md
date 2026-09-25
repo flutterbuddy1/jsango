@@ -1,11 +1,11 @@
 # Database Errors & Security
 
-All database errors inherit from `DjangoJsError` and include structured error codes, HTTP status mappings, and sanitized metadata.
+All database errors inherit from `JsangoError` and include structured error codes, HTTP status mappings, and sanitized metadata.
 
 ## Error Hierarchy
 
 ```
-DjangoJsError
+JsangoError
   └── DatabaseError (500, ERR_DATABASE)
         ├── ConnectionError (503, ERR_DB_CONNECTION)
         ├── ConnectionAcquisitionTimeoutError (504, ERR_DB_POOL_TIMEOUT)

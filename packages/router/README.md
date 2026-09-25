@@ -1,19 +1,19 @@
-# @django-js/router
+# @jsango/router
 
 > High-performance Segment Radix Trie router (>7.7M ops/sec), typed constraints, route groups, and RFC 7231 compliance.
 
-Part of the **[django-js](https://github.com/django-js/django-js)** backend framework for TypeScript.
+Part of the **[jsango](https://github.com/jsango/jsango)** backend framework for TypeScript.
 
 ## Installation
 
 ```bash
-pnpm add @django-js/router
+pnpm add @jsango/router
 ```
 
 ## Usage
 
 ```typescript
-import { Router } from '@django-js/router';
+import { Router } from '@jsango/router';
 
 const router = new Router();
 router.get('/users/:id<number>', (ctx) => ({ id: ctx.request.params.id }));
@@ -22,8 +22,8 @@ router.compile();
 
 ## Documentation
 
-For full architecture documentation and guides, visit the [django-js documentation](https://github.com/django-js/django-js/tree/main/docs).
+For full architecture documentation and guides, visit the [jsango documentation](https://github.com/jsango/jsango/tree/main/docs).
 
 ## License
 
-MIT © django-js contributors
+MIT © jsango contributors

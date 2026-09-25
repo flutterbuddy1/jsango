@@ -2,15 +2,15 @@
 
 ## Overview
 
-`ArgParser` is a zero-dependency, high-performance CLI tokenizer and validator designed specifically for django-js commands. It achieves over 1.3 million complex parses per second with zero external runtime dependencies.
+`ArgParser` is a zero-dependency, high-performance CLI tokenizer and validator designed specifically for jsango commands. It achieves over 1.3 million complex parses per second with zero external runtime dependencies.
 
 ## Supported Syntaxes
 
 ### 1. Positional Arguments
 
-- **Required**: `django-js model:show User` (fails with `MissingArgumentError` if omitted).
-- **Optional**: `django-js help [command]` (supports defaults).
-- **Variadic**: `django-js lint src/ test/` (`variadic: true` collects trailing tokens).
+- **Required**: `jsango model:show User` (fails with `MissingArgumentError` if omitted).
+- **Optional**: `jsango help [command]` (supports defaults).
+- **Variadic**: `jsango lint src/ test/` (`variadic: true` collects trailing tokens).
 - **Type Coercion**: Automatically coerces to `string`, `number`, or `boolean`.
 
 ### 2. Named Options

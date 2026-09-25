@@ -8,12 +8,12 @@ CLI commands can be executed from the project root, from nested subdirectories (
 
 1. **Upward Traversal with Explicit Markers**:
    - `ProjectDiscovery.findProjectRoot(startDir)` starts at `cwd` and traverses upward toward the filesystem root.
-   - It checks specifically for `nexora.config.ts`, `django-js.config.ts`, or a `package.json` that contains `@django-js/*` dependencies.
+   - It checks specifically for `jsango.config.ts`, `jsango.config.ts`, or a `package.json` that contains `@jsango/*` dependencies.
    - Upon locating the nearest marker, traversal terminates immediately.
 2. **Path Traversal Guard**:
    - All file writes pass through `ProjectDiscovery.assertSafePath(targetPath, rootDir)` to ensure generated files (e.g. migrations, scaffolded apps) cannot escape designated boundaries via `../`.
 
 ## Consequences
 
-- Commands like `django-js migrate` work seamlessly when invoked from subdirectories.
+- Commands like `jsango migrate` work seamlessly when invoked from subdirectories.
 - Protects developers against accidental file overwrites outside project boundaries.

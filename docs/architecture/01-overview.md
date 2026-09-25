@@ -2,7 +2,7 @@
 
 ## Project Identity & Vision
 
-**django-js** is a production-grade, batteries-included TypeScript backend framework designed specifically for modern JavaScript runtimes (Node.js and Bun) and high-concurrency workloads.
+**jsango** is a production-grade, batteries-included TypeScript backend framework designed specifically for modern JavaScript runtimes (Node.js and Bun) and high-concurrency workloads.
 
 The framework is inspired by:
 
@@ -11,7 +11,7 @@ The framework is inspired by:
 - **Modern TypeScript** type safety and developer tooling
 - **High-performance JavaScript runtimes** with zero unnecessary allocations and non-blocking I/O
 
-django-js is NOT a clone of Django, Express, Fastify, or NestJS. It establishes its own cohesive architecture, explicit interfaces, and lightweight runtime design.
+jsango is NOT a clone of Django, Express, Fastify, or NestJS. It establishes its own cohesive architecture, explicit interfaces, and lightweight runtime design.
 
 ---
 

@@ -1,4 +1,4 @@
-import type { IContainer } from '@django-js/container';
+import type { IContainer } from '@jsango/container';
 
 export interface TestContext {
   readonly container?: IContainer | undefined;

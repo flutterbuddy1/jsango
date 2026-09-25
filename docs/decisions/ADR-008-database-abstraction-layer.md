@@ -82,7 +82,7 @@ Connection URLs and configuration objects are masked via `maskConnectionString` 
 ### Positive
 
 - Strict separation of concerns between raw database infrastructure and future ORM/QueryBuilder logic.
-- Zero external runtime dependencies in `@django-js/database`.
+- Zero external runtime dependencies in `@jsango/database`.
 - Exceptional performance: over 3.1M connection acquisitions/sec and 2.2M parameterized queries/sec.
 - Safe resource management with guaranteed connection release and transaction rollback.
 - Full testability through a deterministic, high-fidelity `MemoryDatabaseDriver`.

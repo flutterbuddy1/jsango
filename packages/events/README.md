@@ -1,19 +1,19 @@
-# @django-js/events
+# @jsango/events
 
 > Typed event definitions, tri-mode execution (sync, async, queued), priority handlers, and event middleware.
 
-Part of the **[django-js](https://github.com/django-js/django-js)** backend framework for TypeScript.
+Part of the **[jsango](https://github.com/jsango/jsango)** backend framework for TypeScript.
 
 ## Installation
 
 ```bash
-pnpm add @django-js/events
+pnpm add @jsango/events
 ```
 
 ## Usage
 
 ```typescript
-import { EventBus, defineEvent } from '@django-js/events';
+import { EventBus, defineEvent } from '@jsango/events';
 
 const UserRegistered = defineEvent<{ userId: string }>('user.registered');
 const bus = new EventBus();
@@ -27,8 +27,8 @@ await bus.dispatch(UserRegistered.create({ userId: 'user-123' }));
 
 ## Documentation
 
-For full architecture documentation and guides, visit the [django-js documentation](https://github.com/django-js/django-js/tree/main/docs).
+For full architecture documentation and guides, visit the [jsango documentation](https://github.com/jsango/jsango/tree/main/docs).
 
 ## License
 
-MIT © django-js contributors
+MIT © jsango contributors

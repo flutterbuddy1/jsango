@@ -4,7 +4,7 @@ import { CacheConnectionError } from '../errors.js';
 /**
  * Minimal structural interface for an external Redis client (e.g. ioredis, @redis/client).
  * Allows applications or infrastructure to provide their own Redis connection without
- * adding mandatory dependencies to @django-js/cache.
+ * adding mandatory dependencies to @jsango/cache.
  */
 export interface IRedisClient {
   get(key: string): Promise<string | null>;

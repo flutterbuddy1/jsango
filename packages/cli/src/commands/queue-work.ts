@@ -1,12 +1,12 @@
 import { BaseCommand } from '../public/command.js';
 import type { CommandContext } from '../public/context.js';
 import { ExitCode } from '../public/types.js';
-import { QueueManager } from '@django-js/queue';
+import { QueueManager } from '@jsango/queue';
 
 export class QueueWorkCommand extends BaseCommand {
   public readonly name = 'queue:work';
   public readonly description = 'Start processing jobs on the specified queue as a worker';
-  public readonly usage = 'django-js queue:work [options]';
+  public readonly usage = 'jsango queue:work [options]';
   public readonly options = [
     {
       name: 'queue',

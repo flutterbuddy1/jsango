@@ -1,8 +1,8 @@
-# Observability Architecture (`@django-js/observability`)
+# Observability Architecture (`@jsango/observability`)
 
 ## Overview
 
-`@django-js/observability` provides framework-wide, vendor-neutral observability primitives for Nexora applications:
+`@jsango/observability` provides framework-wide, vendor-neutral observability primitives for JSango applications:
 
 - **Structured Logging**: Scoped contexts, log injection protection, and log level filtering.
 - **Metrics**: Bounded `Counter`, `Gauge`, and `Histogram` with strict label cardinality limits (protection against DoS and memory leaks).
@@ -19,7 +19,7 @@
 ### 1. Structured Logging
 
 ```typescript
-import { StructuredLogger } from '@django-js/observability';
+import { StructuredLogger } from '@jsango/observability';
 
 const logger = new StructuredLogger({
   name: 'order-service',
@@ -33,7 +33,7 @@ scopedLogger.info('Processing order payment', { amount: 99.95 });
 ### 2. Metrics Registry & Cardinality Protection
 
 ```typescript
-import { MetricRegistry } from '@django-js/observability';
+import { MetricRegistry } from '@jsango/observability';
 
 const metrics = new MetricRegistry({ maxCardinalityPerMetric: 1000 });
 const requestCounter = metrics.counter('http.requests.total', 'HTTP request count', [
@@ -53,7 +53,7 @@ latencyHist.observe(23.4, { route: '/users' });
 ### 3. Tracing & Monotonic Spans
 
 ```typescript
-import { Tracer } from '@django-js/observability';
+import { Tracer } from '@jsango/observability';
 
 const tracer = new Tracer({ serviceName: 'user-api' });
 
@@ -71,7 +71,7 @@ import {
   createHealthHandler,
   DiagnosticsProvider,
   createDiagnosticsHandler,
-} from '@django-js/observability';
+} from '@jsango/observability';
 
 const health = new HealthRegistry();
 health.register('db', async () => checkDbConnection(), { critical: true, timeoutMs: 3000 });

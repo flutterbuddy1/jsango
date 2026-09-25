@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { IModel, IQueryBuilder } from './index.js';
 
-describe('@django-js/orm', () => {
+describe('@jsango/orm', () => {
   it('should support typing mock Model and QueryBuilder contracts', async () => {
     interface UserAttributes {
       id?: number;

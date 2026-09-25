@@ -1,7 +1,7 @@
 {
-  "name": "@django-js/runtime",
+  "name": "@jsango/runtime",
   "version": "1.0.0",
-  "description": "Runtime abstraction and runtime adapters for django-js",
+  "description": "Runtime abstraction and runtime adapters for jsango",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -22,7 +22,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/django-js/django-js.git",
+    "url": "https://github.com/jsango/jsango.git",
     "directory": "packages/runtime"
   },
   "publishConfig": {

@@ -8,7 +8,7 @@ export interface SafeErrorResponse {
   readonly metadata?: ErrorMetadata | undefined;
 }
 
-export interface DjangoJsErrorOptions {
+export interface JsangoErrorOptions {
   readonly code: string;
   readonly message: string;
   readonly cause?: unknown;
@@ -16,14 +16,14 @@ export interface DjangoJsErrorOptions {
   readonly statusCode?: number | undefined;
 }
 
-export class DjangoJsError extends Error {
+export class JsangoError extends Error {
   public readonly code: string;
   public readonly metadata?: ErrorMetadata | undefined;
   public readonly statusCode: number;
 
-  constructor(options: DjangoJsErrorOptions) {
+  constructor(options: JsangoErrorOptions) {
     super(options.message, { cause: options.cause });
-    this.name = 'DjangoJsError';
+    this.name = 'JsangoError';
     this.code = options.code;
     this.metadata = options.metadata ? Object.freeze({ ...options.metadata }) : undefined;
     this.statusCode = options.statusCode ?? 500;

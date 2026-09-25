@@ -2,7 +2,7 @@
 
 ## 1. Test Suite Coverage
 
-The `@django-js/auth` package is thoroughly tested across 6 test suites:
+The `@jsango/auth` package is thoroughly tested across 6 test suites:
 
 | Suite                   | Focus Areas                                                                                                                   |
 | :---------------------- | :---------------------------------------------------------------------------------------------------------------------------- |

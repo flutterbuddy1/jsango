@@ -1,11 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  AdminResource,
-  AdminAuthorizationError,
-  AdminItemNotFoundError,
-} from '@django-js/admin-core';
-import { AdminPermissionChecker } from '@django-js/admin-auth';
-import { AdminAuditLogger, InMemoryAuditStore } from '@django-js/admin-audit';
+import { AdminResource, AdminAuthorizationError, AdminItemNotFoundError } from '@jsango/admin-core';
+import { AdminPermissionChecker } from '@jsango/admin-auth';
+import { AdminAuditLogger, InMemoryAuditStore } from '@jsango/admin-audit';
 import { AdminCrudService } from '../public/crud-service.js';
 import type { IAdminQueryAdapter, AdminListResult } from '../public/types.js';
 

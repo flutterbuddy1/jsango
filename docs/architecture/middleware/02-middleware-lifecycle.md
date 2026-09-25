@@ -2,7 +2,7 @@
 
 ## Onion Execution Model
 
-Middleware components in Nexora wrap around subsequent middleware and the route handler in an onion-like stack:
+Middleware components in JSango wrap around subsequent middleware and the route handler in an onion-like stack:
 
 ```
 Middleware 1 (Before)

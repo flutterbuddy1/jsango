@@ -1,6 +1,6 @@
 import { describe, it, expect, afterAll } from 'vitest';
 import { createApplication } from './index.js';
-import { HttpRequest } from '@django-js/http';
+import { HttpRequest } from '@jsango/http';
 
 describe('Basic App Example with Database', () => {
   const { app, db } = createApplication();
@@ -18,7 +18,7 @@ describe('Basic App Example with Database', () => {
 
     const res = await app.handle(req);
     expect(res.statusCode).toBe(200);
-    expect(res.body).toBe('Welcome to Nexora!');
+    expect(res.body).toBe('Welcome to JSango!');
     expect(res.headers.get('x-response-time')).toBeDefined();
     expect(res.headers.get('x-request-id')).toBe('req-1');
   });
@@ -119,7 +119,7 @@ describe('Basic App Example with Database', () => {
   });
 
   it('should inspect routes and models via CLI application', async () => {
-    const { CliApplication, CliOutput, CommandContext } = await import('@django-js/cli');
+    const { CliApplication, CliOutput, CommandContext } = await import('@jsango/cli');
     const cliApp = CliApplication.createDefault();
     const routeCmd = cliApp.registry.resolve('route:list')!;
 

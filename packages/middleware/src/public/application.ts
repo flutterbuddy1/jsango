@@ -1,14 +1,14 @@
-import type { HttpRequest, IHttpServer } from '@django-js/http';
+import type { HttpRequest, IHttpServer } from '@jsango/http';
 import {
   HttpResponse,
   HttpStatus,
   RequestContext,
   createNodeHttpServer,
   formatHttpErrorResponse,
-} from '@django-js/http';
-import type { ILogger } from '@django-js/core';
-import { NoopLogger } from '@django-js/core';
-import { Container } from '@django-js/container';
+} from '@jsango/http';
+import type { ILogger } from '@jsango/core';
+import { NoopLogger } from '@jsango/core';
+import { Container } from '@jsango/container';
 import {
   Router,
   Route,
@@ -18,7 +18,7 @@ import {
   type RouteGroupConfig,
   type RouteGroupOptions,
   type RouteMatchResult,
-} from '@django-js/router';
+} from '@jsango/router';
 import type {
   ApplicationOptions,
   ErrorHandler,

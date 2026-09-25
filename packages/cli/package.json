@@ -1,13 +1,12 @@
 {
-  "name": "@django-js/cli",
+  "name": "@jsango/cli",
   "version": "1.0.0",
-  "description": "CLI commands and project/code generation for django-js",
+  "description": "CLI commands and project/code generation for jsango",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "django-js": "./dist/bin/django-js.js",
-    "nexora": "./dist/bin/django-js.js"
+    "jsango": "./dist/bin/jsango.js"
   },
   "exports": {
     ".": {
@@ -21,22 +20,22 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@django-js/runtime": "workspace:*",
-    "@django-js/core": "workspace:*",
-    "@django-js/container": "workspace:*",
-    "@django-js/config": "workspace:*",
-    "@django-js/http": "workspace:*",
-    "@django-js/router": "workspace:*",
-    "@django-js/middleware": "workspace:*",
-    "@django-js/database": "workspace:*",
-    "@django-js/orm": "workspace:*",
-    "@django-js/migrations": "workspace:*",
-    "@django-js/cache": "workspace:*",
-    "@django-js/queue": "workspace:*",
-    "@django-js/events": "workspace:*",
-    "@django-js/websocket": "workspace:*",
-    "@django-js/openapi": "workspace:*",
-    "@django-js/observability": "workspace:*"
+    "@jsango/runtime": "workspace:*",
+    "@jsango/core": "workspace:*",
+    "@jsango/container": "workspace:*",
+    "@jsango/config": "workspace:*",
+    "@jsango/http": "workspace:*",
+    "@jsango/router": "workspace:*",
+    "@jsango/middleware": "workspace:*",
+    "@jsango/database": "workspace:*",
+    "@jsango/orm": "workspace:*",
+    "@jsango/migrations": "workspace:*",
+    "@jsango/cache": "workspace:*",
+    "@jsango/queue": "workspace:*",
+    "@jsango/events": "workspace:*",
+    "@jsango/websocket": "workspace:*",
+    "@jsango/openapi": "workspace:*",
+    "@jsango/observability": "workspace:*"
   },
   "files": [
     "dist"
@@ -44,7 +43,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/django-js/django-js.git",
+    "url": "https://github.com/jsango/jsango.git",
     "directory": "packages/cli"
   },
   "publishConfig": {

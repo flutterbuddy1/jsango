@@ -1,6 +1,6 @@
-# django-js Framework Roadmap
+# JSango Framework Roadmap
 
-This roadmap outlines the phased development plan for the **django-js** framework. Each phase must be fully designed, implemented, tested, and documented before subsequent phases commence.
+This roadmap outlines the phased development plan for the **JSango** framework. Each phase must be fully designed, implemented, tested, and documented before subsequent phases commence.
 
 ---
 
@@ -10,7 +10,7 @@ This roadmap outlines the phased development plan for the **django-js** framewor
 - Package scaffolding across 12 initial packages.
 - Strict TypeScript configuration (`strict: true`, NodeNext ESM).
 - Explicit public/internal package boundaries.
-- Foundational abstractions: structured error model (`DjangoJsError`), logging interface (`ILogger`), runtime adapter (`IRuntimeAdapter`), and configuration interface (`IConfigProvider`).
+- Foundational abstractions: structured error model (`JsangoError`), logging interface (`ILogger`), runtime adapter (`IRuntimeAdapter`), and configuration interface (`IConfigProvider`).
 - Comprehensive architectural documentation and ADRs (ADR-001 through ADR-004).
 
 ---
@@ -105,8 +105,8 @@ This roadmap outlines the phased development plan for the **django-js** framewor
 - Strict safety guard policy requiring explicit approval (`allowDestructive: true`) for destructive changes and confirmation (`confirm: 'YES_I_AM_SURE'`) for database resets.
 - Dialect DDL SQL compiler (`SqlMigrationCompiler`) with ANSI quoting and strict alphanumeric identifier injection defense.
 - Migration file generator (`MigrationGenerator`) generating human-readable, typed TypeScript migration files (`YYYYMMDDHHmmss_name.ts`) with content checksums.
-- Migration registry (`MigrationRegistry`) and tracking storage (`MigrationStorage` managing `django_js_migrations`).
-- Distributed concurrency locking (`MigrationLock` managing `django_js_migration_lock`) with optimistic locking and automatic stale lock recovery.
+- Migration registry (`MigrationRegistry`) and tracking storage (`MigrationStorage` managing `jsango_migrations`).
+- Distributed concurrency locking (`MigrationLock` managing `jsango_migration_lock`) with optimistic locking and automatic stale lock recovery.
 - Transaction-aware migration runner (`MigrationRunner`) honoring `supportsTransactionalDDL` capability, batch tracking, step-based/batch rollback, and reset support.
 - Programmatic drift detector (`DriftDetector`) identifying out-of-band schema discrepancies.
 - Comprehensive unit (37), integration, example app (6), and microbenchmark (7 scenarios) suites.
@@ -157,10 +157,10 @@ This roadmap outlines the phased development plan for the **django-js** framewor
 
 ### [x] PHASE 11 — Cache + Queue
 
-- **Cache Abstraction (`@django-js/cache`)**: Production-grade, driver-agnostic caching with `CacheManager` orchestrating multiple named stores, `CacheStore` providing high-level API with key normalization (`CacheKeyBuilder`), safe serialization (`SafeCacheSerializer` with Date/BigInt round-trip), Promise-based stampede protection (`remember()`/`getOrSet()`), hit/miss statistics, `namespace()` isolation, and fallback modes (`fail-fast`, `fallback-to-memory`, `bypass`).
+- **Cache Abstraction (`@jsango/cache`)**: Production-grade, driver-agnostic caching with `CacheManager` orchestrating multiple named stores, `CacheStore` providing high-level API with key normalization (`CacheKeyBuilder`), safe serialization (`SafeCacheSerializer` with Date/BigInt round-trip), Promise-based stampede protection (`remember()`/`getOrSet()`), hit/miss statistics, `namespace()` isolation, and fallback modes (`fail-fast`, `fallback-to-memory`, `bypass`).
 - Universal `ICacheDriver` contract with `CacheCapabilities` — `MemoryCacheDriver` (LRU, TTL, prune sweeps) built-in; Redis adapter follows identical contract.
-- **Queue & Background Jobs (`@django-js/queue`)**: AT-LEAST-ONCE delivery background job system with `QueueManager` orchestrating named queues, `Queue` handles for typed `dispatch()`/`delay()`/`schedule()`, `Worker` long-running polling with configurable concurrency/lease timeout/idle backoff/graceful shutdown, `RetryCalculator` (fixed/exponential/jitter), `JobRegistry` for type-safe handler resolution, queue-scoped `MiddlewarePipeline` (separate from HTTP middleware), and `IFailedJobStore` dead-letter storage.
-- Universal `IQueueDriver` contract — `MemoryQueueDriver` (priority, delayed, visibility leases) and `DatabaseQueueDriver` (persistent via `@django-js/database`, `locked_until` distributed locking) built-in.
+- **Queue & Background Jobs (`@jsango/queue`)**: AT-LEAST-ONCE delivery background job system with `QueueManager` orchestrating named queues, `Queue` handles for typed `dispatch()`/`delay()`/`schedule()`, `Worker` long-running polling with configurable concurrency/lease timeout/idle backoff/graceful shutdown, `RetryCalculator` (fixed/exponential/jitter), `JobRegistry` for type-safe handler resolution, queue-scoped `MiddlewarePipeline` (separate from HTTP middleware), and `IFailedJobStore` dead-letter storage.
+- Universal `IQueueDriver` contract — `MemoryQueueDriver` (priority, delayed, visibility leases) and `DatabaseQueueDriver` (persistent via `@jsango/database`, `locked_until` distributed locking) built-in.
 - CLI commands: `cache:clear`, `queue:work [--once]`, `queue:status`, `queue:failed`, `queue:retry`, `queue:clear`.
 - Contract test suites for both driver types; 86 test files, 444 tests passing.
 - Benchmarks: up to 62M ops/sec (RetryCalculator), 5.7M ops/sec (cache driver get), 1.6M ops/sec (queue enqueue).
@@ -170,22 +170,22 @@ This roadmap outlines the phased development plan for the **django-js** framewor
 
 ### [x] PHASE 12 — Events + WebSockets
 
-- **Event System (`@django-js/events`)**:
+- **Event System (`@jsango/events`)**:
   - Typed `EventDefinition<Payload>` with unique UUIDv4 `eventId`, `timestamp`, `schemaVersion`, and optional `metadata`.
-  - Tri-mode execution semantics: `sync` (deterministic sequential priority order), `async` (concurrent non-blocking via `Promise.allSettled`), and `queued` (delegated via `IEventQueueAdapter` to `@django-js/queue`).
+  - Tri-mode execution semantics: `sync` (deterministic sequential priority order), `async` (concurrent non-blocking via `Promise.allSettled`), and `queued` (delegated via `IEventQueueAdapter` to `@jsango/queue`).
   - `EventRegistry` with duplicate detection, priority sorting, and introspection (`inspect()`) for diagnostics and Admin UI.
   - Dedicated `EventMiddlewarePipeline` (onion pattern) separate from HTTP and Queue middleware.
   - Safe payload serialization rejecting functions, symbols, and circular references (`EventSerializer`).
   - Observability lifecycle hooks (`onDispatched`, `onHandlerStarted`, `onHandlerCompleted`, `onHandlerFailed`).
   - `FakeEventBus` testing utility.
-- **WebSocket & Real-Time Infrastructure (`@django-js/websocket`)**:
+- **WebSocket & Real-Time Infrastructure (`@jsango/websocket`)**:
   - Engine-independent `IWebSocketServer` and `IWebSocketConnection` abstractions isolating low-level libraries (`ws`).
   - High-performance `RoomManager` with multi-room membership, join authorization, and automated cleanup on disconnect.
   - Typed JSON message framing (`{ type, payload, requestId, metadata }`) and `WebSocketContext` matching `RequestContext` ergonomics.
   - Defensive connection limits (`maxTotalConnections`, `maxConnectionsPerIdentity`, `maxRoomsPerConnection`, `maxMessageSizeBytes`).
   - Backpressure enforcement (`maxBufferedAmountBytes`) and ping/pong health monitoring (`HeartbeatManager`).
   - Pluggable transport layer (`IRealtimeTransport`, `LocalTransport`) for single-node and multi-node pub/sub scaling.
-  - HTTP upgrade integration with authentication hooks and `@django-js/auth` Identity reuse.
+  - HTTP upgrade integration with authentication hooks and `@jsango/auth` Identity reuse.
   - Bi-directional event bridges (`WebSocketEventBridge`, `WebSocketToEventBridge`).
   - `FakeWebSocketConnection` and `FakeWebSocketServer` testing utilities.
 - **CLI Commands**: `events:list` and `ws:status`.
@@ -196,22 +196,22 @@ This roadmap outlines the phased development plan for the **django-js** framewor
 
 ### [x] PHASE 13 — Admin Platform Foundation
 
-- **Admin Core (`@django-js/admin-core`)**:
+- **Admin Core (`@jsango/admin-core`)**:
   - Model-driven `AdminResource` abstraction with convention-over-configuration defaults for `listFields`, `detailFields`, `createFields`, `editFields`, `searchFields`, `filters`, `actions`, `bulkActions`, and pagination.
   - Automatic `ModelMetadata` $\to$ `AdminResource` auto-generator (`AdminResourceAutoGenerator`).
   - Extensible field system (`textField`, `numberField`, `booleanField`, `dateField`, `emailField`, `passwordField`, `jsonField`, `uuidField`, etc.) with widget metadata.
   - Table, form, filter, dashboard, and custom page abstractions with plugin lifecycle hooks.
   - Central `AdminRegistry` for resources and dashboard pages.
-- **Admin Authorization (`@django-js/admin-auth`)**:
+- **Admin Authorization (`@jsango/admin-auth`)**:
   - `AdminPermissionChecker` enforcing staff access, resource-level CRUD permissions, row-level action execution, and field-level visibility/editability with sensitive field protection.
-- **Admin Audit Trail (`@django-js/admin-audit`)**:
+- **Admin Audit Trail (`@jsango/admin-audit`)**:
   - Non-blocking `AdminAuditLogger` producing immutable audit entries for all create, update, delete, restore, and custom action operations.
   - `diffChanges` utility computing field diffs with automatic regex-based sensitive field redaction (`/password|secret|token|key|hash|salt|credential/i`).
   - Pluggable `IAuditStore` with deterministic `InMemoryAuditStore`.
-- **Admin Media Management (`@django-js/admin-media`)**:
+- **Admin Media Management (`@jsango/admin-media`)**:
   - `AdminMediaManager` with strict validation (`maxSizeBytes`, `allowedMimeTypes`, `allowedExtensions`) before storage I/O.
   - Pluggable `IMediaStorage` abstraction with `InMemoryMediaStorage`.
-- **Admin Server & REST API (`@django-js/admin-server`)**:
+- **Admin Server & REST API (`@jsango/admin-server`)**:
   - Decoupled `IAdminQueryAdapter` bridging ORM and admin server without circular dependencies.
   - Production-grade `AdminCrudService` orchestrating validation, RBAC, mass-assignment sanitization, field-level filtering, and audit logging.
   - Complete REST API mounted on `IRouter`: resources, schema, CRUD endpoints, soft-delete restore, row actions, bulk actions, and audit log query.
@@ -222,7 +222,7 @@ This roadmap outlines the phased development plan for the **django-js** framewor
 
 ### [x] PHASE 14 — OpenAPI + Observability
 
-- **OpenAPI 3.1 Document Generation (`@django-js/openapi`)**:
+- **OpenAPI 3.1 Document Generation (`@jsango/openapi`)**:
   - Deterministic, zero-reflection OpenAPI 3.1.0 document generation from router metadata, validation schemas, ORM metadata, and Admin resources.
   - Central `OpenApiRegistry` with structured conflict detection (`DuplicateOperationIdError`, `ConflictingSchemaError`).
   - Seamless adapters: `ValidationAdapter` (schema descriptors $\to$ JSON Schema), `OrmAdapter` (`ModelMetadata` $\to$ components), and `AdminAdapter` (isolated Admin APIs).
@@ -230,7 +230,7 @@ This roadmap outlines the phased development plan for the **django-js** framewor
   - Native zero-dependency YAML and JSON formatting (`OpenApiFormatter`).
   - Secure `/openapi.json` route handler (`createOpenApiHandler`).
   - CLI: `openapi:generate` and `openapi:validate`.
-- **Observability Foundation (`@django-js/observability`)**:
+- **Observability Foundation (`@jsango/observability`)**:
   - Production `StructuredLogger` with scoped context chaining (`withContext`), control-character sanitization against log injection, and log level filtering.
   - Bounded `MetricRegistry` with monotonic `Counter`, stateful `Gauge`, and distribution `Histogram` with high-cardinality protection (capped label permutations).
   - `Tracer` & `Span` using `performance.now()` monotonic clock with sampling strategies and zero-allocation `NoopSpan`.
@@ -254,12 +254,12 @@ This roadmap outlines the phased development plan for the **django-js** framewor
   - Created standardized benchmark harness (`benchmarks/`) across all 15 framework layers.
   - Added dedicated Memory Leak (`tests/performance/leak.test.ts`) and Concurrency Load (`tests/performance/concurrency.test.ts`) test suites.
 - **Key Optimizations & Measured Speedups**:
-  - **Router Radix Tree (`@django-js/router`)**: Added $O(1)$ static route fast-path map and frozen `EMPTY_PARAMS` singleton, improving static route matching from 3.21M to **7.71M ops/sec** (2.4x speedup).
-  - **DI Container (`@django-js/container`)**: Implemented direct resolution cache fast-path in `Container.resolve()`, boosting scoped resolution from 17.67M to **24.17M ops/sec** (37% improvement).
-  - **Admin Schema Generation (`@django-js/admin-core`)**: Implemented immutable schema caching on `AdminResource`, boosting schema generation from 6.61M to **24.61M ops/sec** (3.7x speedup).
-  - **Tracing Zero-Allocation (`@django-js/observability`)**: Introduced `NoopSpan.INSTANCE` singleton for disabled/unsampled tracing, reducing heap allocation overhead on hot paths.
-  - **Metrics Serialization (`@django-js/observability`)**: Added 0-key and 1-key fast-paths in `serializeLabels()` avoiding array sort allocations on common metric operations (up to 15.2M ops/sec).
-  - **Database Concurrency Hardening (`@django-js/database`)**: Fixed trailing semicolon handling in SQL regex parser for memory driver concurrency.
+  - **Router Radix Tree (`@jsango/router`)**: Added $O(1)$ static route fast-path map and frozen `EMPTY_PARAMS` singleton, improving static route matching from 3.21M to **7.71M ops/sec** (2.4x speedup).
+  - **DI Container (`@jsango/container`)**: Implemented direct resolution cache fast-path in `Container.resolve()`, boosting scoped resolution from 17.67M to **24.17M ops/sec** (37% improvement).
+  - **Admin Schema Generation (`@jsango/admin-core`)**: Implemented immutable schema caching on `AdminResource`, boosting schema generation from 6.61M to **24.61M ops/sec** (3.7x speedup).
+  - **Tracing Zero-Allocation (`@jsango/observability`)**: Introduced `NoopSpan.INSTANCE` singleton for disabled/unsampled tracing, reducing heap allocation overhead on hot paths.
+  - **Metrics Serialization (`@jsango/observability`)**: Added 0-key and 1-key fast-paths in `serializeLabels()` avoiding array sort allocations on common metric operations (up to 15.2M ops/sec).
+  - **Database Concurrency Hardening (`@jsango/database`)**: Fixed trailing semicolon handling in SQL regex parser for memory driver concurrency.
 - **Memory & Concurrency Hardening**:
   - Verified zero memory leaks across 5,000 request contexts, 5,000 DI scopes, 1,000 WebSocket room joins/leaves, and cache TTL eviction sweeps.
   - Tested 1,000 concurrent HTTP requests, 1,000 concurrent event dispatches, and connection pool queuing with 100% determinism.
@@ -305,3 +305,32 @@ This roadmap outlines the phased development plan for the **django-js** framewor
   - All 123 test files (603 tests) passing across unit, integration, and E2E suites.
   - Package packing verified across all 25 packages (`npm pack --dry-run`).
   - Router matching (>7.7M ops/sec) and DI container (>24.1M ops/sec) performance verified with zero memory leaks.
+
+---
+
+### [x] PHASE 18 — Enterprise Admin UI Foundation
+
+- **`@jsango/admin-ui` Package**:
+  - Metadata-driven frontend architecture consuming `@jsango/admin-core` & `@jsango/admin-server`.
+  - Zero hardcoded resource components; dynamically discovers schemas from `/admin/api/v1/resources/:id/schema`.
+- **Client & State Engine**:
+  - `AdminApiClient`: Typed HTTP client with Bearer auth, custom actions, bulk mutations, and error extraction.
+  - `QueryClient`: Lightweight in-memory query cache with TTL, stale-while-revalidate, deduplication, and automatic prefix-based invalidation.
+- **Enterprise Design System**:
+  - Semantic CSS variable design tokens supporting high-contrast Light, Dark, and System modes.
+  - Reusable UI primitives: Buttons, Status Badges, Form Inputs, Skeletons, Alerts, Diff Viewer, and JSON Viewer.
+- **Navigation & Shortcuts**:
+  - `Cmd+K` / `Ctrl+K` Command Palette for quick search across resources, system ops, and themes.
+  - Collapsible desktop sidebar with navigation groups and responsive mobile drawer navigation.
+- **Resource Management & Views**:
+  - `ResourceListView`: Data table with multi-column sorting, active filter chips, search input, row selection, and floating bulk action bar.
+  - `ResourceDetailView`: Metadata-driven field cards, timestamps, relations, soft-delete restoration, and delete confirmation.
+  - `ResourceForm`: Create and edit forms supporting client/server validation error mapping.
+  - `DashboardView`: Realtime metric cards, activity feeds, and table widgets.
+  - `AuditLogView`: Mutation timeline with before/after property diff viewers.
+  - `SystemHealthView`: Subsystem status meters, process memory, and uptime diagnostics.
+  - `LoginView`: Clean, enterprise-grade authentication interface.
+- **Extensibility & Documentation**:
+  - `AdminUiPluginRegistry`: Custom widget, page, and field renderer extensions.
+  - Complete architecture guide & manual in `docs/admin/ADMIN-UI.md`.
+  - 100% test coverage with unit, component, view, and orchestration test suites.

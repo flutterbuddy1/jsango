@@ -1,7 +1,7 @@
 {
-  "name": "@django-js/validation",
+  "name": "@jsango/validation",
   "version": "1.0.0",
-  "description": "Schema and request validation for django-js",
+  "description": "Schema and request validation for jsango",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,7 +17,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@django-js/core": "workspace:*"
+    "@jsango/core": "workspace:*"
   },
   "files": [
     "dist"
@@ -25,7 +25,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/django-js/django-js.git",
+    "url": "https://github.com/jsango/jsango.git",
     "directory": "packages/validation"
   },
   "publishConfig": {

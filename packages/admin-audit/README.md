@@ -1,19 +1,19 @@
-# @django-js/admin-audit
+# @jsango/admin-audit
 
-> Production-grade audit logging, sensitive field redaction, and change tracking for django-js Admin.
+> Production-grade audit logging, sensitive field redaction, and change tracking for jsango Admin.
 
-Part of the **[django-js](https://github.com/django-js/django-js)** backend framework for TypeScript.
+Part of the **[jsango](https://github.com/jsango/jsango)** backend framework for TypeScript.
 
 ## Installation
 
 ```bash
-pnpm add @django-js/admin-audit
+pnpm add @jsango/admin-audit
 ```
 
 ## Usage
 
 ```typescript
-import { AdminAuditLogger, InMemoryAuditStore, diffChanges } from '@django-js/admin-audit';
+import { AdminAuditLogger, InMemoryAuditStore, diffChanges } from '@jsango/admin-audit';
 
 const store = new InMemoryAuditStore();
 const logger = new AdminAuditLogger(store);
@@ -29,8 +29,8 @@ await logger.log({
 
 ## Documentation
 
-For full architecture documentation and guides, visit the [django-js documentation](https://github.com/django-js/django-js/tree/main/docs).
+For full architecture documentation and guides, visit the [jsango documentation](https://github.com/jsango/jsango/tree/main/docs).
 
 ## License
 
-MIT © django-js contributors
+MIT © jsango contributors

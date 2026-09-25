@@ -1,27 +1,27 @@
-# @django-js/runtime
+# @jsango/runtime
 
 > Runtime independence abstraction layer isolating Node.js and modern JavaScript runtime environments.
 
-Part of the **[django-js](https://github.com/django-js/django-js)** backend framework for TypeScript.
+Part of the **[jsango](https://github.com/jsango/jsango)** backend framework for TypeScript.
 
 ## Installation
 
 ```bash
-pnpm add @django-js/runtime
+pnpm add @jsango/runtime
 ```
 
 ## Usage
 
 ```typescript
-import { NodeRuntimeAdapter } from '@django-js/runtime';
+import { NodeRuntimeAdapter } from '@jsango/runtime';
 
 const runtime = new NodeRuntimeAdapter();
 ```
 
 ## Documentation
 
-For full architecture documentation and guides, visit the [django-js documentation](https://github.com/django-js/django-js/tree/main/docs).
+For full architecture documentation and guides, visit the [jsango documentation](https://github.com/jsango/jsango/tree/main/docs).
 
 ## License
 
-MIT © django-js contributors
+MIT © jsango contributors

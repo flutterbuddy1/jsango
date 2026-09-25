@@ -1,4 +1,4 @@
-import type { IDatabaseConnection, IDatabaseTransaction } from '@django-js/database';
+import type { IDatabaseConnection, IDatabaseTransaction } from '@jsango/database';
 import type { MigrationDefinition } from './types.js';
 import type { MigrationOperation } from './operations.js';
 import { SqlMigrationCompiler, type MigrationDialect } from '../internal/compiler.js';

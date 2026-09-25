@@ -1,7 +1,7 @@
-import { DjangoJsError, type DjangoJsErrorOptions } from '@django-js/core';
+import { JsangoError, type JsangoErrorOptions } from '@jsango/core';
 
-export class OrmError extends DjangoJsError {
-  constructor(options: DjangoJsErrorOptions) {
+export class OrmError extends JsangoError {
+  constructor(options: JsangoErrorOptions) {
     super(options);
     this.name = 'OrmError';
     Object.setPrototypeOf(this, new.target.prototype);

@@ -1,7 +1,7 @@
 {
-  "name": "@django-js/router",
+  "name": "@jsango/router",
   "version": "1.0.0",
-  "description": "Route registration and route matching for django-js",
+  "description": "Route registration and route matching for jsango",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,8 +17,8 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@django-js/core": "workspace:*",
-    "@django-js/http": "workspace:*"
+    "@jsango/core": "workspace:*",
+    "@jsango/http": "workspace:*"
   },
   "files": [
     "dist"
@@ -26,7 +26,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/django-js/django-js.git",
+    "url": "https://github.com/jsango/jsango.git",
     "directory": "packages/router"
   },
   "publishConfig": {

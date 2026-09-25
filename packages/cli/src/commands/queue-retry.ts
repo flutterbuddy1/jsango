@@ -2,12 +2,12 @@ import { BaseCommand } from '../public/command.js';
 import type { CommandContext } from '../public/context.js';
 import { ExitCode } from '../public/types.js';
 import { UsageError } from '../public/errors.js';
-import { QueueManager } from '@django-js/queue';
+import { QueueManager } from '@jsango/queue';
 
 export class QueueRetryCommand extends BaseCommand {
   public readonly name = 'queue:retry';
   public readonly description = 'Retry one or all failed jobs from the dead-letter store';
-  public readonly usage = 'django-js queue:retry [id] [options]';
+  public readonly usage = 'jsango queue:retry [id] [options]';
   public readonly arguments = [
     {
       name: 'id',

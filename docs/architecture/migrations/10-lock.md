@@ -5,7 +5,7 @@ The `MigrationLock` mechanism ensures that multiple application instances in a c
 ## Schema
 
 ```sql
-CREATE TABLE IF NOT EXISTS "django_js_migration_lock" (
+CREATE TABLE IF NOT EXISTS "jsango_migration_lock" (
   "id" VARCHAR(64) PRIMARY KEY,
   "is_locked" INTEGER NOT NULL,
   "owner_id" VARCHAR(255) NOT NULL,

@@ -1,4 +1,4 @@
-import type { ModelStatic } from '@django-js/orm';
+import type { ModelStatic } from '@jsango/orm';
 import { AdminResource } from './resource.js';
 import { AutoResourceGenerator } from './auto-generator.js';
 import { AdminPage } from './pages.js';

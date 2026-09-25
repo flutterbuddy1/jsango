@@ -1,8 +1,8 @@
-# @django-js/websocket Architecture Overview
+# @jsango/websocket Architecture Overview
 
 ## 1. Core Mission & Philosophy
 
-`@django-js/websocket` delivers a production-grade real-time communication subsystem for the Nexora (`django-js`) framework. It provides runtime-independent WebSocket abstractions, room management, broadcasting, connection limits, heartbeat monitoring, backpressure enforcement, and HTTP upgrade authentication.
+`@jsango/websocket` delivers a production-grade real-time communication subsystem for the JSango (`jsango`) framework. It provides runtime-independent WebSocket abstractions, room management, broadcasting, connection limits, heartbeat monitoring, backpressure enforcement, and HTTP upgrade authentication.
 
 Key design principles:
 
@@ -10,8 +10,8 @@ Key design principles:
 - **Room Management**: Dynamic pub/sub rooms with multi-room membership, join authorization, and auto-cleanup upon disconnection.
 - **Connection Limits**: Built-in defensive limits for total connections, per-identity connections, message size, and room count per client.
 - **Backpressure & Heartbeat**: Monitored socket buffer sizes (`bufferedAmount`) to prevent out-of-memory errors, alongside ping/pong heartbeat health checks.
-- **Auth Reusability**: Seamlessly interoperates with `@django-js/auth` identities without duplicate identity models.
-- **Event Bridges**: Bi-directional adapters connecting the WebSocket server with the `@django-js/events` EventBus.
+- **Auth Reusability**: Seamlessly interoperates with `@jsango/auth` identities without duplicate identity models.
+- **Event Bridges**: Bi-directional adapters connecting the WebSocket server with the `@jsango/events` EventBus.
 
 ---
 

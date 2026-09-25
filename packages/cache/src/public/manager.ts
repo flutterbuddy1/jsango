@@ -9,8 +9,8 @@ import { CacheError } from './errors.js';
 import { CacheStore } from './store.js';
 import { MemoryCacheDriver } from './drivers/memory.js';
 import { CacheKeyBuilder } from './key.js';
-import type { ILogger } from '@django-js/core';
-import { NoopLogger } from '@django-js/core';
+import type { ILogger } from '@jsango/core';
+import { NoopLogger } from '@jsango/core';
 
 export interface CacheStoreConfig {
   readonly driver: string;

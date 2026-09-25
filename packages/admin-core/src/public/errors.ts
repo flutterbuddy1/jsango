@@ -1,6 +1,6 @@
-import { DjangoJsError } from '@django-js/core';
+import { JsangoError } from '@jsango/core';
 
-export class AdminError extends DjangoJsError {
+export class AdminError extends JsangoError {
   constructor(options: {
     readonly code?: string | undefined;
     readonly message: string;

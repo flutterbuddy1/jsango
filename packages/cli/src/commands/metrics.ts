@@ -1,12 +1,12 @@
 import { BaseCommand } from '../public/command.js';
 import type { CommandContext } from '../public/context.js';
 import { ExitCode } from '../public/types.js';
-import { MetricRegistry } from '@django-js/observability';
+import { MetricRegistry } from '@jsango/observability';
 
 export class MetricsCommand extends BaseCommand {
   public readonly name = 'metrics';
   public readonly description = 'Display application metrics snapshot';
-  public readonly usage = 'django-js metrics [options]';
+  public readonly usage = 'jsango metrics [options]';
   public readonly options = [
     {
       name: 'filter',

@@ -1,6 +1,6 @@
 # Model to Schema Converter
 
-The `ModelSchemaConverter` bridges `@django-js/orm` model metadata with the migration schema model.
+The `ModelSchemaConverter` bridges `@jsango/orm` model metadata with the migration schema model.
 
 ## Conversion Pipeline
 

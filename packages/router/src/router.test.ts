@@ -8,7 +8,7 @@ import {
   InvalidRoutePatternError,
   type RouteHandler,
 } from './index.js';
-import { HttpRequest, HttpResponse, HttpStatus, RequestContext } from '@django-js/http';
+import { HttpRequest, HttpResponse, HttpStatus, RequestContext } from '@jsango/http';
 
 function createMockContext(method: string, url: string): RequestContext {
   const req = new HttpRequest({

@@ -28,11 +28,11 @@ describe('Phase 17 — 1.0 Production Release End-to-End Smoke Test', () => {
   it('should successfully execute full framework stack lifecycle', async () => {
     // 1. Config & Container
     const config = createConfigProvider({
-      APP_NAME: 'django-js-rc-test',
+      APP_NAME: 'jsango-rc-test',
       PORT: 3000,
       NODE_ENV: 'production',
     });
-    expect(config.get('APP_NAME')).toBe('django-js-rc-test');
+    expect(config.get('APP_NAME')).toBe('jsango-rc-test');
 
     const container = new Container();
     container.register('config', () => config, 'singleton');
@@ -176,7 +176,7 @@ describe('Phase 17 — 1.0 Production Release End-to-End Smoke Test', () => {
 
     const openApiGen = new OpenApiGenerator({
       info: {
-        title: 'django-js Production API',
+        title: 'jsango Production API',
         version: '1.0.0',
       },
     });
@@ -188,7 +188,7 @@ describe('Phase 17 — 1.0 Production Release End-to-End Smoke Test', () => {
       },
     });
     const doc = openApiGen.generate();
-    expect(doc.info.title).toBe('django-js Production API');
+    expect(doc.info.title).toBe('jsango Production API');
     expect(doc.info.version).toBe('1.0.0');
     expect(doc.components?.schemas?.['User']).toBeDefined();
     const jsonSpec = OpenApiFormatter.toJson(doc);
@@ -203,7 +203,7 @@ describe('Phase 17 — 1.0 Production Release End-to-End Smoke Test', () => {
     const logger = new StructuredLogger({ minLevel: 'info', redact: false });
     expect(logger).toBeDefined();
 
-    const tracer = new Tracer({ serviceName: 'django-js-rc', sampleRate: 1.0 });
+    const tracer = new Tracer({ serviceName: 'jsango-rc', sampleRate: 1.0 });
     const span = tracer.startSpan('rc-operation');
     span.setAttribute('test', 'true');
     span.end();
@@ -219,7 +219,7 @@ describe('Phase 17 — 1.0 Production Release End-to-End Smoke Test', () => {
 
     app.use(async (ctx, next) => {
       const res = await next();
-      res.headers.set('x-framework', 'django-js-rc');
+      res.headers.set('x-framework', 'jsango-rc');
       return res;
     });
 
@@ -244,7 +244,7 @@ describe('Phase 17 — 1.0 Production Release End-to-End Smoke Test', () => {
 
     const response = await app.handle(request);
     expect(response.statusCode).toBe(200);
-    expect(response.headers.get('x-framework')).toBe('django-js-rc');
+    expect(response.headers.get('x-framework')).toBe('jsango-rc');
 
     const bodyText =
       typeof response.body === 'string'

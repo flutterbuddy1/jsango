@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { IHttpRequest, IHttpResponse } from './index.js';
 
-describe('@django-js/http', () => {
+describe('@jsango/http', () => {
   it('should support typing mock HTTP request and response', async () => {
     const mockRequest: IHttpRequest = {
       method: 'GET',

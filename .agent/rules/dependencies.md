@@ -4,12 +4,12 @@ trigger: always_on
 
 # Dependency Policy
 
-Nexora should remain lightweight.
+JSango should remain lightweight.
 
 Before adding any dependency, answer:
 
 1. Why is it needed?
-2. Why can't Nexora implement this internally?
+2. Why can't JSango implement this internally?
 3. Is it actively maintained?
 4. Does it support Node.js and Bun?
 5. What is the runtime cost?

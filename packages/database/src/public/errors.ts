@@ -1,4 +1,4 @@
-import { DjangoJsError } from '@django-js/core';
+import { JsangoError } from '@jsango/core';
 
 export interface DatabaseErrorOptions {
   readonly message: string;
@@ -8,7 +8,7 @@ export interface DatabaseErrorOptions {
   readonly metadata?: Record<string, unknown> | undefined;
 }
 
-export class DatabaseError extends DjangoJsError {
+export class DatabaseError extends JsangoError {
   constructor(options: DatabaseErrorOptions) {
     super({
       code: options.code ?? 'ERR_DATABASE',

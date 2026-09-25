@@ -1,4 +1,4 @@
-import type { HttpMethod } from '@django-js/http';
+import type { HttpMethod } from '@jsango/http';
 import type { Route, RouteHandler, RouteOptions } from './route.js';
 import type { RouteGroup, RouteGroupConfig, RouteGroupOptions } from './group.js';
 import type { RouteMatchResult } from './result.js';

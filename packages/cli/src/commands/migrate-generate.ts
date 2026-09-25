@@ -9,13 +9,13 @@ import {
   SchemaDiffEngine,
   SchemaIntrospector,
   SchemaSnapshot,
-} from '@django-js/migrations';
+} from '@jsango/migrations';
 import { ProjectDiscovery } from '../internal/project.js';
 
 export class MigrateGenerateCommand extends BaseCommand {
   public readonly name = 'migrate:generate';
   public readonly description = 'Generate a new migration from ORM model schema diff';
-  public readonly usage = 'django-js migrate:generate <name> [options]';
+  public readonly usage = 'jsango migrate:generate <name> [options]';
   public readonly arguments = [
     {
       name: 'name',
@@ -118,7 +118,7 @@ export class MigrateGenerateCommand extends BaseCommand {
 
     context.output.text();
     context.output.text(
-      `Run ${colors.cyan('django-js migrate')} to execute this migration against your database.`
+      `Run ${colors.cyan('jsango migrate')} to execute this migration against your database.`
     );
 
     return ExitCode.SUCCESS;

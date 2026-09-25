@@ -3,22 +3,22 @@
 ## Foundational Error Principles
 
 1. **No Silent Swallowing**: Catch blocks must never be empty (`catch (error) {}`). Every error must be handled, transformed, rethrown, or explicitly justified in a comment.
-2. **Structured Errors**: Framework errors inherit from `DjangoJsError` and include machine-readable error codes, human messages, optional causes, and contextual metadata.
+2. **Structured Errors**: Framework errors inherit from `JsangoError` and include machine-readable error codes, human messages, optional causes, and contextual metadata.
 3. **Safe Serialization**: Sensitive details (stack traces, database credentials, internal hosts) must never be returned in HTTP responses in production environments.
 
 ---
 
-## The `DjangoJsError` Model
+## The `JsangoError` Model
 
 ```typescript
-export class DjangoJsError extends Error {
+export class JsangoError extends Error {
   public readonly code: string;
   public readonly metadata?: Readonly<Record<string, unknown>> | undefined;
   public readonly statusCode: number;
 
-  constructor(options: DjangoJsErrorOptions) {
+  constructor(options: JsangoErrorOptions) {
     super(options.message, { cause: options.cause });
-    this.name = 'DjangoJsError';
+    this.name = 'JsangoError';
     this.code = options.code;
     this.metadata = options.metadata ? Object.freeze({ ...options.metadata }) : undefined;
     this.statusCode = options.statusCode ?? 500;

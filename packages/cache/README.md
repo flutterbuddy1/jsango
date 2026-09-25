@@ -1,19 +1,19 @@
-# @django-js/cache
+# @jsango/cache
 
 > Universal caching abstraction with stampede protection (remember/getOrSet), namespaces, and in-memory LRU/TTL driver.
 
-Part of the **[django-js](https://github.com/django-js/django-js)** backend framework for TypeScript.
+Part of the **[jsango](https://github.com/jsango/jsango)** backend framework for TypeScript.
 
 ## Installation
 
 ```bash
-pnpm add @django-js/cache
+pnpm add @jsango/cache
 ```
 
 ## Usage
 
 ```typescript
-import { CacheManager, MemoryCacheDriver } from '@django-js/cache';
+import { CacheManager, MemoryCacheDriver } from '@jsango/cache';
 
 const manager = new CacheManager({
   default: new MemoryCacheDriver({ defaultTtl: 300 }),
@@ -24,8 +24,8 @@ const user = await store.remember('user:42', 60, () => fetchUserFromDb(42));
 
 ## Documentation
 
-For full architecture documentation and guides, visit the [django-js documentation](https://github.com/django-js/django-js/tree/main/docs).
+For full architecture documentation and guides, visit the [jsango documentation](https://github.com/jsango/jsango/tree/main/docs).
 
 ## License
 
-MIT © django-js contributors
+MIT © jsango contributors

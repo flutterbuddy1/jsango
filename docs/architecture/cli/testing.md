@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `@django-js/cli` package is tested across multiple abstraction layers, from unit tests of core primitives to full child-process integration tests executing the compiled CLI binary.
+The `@jsango/cli` package is tested across multiple abstraction layers, from unit tests of core primitives to full child-process integration tests executing the compiled CLI binary.
 
 ## Test Layers
 
@@ -30,5 +30,5 @@ The `@django-js/cli` package is tested across multiple abstraction layers, from 
    - Path traversal defenses in `assertSafePath` and project creation.
    - Destructive migration blocking when `--force` / `--yes` is absent.
 6. **Process Integration Tests (`packages/cli/src/tests/process.test.ts`)**:
-   - Spawns compiled `dist/bin/django-js.js` as an external child process.
+   - Spawns compiled `dist/bin/jsango.js` as an external child process.
    - Verifies real OS exit codes, stdout/stderr streams, and JSON parsing.

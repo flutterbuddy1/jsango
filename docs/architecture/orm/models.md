@@ -2,10 +2,10 @@
 
 ## Defining Models
 
-Models in `django-js` are defined using the declarative `defineModel()` factory:
+Models in `jsango` are defined using the declarative `defineModel()` factory:
 
 ```typescript
-import { defineModel, fields, relations } from '@django-js/orm';
+import { defineModel, fields, relations } from '@jsango/orm';
 
 export const User = defineModel({
   name: 'User',

@@ -1,4 +1,4 @@
-import type { HttpMethod } from '@django-js/http';
+import type { HttpMethod } from '@jsango/http';
 import { RadixNode } from './radix-node.js';
 import type { Route } from '../public/route.js';
 import type { RouteMatchResult } from '../public/result.js';

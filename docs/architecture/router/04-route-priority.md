@@ -2,7 +2,7 @@
 
 ## Precedence Hierarchy
 
-The Nexora router implements strict deterministic precedence. The matching order at any node in the Radix Trie is:
+The JSango router implements strict deterministic precedence. The matching order at any node in the Radix Trie is:
 
 1. **Static Segment**: Exact string match via $O(1)$ child map.
 2. **Constrained Parameter**: Parameter segment with validation rule (`:id<number>`, `:id<uuid>`, etc.).
@@ -11,7 +11,7 @@ The Nexora router implements strict deterministic precedence. The matching order
 
 ## Determinism Over Registration Order
 
-In naive routers, the registration order of routes dictates matching priority. In Nexora, routes with different segment types are resolved according to their intrinsic specificity, regardless of which route was registered first.
+In naive routers, the registration order of routes dictates matching priority. In JSango, routes with different segment types are resolved according to their intrinsic specificity, regardless of which route was registered first.
 
 ### Example
 

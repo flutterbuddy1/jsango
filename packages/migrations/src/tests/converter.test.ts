@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { defineModel, fields, relations } from '@django-js/orm';
+import { defineModel, fields, relations } from '@jsango/orm';
 import { ModelSchemaConverter } from '../internal/converter.js';
 
 describe('ModelSchemaConverter', () => {

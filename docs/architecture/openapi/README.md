@@ -1,8 +1,8 @@
-# OpenAPI Architecture & Generation Pipeline (`@django-js/openapi`)
+# OpenAPI Architecture & Generation Pipeline (`@jsango/openapi`)
 
 ## Overview
 
-`@django-js/openapi` provides deterministic, zero-reflection, metadata-driven OpenAPI 3.1.0 document generation for the Nexora framework.
+`@jsango/openapi` provides deterministic, zero-reflection, metadata-driven OpenAPI 3.1.0 document generation for the JSango framework.
 
 Rather than parsing ASTs, scanning controllers, or executing heavy reflection, the OpenAPI generator derives API specifications directly from:
 
@@ -47,7 +47,7 @@ graph TD
 ### `OpenApiGenerator`
 
 ```typescript
-import { OpenApiGenerator } from '@django-js/openapi';
+import { OpenApiGenerator } from '@jsango/openapi';
 
 const generator = new OpenApiGenerator({
   info: {
@@ -67,7 +67,7 @@ const doc = generator.generate(app.router);
 Serves the specification over HTTP with optional access control:
 
 ```typescript
-import { createOpenApiHandler } from '@django-js/openapi';
+import { createOpenApiHandler } from '@jsango/openapi';
 
 router.get(
   '/openapi.json',
@@ -81,5 +81,5 @@ router.get(
 
 ### CLI Commands
 
-- `django-js openapi:generate [--output <path>] [--format json|yaml] [--include-admin]`
-- `django-js openapi:validate [--file <path>] [--include-admin]`
+- `jsango openapi:generate [--output <path>] [--format json|yaml] [--include-admin]`
+- `jsango openapi:validate [--file <path>] [--include-admin]`

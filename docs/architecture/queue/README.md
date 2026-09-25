@@ -1,8 +1,8 @@
-# @django-js/queue Architecture Overview
+# @jsango/queue Architecture Overview
 
 ## 1. Core Mission & Philosophy
 
-`@django-js/queue` provides a production-grade, driver-agnostic background job processing system for the Nexora (`django-js`) framework. It enables deferred execution, retry policies, and concurrent worker processing — all without coupling application logic to a specific queue backend.
+`@jsango/queue` provides a production-grade, driver-agnostic background job processing system for the JSango (`jsango`) framework. It enables deferred execution, retry policies, and concurrent worker processing — all without coupling application logic to a specific queue backend.
 
 Key design principles:
 
@@ -12,7 +12,7 @@ Key design principles:
 - **AT-LEAST-ONCE Delivery**: Jobs are guaranteed to execute at least once; handlers must be idempotent.
 - **Visibility Leases**: Workers claim jobs with time-bounded leases to prevent duplicate processing in multi-worker environments.
 - **Graceful Shutdown**: Workers honor `AbortSignal` for clean termination of in-flight work.
-- **Zero Mandatory External Dependencies**: Ships with `MemoryQueueDriver` and `DatabaseQueueDriver` (using the existing `@django-js/database` layer).
+- **Zero Mandatory External Dependencies**: Ships with `MemoryQueueDriver` and `DatabaseQueueDriver` (using the existing `@jsango/database` layer).
 
 ---
 
@@ -27,7 +27,7 @@ Queue (named queue handle, dispatch/delay/schedule)
        ↓
 IQueueDriver (raw queue backend)
   ├── MemoryQueueDriver (in-memory, development/testing)
-  └── DatabaseQueueDriver (persistent, via @django-js/database)
+  └── DatabaseQueueDriver (persistent, via @jsango/database)
        ↓
 Worker (polling, claim, execute, retry/fail)
        ↓
@@ -116,7 +116,7 @@ Low-level driver contract implemented by all queue backends:
 
 ### 4.2 DatabaseQueueDriver
 
-- Persistent queue storage using `@django-js/database` connection pooling and queries.
+- Persistent queue storage using `@jsango/database` connection pooling and queries.
 - Uses `locked_until` column for visibility lease enforcement in multi-worker environments.
 - Claims jobs with `UPDATE ... WHERE locked_until < NOW()` pattern for distributed locking.
 - Suitable for production workloads without external dependencies (Redis/RabbitMQ).

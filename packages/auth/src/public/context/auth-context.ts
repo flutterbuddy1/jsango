@@ -1,9 +1,9 @@
-import type { RequestContext } from '@django-js/http';
+import type { RequestContext } from '@jsango/http';
 import { AnonymousIdentity } from '../identity.js';
 import { UnauthenticatedError } from '../errors.js';
 import type { AuthContext, Identity } from '../types.js';
 
-export const AUTH_CONTEXT_STATE_KEY = 'django-js:auth';
+export const AUTH_CONTEXT_STATE_KEY = 'jsango:auth';
 
 export function setAuthContext(ctx: RequestContext, authContext: AuthContext): void {
   ctx.state.set(AUTH_CONTEXT_STATE_KEY, authContext);

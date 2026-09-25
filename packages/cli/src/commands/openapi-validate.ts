@@ -3,13 +3,13 @@ import * as path from 'node:path';
 import { BaseCommand } from '../public/command.js';
 import type { CommandContext } from '../public/context.js';
 import { ExitCode } from '../public/types.js';
-import { OpenApiGenerator, OpenApiValidator, type OpenApiDocument } from '@django-js/openapi';
+import { OpenApiGenerator, OpenApiValidator, type OpenApiDocument } from '@jsango/openapi';
 
 export class OpenApiValidateCommand extends BaseCommand {
   public readonly name = 'openapi:validate';
   public readonly description =
     'Validate an OpenAPI document for schema compliance and reference integrity';
-  public readonly usage = 'django-js openapi:validate [options]';
+  public readonly usage = 'jsango openapi:validate [options]';
   public readonly options = [
     {
       name: 'file',
@@ -49,7 +49,7 @@ export class OpenApiValidateCommand extends BaseCommand {
       const includeAdmin = (context.options['include-admin'] as boolean | undefined) ?? false;
 
       const generator = new OpenApiGenerator({
-        info: { title: 'Nexora API', version: '1.0.0' },
+        info: { title: 'JSango API', version: '1.0.0' },
         includeAdmin,
       });
 

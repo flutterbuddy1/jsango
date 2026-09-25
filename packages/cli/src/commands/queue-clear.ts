@@ -2,12 +2,12 @@ import { BaseCommand } from '../public/command.js';
 import type { CommandContext } from '../public/context.js';
 import { ExitCode } from '../public/types.js';
 import { DestructiveOperationError } from '../public/errors.js';
-import { QueueManager } from '@django-js/queue';
+import { QueueManager } from '@jsango/queue';
 
 export class QueueClearCommand extends BaseCommand {
   public readonly name = 'queue:clear';
   public readonly description = 'Delete all pending and scheduled jobs from the specified queue';
-  public readonly usage = 'django-js queue:clear [options]';
+  public readonly usage = 'jsango queue:clear [options]';
   public readonly options = [
     {
       name: 'queue',

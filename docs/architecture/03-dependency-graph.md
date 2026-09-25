@@ -6,18 +6,18 @@ The package dependency tree enforces strict layering:
 
 ```mermaid
 graph TD
-    runtime["@django-js/runtime"]
-    core["@django-js/core"]
-    container["@django-js/container"]
-    config["@django-js/config"]
-    http["@django-js/http"]
-    router["@django-js/router"]
-    middleware["@django-js/middleware"]
-    database["@django-js/database"]
-    orm["@django-js/orm"]
-    validation["@django-js/validation"]
-    cli["@django-js/cli"]
-    testing["@django-js/testing"]
+    runtime["@jsango/runtime"]
+    core["@jsango/core"]
+    container["@jsango/container"]
+    config["@jsango/config"]
+    http["@jsango/http"]
+    router["@jsango/router"]
+    middleware["@jsango/middleware"]
+    database["@jsango/database"]
+    orm["@jsango/orm"]
+    validation["@jsango/validation"]
+    cli["@jsango/cli"]
+    testing["@jsango/testing"]
 
     core --> runtime
     container --> core
@@ -41,18 +41,18 @@ graph TD
 
 ## Allowed Dependencies
 
-1. **`@django-js/runtime`**: No internal framework dependencies.
-2. **`@django-js/core`**: Depends on `@django-js/runtime`.
-3. **`@django-js/container`**: Depends on `@django-js/core`.
-4. **`@django-js/config`**: Depends on `@django-js/core`, `@django-js/runtime`.
-5. **`@django-js/http`**: Depends on `@django-js/core`.
-6. **`@django-js/router`**: Depends on `@django-js/core`, `@django-js/http`.
-7. **`@django-js/middleware`**: Depends on `@django-js/core`, `@django-js/http`.
-8. **`@django-js/database`**: Depends on `@django-js/core`.
-9. **`@django-js/orm`**: Depends on `@django-js/core`, `@django-js/database`.
-10. **`@django-js/validation`**: Depends on `@django-js/core`.
-11. **`@django-js/cli`**: Depends on `@django-js/core`.
-12. **`@django-js/testing`**: Depends on `@django-js/core`, `@django-js/container`.
+1. **`@jsango/runtime`**: No internal framework dependencies.
+2. **`@jsango/core`**: Depends on `@jsango/runtime`.
+3. **`@jsango/container`**: Depends on `@jsango/core`.
+4. **`@jsango/config`**: Depends on `@jsango/core`, `@jsango/runtime`.
+5. **`@jsango/http`**: Depends on `@jsango/core`.
+6. **`@jsango/router`**: Depends on `@jsango/core`, `@jsango/http`.
+7. **`@jsango/middleware`**: Depends on `@jsango/core`, `@jsango/http`.
+8. **`@jsango/database`**: Depends on `@jsango/core`.
+9. **`@jsango/orm`**: Depends on `@jsango/core`, `@jsango/database`.
+10. **`@jsango/validation`**: Depends on `@jsango/core`.
+11. **`@jsango/cli`**: Depends on `@jsango/core`.
+12. **`@jsango/testing`**: Depends on `@jsango/core`, `@jsango/container`.
 
 ---
 

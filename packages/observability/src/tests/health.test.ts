@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { HealthRegistry, createHealthHandler } from '../public/health.js';
-import { HttpRequest, RequestContext, HttpResponse } from '@django-js/http';
+import { HttpRequest, RequestContext, HttpResponse } from '@jsango/http';
 
 describe('Health Subsystem', () => {
   it('aggregates healthy status when all checks pass', async () => {

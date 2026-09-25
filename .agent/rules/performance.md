@@ -4,7 +4,7 @@ trigger: always_on
 
 # Performance Rules
 
-Nexora is designed for high-concurrency workloads.
+JSango is designed for high-concurrency workloads.
 
 Performance-sensitive code must:
 

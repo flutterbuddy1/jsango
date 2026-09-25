@@ -2,7 +2,7 @@
 
 ## 1. Identity Representation
 
-An `Identity` represents an authenticated or anonymous principal within Nexora:
+An `Identity` represents an authenticated or anonymous principal within JSango:
 
 ```typescript
 export interface Identity {

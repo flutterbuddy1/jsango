@@ -1,4 +1,4 @@
-import type { IHttpRequest, IHttpResponse } from '@django-js/http';
+import type { IHttpRequest, IHttpResponse } from '@jsango/http';
 
 export type NextFunction = () => Promise<IHttpResponse>;
 

@@ -12,7 +12,7 @@ describe('NodeHttpServer Integration Tests', () => {
       const pathname = ctx.request.pathname;
 
       if (pathname === '/hello') {
-        const res = HttpResponse.json({ message: 'Hello from django-js!' });
+        const res = HttpResponse.json({ message: 'Hello from jsango!' });
         res.setCookie('auth_session', 'sess_123', { httpOnly: true });
         return res;
       }
@@ -47,7 +47,7 @@ describe('NodeHttpServer Integration Tests', () => {
     expect(cookieHeader).toContain('auth_session=sess_123');
 
     const json = (await res.json()) as { message: string };
-    expect(json.message).toBe('Hello from django-js!');
+    expect(json.message).toBe('Hello from jsango!');
   });
 
   it('should process POST request with JSON body', async () => {

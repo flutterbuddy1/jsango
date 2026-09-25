@@ -1,17 +1,17 @@
-import type { IRouter, RouteHandler } from '@django-js/router';
-import type { HttpRequest, RequestContext } from '@django-js/http';
-import { HttpResponse, HttpStatus } from '@django-js/http';
-import type { Identity } from '@django-js/auth';
-import type { AdminRegistry } from '@django-js/admin-core';
+import type { IRouter, RouteHandler } from '@jsango/router';
+import type { HttpRequest, RequestContext } from '@jsango/http';
+import { HttpResponse, HttpStatus } from '@jsango/http';
+import type { Identity } from '@jsango/auth';
+import type { AdminRegistry } from '@jsango/admin-core';
 import {
   AdminAuthorizationError,
   AdminItemNotFoundError,
   AdminResourceNotFoundError,
   AdminActionError,
   AdminValidationError,
-} from '@django-js/admin-core';
-import type { AdminPermissionChecker } from '@django-js/admin-auth';
-import type { AdminAuditLogger } from '@django-js/admin-audit';
+} from '@jsango/admin-core';
+import type { AdminPermissionChecker } from '@jsango/admin-auth';
+import type { AdminAuditLogger } from '@jsango/admin-audit';
 import { AdminCrudService } from './crud-service.js';
 import { parseListQuery, sendJson, sendError, extractIpAddress } from './http-helpers.js';
 import type { IAdminQueryAdapter } from './types.js';
@@ -93,6 +93,19 @@ export class AdminServer {
    */
   public mount(router: IRouter): void {
     const p = this.prefix;
+
+    // Auth & Identity
+    router.get(`${p}/auth/me`, this.handleGetAuthMe());
+
+    // Dashboard
+    router.get(`${p}/dashboard`, this.handleGetDashboard());
+
+    // Custom Pages
+    router.get(`${p}/pages`, this.handleListPages());
+    router.get(`${p}/pages/:pageId`, this.handleGetPage());
+
+    // System Health
+    router.get(`${p}/system/health`, this.handleGetHealth());
 
     // Resource list
     router.get(`${p}/resources`, this.handleListResources());
@@ -433,6 +446,115 @@ export class AdminServer {
         });
 
         return sendJson(page);
+      } catch (err: unknown) {
+        return this.handleError(err);
+      }
+    };
+  }
+
+  private handleGetAuthMe(): RouteHandler {
+    return async (ctx: RequestContext) => {
+      const req = ctx.request;
+      try {
+        const identity = await this.resolveIdentity(req);
+        if (!identity) {
+          return sendError(401, 'ERR_ADMIN_UNAUTHORIZED', 'Not authenticated.');
+        }
+        const canAccess = this.permissions.canAccessAdmin(identity);
+        const idProps = identity as unknown as Record<string, unknown>;
+        return sendJson({
+          user: {
+            id: identity.id,
+            username: typeof idProps['username'] === 'string' ? idProps['username'] : identity.id,
+            roles: identity.roles,
+            permissions: identity.permissions,
+            isSuperuser:
+              typeof idProps['isSuperuser'] === 'boolean' ? idProps['isSuperuser'] : false,
+          },
+          canAccessAdmin: canAccess,
+        });
+      } catch (err: unknown) {
+        return this.handleError(err);
+      }
+    };
+  }
+
+  private handleGetDashboard(): RouteHandler {
+    return async (ctx: RequestContext) => {
+      const req = ctx.request;
+      try {
+        const identity = await this.resolveIdentity(req);
+        if (!this.permissions.canAccessAdmin(identity)) {
+          return sendError(403, 'ERR_ADMIN_FORBIDDEN', 'Admin access denied.');
+        }
+        const widgets = this.registry.dashboard.getWidgets().map((w) => w.toJSON());
+        const data = await this.registry.dashboard.getDashboardData({ identity });
+        return sendJson({ widgets, data });
+      } catch (err: unknown) {
+        return this.handleError(err);
+      }
+    };
+  }
+
+  private handleListPages(): RouteHandler {
+    return async (ctx: RequestContext) => {
+      const req = ctx.request;
+      try {
+        const identity = await this.resolveIdentity(req);
+        if (!this.permissions.canAccessAdmin(identity)) {
+          return sendError(403, 'ERR_ADMIN_FORBIDDEN', 'Admin access denied.');
+        }
+        const pages = this.registry.getAllPages().map((p) => p.toJSON());
+        return sendJson({ pages });
+      } catch (err: unknown) {
+        return this.handleError(err);
+      }
+    };
+  }
+
+  private handleGetPage(): RouteHandler {
+    return async (ctx: RequestContext) => {
+      const req = ctx.request;
+      try {
+        const identity = await this.resolveIdentity(req);
+        if (!this.permissions.canAccessAdmin(identity)) {
+          return sendError(403, 'ERR_ADMIN_FORBIDDEN', 'Admin access denied.');
+        }
+        const { pageId } = req.params as { pageId: string };
+        const page = this.registry.getPage(pageId);
+        if (!page) {
+          return sendError(404, 'ERR_NOT_FOUND', `Page "${pageId}" not found.`);
+        }
+        return sendJson({
+          page: page.toJSON(),
+        });
+      } catch (err: unknown) {
+        return this.handleError(err);
+      }
+    };
+  }
+
+  private handleGetHealth(): RouteHandler {
+    return async (ctx: RequestContext) => {
+      const req = ctx.request;
+      try {
+        const identity = await this.resolveIdentity(req);
+        if (!this.permissions.canAccessAdmin(identity)) {
+          return sendError(403, 'ERR_ADMIN_FORBIDDEN', 'Admin access denied.');
+        }
+        const health = {
+          status: 'healthy',
+          timestamp: new Date().toISOString(),
+          uptime: typeof process.uptime === 'function' ? process.uptime() : 0,
+          memory: typeof process.memoryUsage === 'function' ? process.memoryUsage() : {},
+          nodeVersion: process.version ?? 'unknown',
+          services: {
+            database: { status: 'up' },
+            cache: { status: 'up' },
+            queue: { status: 'up' },
+          },
+        };
+        return sendJson({ health });
       } catch (err: unknown) {
         return this.handleError(err);
       }

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { Router } from '@django-js/router';
-import { HttpRequest, RequestContext, HttpResponse } from '@django-js/http';
+import { Router } from '@jsango/router';
+import { HttpRequest, RequestContext, HttpResponse } from '@jsango/http';
 import { OpenApiGenerator } from '../public/generator.js';
 import { createOpenApiHandler } from '../public/endpoint.js';
 

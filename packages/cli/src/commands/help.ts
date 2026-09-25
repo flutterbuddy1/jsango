@@ -8,7 +8,7 @@ import { GLOBAL_OPTIONS } from '../public/parser.js';
 export class HelpCommand extends BaseCommand {
   public readonly name = 'help';
   public readonly description = 'Display help information for commands';
-  public readonly usage = 'django-js help [command]';
+  public readonly usage = 'jsango help [command]';
   public readonly aliases = ['-h', '--help'];
   public readonly arguments = [
     {
@@ -47,7 +47,7 @@ export class HelpCommand extends BaseCommand {
       context.output.json({
         name: cmd.name,
         description: cmd.description,
-        usage: cmd.usage ?? `django-js ${cmd.name}`,
+        usage: cmd.usage ?? `jsango ${cmd.name}`,
         aliases: cmd.aliases ?? [],
         arguments: cmd.arguments ?? [],
         options: [...(cmd.options ?? []), ...GLOBAL_OPTIONS],
@@ -62,7 +62,7 @@ export class HelpCommand extends BaseCommand {
     context.output.text();
 
     context.output.text(colors.bold('USAGE'));
-    context.output.text(`  ${cmd.usage ?? `django-js ${cmd.name} [options]`}`);
+    context.output.text(`  ${cmd.usage ?? `jsango ${cmd.name} [options]`}`);
     context.output.text();
 
     if (cmd.aliases && cmd.aliases.length > 0) {
@@ -111,7 +111,7 @@ export class HelpCommand extends BaseCommand {
 
     if (context.output.isJson) {
       context.output.json({
-        framework: 'django-js',
+        framework: 'jsango',
         commands: commands.map((c) => ({
           name: c.name,
           description: c.description,
@@ -124,12 +124,10 @@ export class HelpCommand extends BaseCommand {
     }
 
     const { colors } = context.output;
-    context.output.text(
-      `${colors.bold('django-js')} — Production-grade TypeScript backend framework`
-    );
+    context.output.text(`${colors.bold('jsango')} — Production-grade TypeScript backend framework`);
     context.output.text();
     context.output.text(colors.bold('USAGE'));
-    context.output.text(`  ${colors.dim('$')} django-js <command> [options] [arguments]`);
+    context.output.text(`  ${colors.dim('$')} jsango <command> [options] [arguments]`);
     context.output.text();
 
     context.output.text(colors.bold('GLOBAL OPTIONS'));
@@ -160,7 +158,7 @@ export class HelpCommand extends BaseCommand {
     }
 
     context.output.text(
-      `Run ${colors.cyan('django-js help <command>')} for details on a specific command.`
+      `Run ${colors.cyan('jsango help <command>')} for details on a specific command.`
     );
   }
 }

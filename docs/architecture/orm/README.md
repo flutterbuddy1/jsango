@@ -1,12 +1,12 @@
-# @django-js/orm — Architectural Documentation
+# @jsango/orm — Architectural Documentation
 
 ## Overview
 
-`@django-js/orm` is the official Object-Relational Mapping (ORM) and Model Metadata layer for `django-js`.
+`@jsango/orm` is the official Object-Relational Mapping (ORM) and Model Metadata layer for `jsango`.
 
 It provides a production-grade, TypeScript-first abstraction for defining database models, executing composable queries, eager-loading relationships without N+1 query bottlenecks, and managing transactions.
 
-Crucially, `@django-js/orm` exposes a **First-Class Model Metadata System** that serves as the architectural foundation for future framework systems:
+Crucially, `@jsango/orm` exposes a **First-Class Model Metadata System** that serves as the architectural foundation for future framework systems:
 
 - **Phase 7: Migrations** (schema diffing, table generation, and index tracking)
 - **Phase 8: Validation** (structural field constraints and type checking)

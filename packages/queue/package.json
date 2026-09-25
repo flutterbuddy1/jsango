@@ -1,7 +1,7 @@
 {
-  "name": "@django-js/queue",
+  "name": "@jsango/queue",
   "version": "1.0.0",
-  "description": "Background job queue, workers, retry policies, and drivers for django-js",
+  "description": "Background job queue, workers, retry policies, and drivers for jsango",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -21,11 +21,11 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@django-js/runtime": "workspace:*",
-    "@django-js/core": "workspace:*",
-    "@django-js/container": "workspace:*",
-    "@django-js/config": "workspace:*",
-    "@django-js/database": "workspace:*"
+    "@jsango/runtime": "workspace:*",
+    "@jsango/core": "workspace:*",
+    "@jsango/container": "workspace:*",
+    "@jsango/config": "workspace:*",
+    "@jsango/database": "workspace:*"
   },
   "files": [
     "dist"
@@ -33,7 +33,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/django-js/django-js.git",
+    "url": "https://github.com/jsango/jsango.git",
     "directory": "packages/queue"
   },
   "publishConfig": {

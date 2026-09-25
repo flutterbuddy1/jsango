@@ -1,4 +1,4 @@
-import { HttpResponse, HttpStatus, type RequestContext } from '@django-js/http';
+import { HttpResponse, HttpStatus, type RequestContext } from '@jsango/http';
 
 export class ResponseNormalizer {
   public static normalize(value: unknown, ctx: RequestContext): HttpResponse {

@@ -9,11 +9,11 @@
     "dev": "node dist/index.js"
   },
   "dependencies": {
-    "@django-js/core": "workspace:*",
-    "@django-js/container": "workspace:*",
-    "@django-js/http": "workspace:*",
-    "@django-js/router": "workspace:*",
-    "@django-js/middleware": "workspace:*",
-    "@django-js/auth": "workspace:*"
+    "@jsango/core": "workspace:*",
+    "@jsango/container": "workspace:*",
+    "@jsango/http": "workspace:*",
+    "@jsango/router": "workspace:*",
+    "@jsango/middleware": "workspace:*",
+    "@jsango/auth": "workspace:*"
   }
 }

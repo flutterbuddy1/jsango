@@ -1,20 +1,20 @@
-# @django-js/admin-server
+# @jsango/admin-server
 
-> REST API server for django-js Admin orchestrating CRUD operations, permissions, audit trails, and pagination.
+> REST API server for jsango Admin orchestrating CRUD operations, permissions, audit trails, and pagination.
 
-Part of the **[django-js](https://github.com/django-js/django-js)** backend framework for TypeScript.
+Part of the **[jsango](https://github.com/jsango/jsango)** backend framework for TypeScript.
 
 ## Installation
 
 ```bash
-pnpm add @django-js/admin-server
+pnpm add @jsango/admin-server
 ```
 
 ## Usage
 
 ```typescript
-import { mountAdminApi, AdminCrudService } from '@django-js/admin-server';
-import { Router } from '@django-js/router';
+import { mountAdminApi, AdminCrudService } from '@jsango/admin-server';
+import { Router } from '@jsango/router';
 
 const router = new Router();
 mountAdminApi(router, adminRegistry, crudService, { prefix: '/admin/api' });
@@ -22,8 +22,8 @@ mountAdminApi(router, adminRegistry, crudService, { prefix: '/admin/api' });
 
 ## Documentation
 
-For full architecture documentation and guides, visit the [django-js documentation](https://github.com/django-js/django-js/tree/main/docs).
+For full architecture documentation and guides, visit the [jsango documentation](https://github.com/jsango/jsango/tree/main/docs).
 
 ## License
 
-MIT © django-js contributors
+MIT © jsango contributors

@@ -2,7 +2,7 @@
 
 ## Design Overview
 
-`@django-js/cli` employs a declarative, strongly-typed command abstraction. Commands are lightweight descriptors coupled with execution handlers, avoiding monolithic god-classes.
+`@jsango/cli` employs a declarative, strongly-typed command abstraction. Commands are lightweight descriptors coupled with execution handlers, avoiding monolithic god-classes.
 
 ```
 Command
@@ -46,7 +46,7 @@ export class VersionCommand extends BaseCommand {
   public readonly aliases = ['-v', '--version'];
 
   public execute(context: CommandContext): number {
-    context.output.text(`django-js v${FRAMEWORK_VERSION}`);
+    context.output.text(`jsango v${FRAMEWORK_VERSION}`);
     return ExitCode.SUCCESS;
   }
 }

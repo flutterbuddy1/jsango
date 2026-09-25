@@ -6,9 +6,9 @@ import { CommandContext } from '../public/context.js';
 import { CliOutput } from '../public/output.js';
 import { DestructiveOperationError, UsageError } from '../public/errors.js';
 import { MigrateRunCommand } from '../commands/migrate-run.js';
-import { Migration, MigrationRegistry } from '@django-js/migrations';
-import { DatabaseManager, MemoryDatabaseDriver } from '@django-js/database';
-import { DropTableOperation } from '@django-js/migrations';
+import { Migration, MigrationRegistry } from '@jsango/migrations';
+import { DatabaseManager, MemoryDatabaseDriver } from '@jsango/database';
+import { DropTableOperation } from '@jsango/migrations';
 
 describe('CLI Security Tests', () => {
   describe('Secret Masking', () => {

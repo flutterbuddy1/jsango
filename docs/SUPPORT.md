@@ -1,6 +1,6 @@
-# django-js Support Matrix
+# jsango Support Matrix
 
-This document defines officially tested and supported runtimes, operating systems, databases, and package managers for **django-js v1.0.0**.
+This document defines officially tested and supported runtimes, operating systems, databases, and package managers for **jsango v1.0.0**.
 
 ---
 

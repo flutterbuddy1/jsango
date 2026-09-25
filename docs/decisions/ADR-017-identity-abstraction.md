@@ -10,7 +10,7 @@ Security principals can be human users, background worker processes, service acc
    - `Identity` represents an immutable principal with `id`, `type`, `isAuthenticated`, `isSuperuser`, `roles`, `permissions`, and `tenantId`.
    - Distinct concrete implementations: `UserIdentity`, `ServiceAccountIdentity`, `SystemIdentity`, and `AnonymousIdentity`.
 2. **Request-Scoped Binding**:
-   - Identity is stored strictly within `RequestContext.state` (`django-js:auth`) and registered in the request-scoped dependency injection container.
+   - Identity is stored strictly within `RequestContext.state` (`jsango:auth`) and registered in the request-scoped dependency injection container.
    - Zero process-level or global mutable security state.
 3. **Safe Serialization**:
    - `Identity.toJSON()` strips all secrets and sensitive credentials, preventing accidental leakage in log aggregation pipelines.
