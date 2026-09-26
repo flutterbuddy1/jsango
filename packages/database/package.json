@@ -26,7 +26,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jsango/jsango.git",
+    "url": "https://github.com/flutterbuddy1/jsango.git",
     "directory": "packages/database"
   },
   "publishConfig": {
