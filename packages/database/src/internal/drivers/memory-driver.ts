@@ -463,23 +463,22 @@ export class MemoryDriverConnection implements IDriverConnection {
   private evaluateCondition(row: TableRow, condition: string, params: readonly unknown[]): boolean {
     let clean = condition.trim();
 
-    // Check for surrounding parentheses containing OR
+    // Check for OR conditions (both parenthesized and unparenthesized)
     if (clean.startsWith('(') && clean.endsWith(')')) {
-      const inner = clean.slice(1, -1).trim();
-      const orParts = this.splitTopLevel(inner, 'OR');
-      if (orParts.length > 1) {
-        let paramOffset = 0;
-        for (const orPart of orParts) {
-          const phCount = (orPart.match(/\?|\$\d+/g) || []).length;
-          const orParams = params.slice(paramOffset, paramOffset + phCount);
-          paramOffset += phCount;
-          if (this.evaluateCondition(row, orPart.trim(), orParams)) {
-            return true;
-          }
+      clean = clean.slice(1, -1).trim();
+    }
+    const orParts = this.splitTopLevel(clean, 'OR');
+    if (orParts.length > 1) {
+      let paramOffset = 0;
+      for (const orPart of orParts) {
+        const phCount = (orPart.match(/\?|\$\d+/g) || []).length;
+        const orParams = params.slice(paramOffset, paramOffset + phCount);
+        paramOffset += phCount;
+        if (this.evaluateCondition(row, orPart.trim(), orParams)) {
+          return true;
         }
-        return false;
       }
-      clean = inner;
+      return false;
     }
 
     // IN: "col" IN (?, ?)
@@ -527,8 +526,13 @@ export class MemoryDriverConnection implements IDriverConnection {
 
       const actualVal = row[col];
 
-      switch (op) {
+      switch (op.toUpperCase()) {
         case '=':
+          if (typeof actualVal === 'boolean' || typeof targetVal === 'boolean') {
+            const bActual = actualVal === true || actualVal === 1 || actualVal === 'true';
+            const bTarget = targetVal === true || targetVal === 1 || targetVal === 'true';
+            return bActual === bTarget;
+          }
           return (
             actualVal === targetVal ||
             String(actualVal) === String(targetVal) ||
@@ -536,6 +540,11 @@ export class MemoryDriverConnection implements IDriverConnection {
           );
         case '!=':
         case '<>':
+          if (typeof actualVal === 'boolean' || typeof targetVal === 'boolean') {
+            const bActual = actualVal === true || actualVal === 1 || actualVal === 'true';
+            const bTarget = targetVal === true || targetVal === 1 || targetVal === 'true';
+            return bActual !== bTarget;
+          }
           return (
             actualVal !== targetVal &&
             String(actualVal) !== String(targetVal) &&
@@ -549,8 +558,11 @@ export class MemoryDriverConnection implements IDriverConnection {
           return Number(actualVal) < Number(targetVal);
         case '<=':
           return Number(actualVal) <= Number(targetVal);
-        case 'LIKE':
-          return String(actualVal ?? '').includes(String(targetVal ?? '').replace(/%/g, ''));
+        case 'LIKE': {
+          const rawTarget = String(targetVal ?? '').replace(/%/g, '').toLowerCase();
+          const rawActual = String(actualVal ?? '').toLowerCase();
+          return rawActual.includes(rawTarget);
+        }
         default:
           return false;
       }

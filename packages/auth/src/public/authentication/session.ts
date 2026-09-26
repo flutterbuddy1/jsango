@@ -91,6 +91,32 @@ export class MemorySessionStore implements ISessionStore {
     return true;
   }
 
+  public async listByIdentity(identityId: string): Promise<Session[]> {
+    const now = Date.now();
+    const result: Session[] = [];
+    for (const [id, session] of this.sessions.entries()) {
+      if (now > session.expiresAt) {
+        this.sessions.delete(id);
+        continue;
+      }
+      if (session.identityId === identityId) {
+        result.push(session);
+      }
+    }
+    return result;
+  }
+
+  public async deleteByIdentity(identityId: string, excludeSessionId?: string): Promise<number> {
+    let deletedCount = 0;
+    for (const [id, session] of this.sessions.entries()) {
+      if (session.identityId === identityId && id !== excludeSessionId) {
+        this.sessions.delete(id);
+        deletedCount++;
+      }
+    }
+    return deletedCount;
+  }
+
   public clear(): void {
     this.sessions.clear();
   }

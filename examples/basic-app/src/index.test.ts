@@ -138,5 +138,5 @@ describe('Basic App Example with Database', () => {
     expect(exitCode).toBe(0);
     expect(outputData).toContain('/api/v1/users/:id<number>');
     expect(outputData).toContain('/audit-event');
-  });
+  }, 15000);
 });

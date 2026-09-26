@@ -63,6 +63,15 @@ export {
 } from './authentication/session.js';
 
 export {
+  type TotpSetupOptions,
+  type TotpSecretResult,
+  type TotpVerifyOptions,
+  TotpService,
+  base32Encode,
+  base32Decode,
+} from './authentication/totp.js';
+
+export {
   type ITokenVerifier,
   type BearerAuthStrategyOptions,
   JwtTokenVerifier,

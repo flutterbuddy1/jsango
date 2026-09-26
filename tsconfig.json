@@ -28,6 +28,7 @@
     { "path": "./packages/openapi" },
     { "path": "./packages/observability" },
     { "path": "./examples/basic-app" },
-    { "path": "./examples/auth-demo" }
+    { "path": "./examples/auth-demo" },
+    { "path": "./examples/enterprise-showcase" }
   ]
 }

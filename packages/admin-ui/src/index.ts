@@ -143,3 +143,12 @@ export {
 } from './plugins/index.js';
 
 export { AdminApp, type AdminAppOptions } from './app/admin-app.js';
+
+export {
+  renderAdminSpaHtml,
+  createAdminUiHandler,
+  type AdminSpaOptions,
+} from './page/admin-spa.js';
+
+export * from './react/index.js';
+

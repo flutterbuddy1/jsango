@@ -1,32 +1,65 @@
 # @jsango/admin-ui
 
-Enterprise-grade frontend Admin UI foundation for the `jsango` (JSango) framework.
+Enterprise-grade, Chakra UI v3-styled frontend Admin UI foundation for the `jsango` (JSango) framework.
 
 ## Features
 
-- **Metadata-Driven**: Consumes `@jsango/admin-core` & `@jsango/admin-server` schemas without hard-coding models.
-- **Enterprise Design System**: High-contrast, themeable light/dark/system palettes, semantic design tokens, zero external CSS bloat.
-- **Typed API & Query Layer**: `AdminApiClient` with token auth, retry logic, `QueryClient` cache with automatic invalidation.
-- **Data Table Engine**: Multi-column sorting, row selection, metadata formatters, bulk actions, search and filters.
-- **Form Engine**: Metadata-driven form generation supporting text, textarea, numbers, booleans, enums, dates, json, passwords, and validation error mapping.
-- **Operations & System Views**: Realtime dashboard with metrics and activity feeds, audit log timeline with property diff viewers, and system health status.
-- **Fast Navigation**: `Cmd+K` / `Ctrl+K` Command Palette, collapsible sidebar with navigation groups, responsive mobile drawer.
+- **Chakra UI v3 Design System**: Semantic color tokens (`bg.canvas`, `bg.panel`, `bg.subtle`, `border.subtle`, `brand.solid`), glassmorphism cards, and Lucide vector icons.
+- **100% Mobile-Friendly & Responsive**: Responsive topbar, collapsible slide-over hamburger drawer, touch-optimized horizontal scroll tables, and mobile bottom sheet filters.
+- **Metadata-Driven Django Architecture**: Consumes `@jsango/admin-core` & `@jsango/admin-server` schemas without hardcoding model views.
+- **Full Django Admin Capabilities**:
+  - **App Index & Dashboard**: Grouped model categories with "+ Add" & "Change" links, live stat cards, and recent actions timeline.
+  - **Changelist**: Search bar, facet filter drawer (`list_filter`), column sorting (`ordering`), pagination, bulk actions, and CSV export.
+  - **Changeform**: Typed inputs (text, number, email, textarea, enums, booleans), field validation, and sticky bottom actions bar (`Save`, `Save and continue editing`, `Save and add another`, `Delete`).
+  - **Item-Level History**: Change history modal tracking past mutations with timestamps and actor details.
+- **Fast Command Palette (`Cmd+K` / `Ctrl+K`)**: Instant keyboard navigation across all models and tools.
+- **Light & Dark Mode**: Seamless toggle with system color scheme preference.
 
-## Usage
+## Mounting the Admin Single-Page App (SPA)
+
+In your JSango application router:
 
 ```typescript
-import { AdminApp, AdminApiClient } from '@jsango/admin-ui';
+import { createAdminUiHandler } from '@jsango/admin-ui';
+
+// Mount the Chakra UI Admin Console
+const adminHandler = createAdminUiHandler({
+  title: 'JSango Enterprise Admin',
+  brandSubtitle: 'Management Console',
+  apiPrefix: '/api/admin',
+  defaultTheme: 'dark',
+  siteUrl: '/',
+});
+
+router.get('/admin', adminHandler);
+```
+
+## CLI Resource Scaffolding
+
+To quickly generate a new typed `AdminResource` and corresponding ORM model:
+
+```bash
+# Basic usage
+npx jsango make:admin <ModelName>
+
+# With custom navigation group and Lucide icon
+npx jsango make:admin Article --group "Blog Management" --icon "newspaper"
+```
+
+## Programmatic / Isomorphic Component API
+
+```typescript
+import { AdminApp, AdminApiClient, ThemeManager } from '@jsango/admin-ui';
 
 const client = new AdminApiClient({
-  baseUrl: '/admin/api/v1',
-  getAuthToken: () => localStorage.getItem('token'),
+  baseUrl: '/api/admin',
 });
 
 const app = new AdminApp({
   client,
   config: {
     title: 'Acme Admin Console',
-    defaultTheme: 'system',
+    defaultTheme: 'dark',
   },
 });
 

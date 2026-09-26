@@ -69,6 +69,8 @@ export interface ISessionStore {
   update(id: string, data: Partial<Session>): Promise<Session | undefined>;
   delete(id: string): Promise<boolean>;
   touch(id: string, ttlMs?: number): Promise<boolean>;
+  listByIdentity?(identityId: string): Promise<Session[]>;
+  deleteByIdentity?(identityId: string, excludeSessionId?: string): Promise<number>;
 }
 
 export interface AuthorizationDecision {

@@ -1,0 +1,38 @@
+{
+  "name": "example-enterprise-showcase",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "dev": "node dist/index.js",
+    "start": "node dist/index.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@jsango/core": "workspace:*",
+    "@jsango/container": "workspace:*",
+    "@jsango/config": "workspace:*",
+    "@jsango/http": "workspace:*",
+    "@jsango/router": "workspace:*",
+    "@jsango/middleware": "workspace:*",
+    "@jsango/database": "workspace:*",
+    "@jsango/orm": "workspace:*",
+    "@jsango/migrations": "workspace:*",
+    "@jsango/validation": "workspace:*",
+    "@jsango/auth": "workspace:*",
+    "@jsango/cache": "workspace:*",
+    "@jsango/queue": "workspace:*",
+    "@jsango/events": "workspace:*",
+    "@jsango/websocket": "workspace:*",
+    "@jsango/admin-core": "workspace:*",
+    "@jsango/admin-auth": "workspace:*",
+    "@jsango/admin-audit": "workspace:*",
+    "@jsango/admin-server": "workspace:*",
+    "@jsango/admin-ui": "workspace:*",
+    "@jsango/openapi": "workspace:*",
+    "@jsango/observability": "workspace:*",
+    "@jsango/cli": "workspace:*"
+  }
+}

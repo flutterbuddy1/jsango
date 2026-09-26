@@ -35,6 +35,7 @@ import { OpenApiValidateCommand } from '../commands/openapi-validate.js';
 import { HealthCommand } from '../commands/health.js';
 import { MetricsCommand } from '../commands/metrics.js';
 import { DiagnosticsCommand } from '../commands/diagnostics.js';
+import { AdminGenerateCommand } from '../commands/admin-generate.js';
 
 export interface CliApplicationOptions {
   readonly registry?: CommandRegistry | undefined;
@@ -91,6 +92,7 @@ export class CliApplication {
     registry.register(new HealthCommand());
     registry.register(new MetricsCommand());
     registry.register(new DiagnosticsCommand());
+    registry.register(new AdminGenerateCommand());
 
     return app;
   }

@@ -1,0 +1,33 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src"
+  },
+  "include": ["src/**/*"],
+  "references": [
+    { "path": "../../packages/core" },
+    { "path": "../../packages/container" },
+    { "path": "../../packages/config" },
+    { "path": "../../packages/http" },
+    { "path": "../../packages/router" },
+    { "path": "../../packages/middleware" },
+    { "path": "../../packages/database" },
+    { "path": "../../packages/orm" },
+    { "path": "../../packages/migrations" },
+    { "path": "../../packages/validation" },
+    { "path": "../../packages/auth" },
+    { "path": "../../packages/cache" },
+    { "path": "../../packages/queue" },
+    { "path": "../../packages/events" },
+    { "path": "../../packages/websocket" },
+    { "path": "../../packages/admin-core" },
+    { "path": "../../packages/admin-auth" },
+    { "path": "../../packages/admin-audit" },
+    { "path": "../../packages/admin-server" },
+    { "path": "../../packages/admin-ui" },
+    { "path": "../../packages/openapi" },
+    { "path": "../../packages/observability" },
+    { "path": "../../packages/cli" }
+  ]
+}

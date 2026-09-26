@@ -242,6 +242,78 @@ importers:
         specifier: workspace:*
         version: link:../../packages/router
 
+  examples/enterprise-showcase:
+    dependencies:
+      '@jsango/admin-audit':
+        specifier: workspace:*
+        version: link:../../packages/admin-audit
+      '@jsango/admin-auth':
+        specifier: workspace:*
+        version: link:../../packages/admin-auth
+      '@jsango/admin-core':
+        specifier: workspace:*
+        version: link:../../packages/admin-core
+      '@jsango/admin-server':
+        specifier: workspace:*
+        version: link:../../packages/admin-server
+      '@jsango/admin-ui':
+        specifier: workspace:*
+        version: link:../../packages/admin-ui
+      '@jsango/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
+      '@jsango/cache':
+        specifier: workspace:*
+        version: link:../../packages/cache
+      '@jsango/cli':
+        specifier: workspace:*
+        version: link:../../packages/cli
+      '@jsango/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@jsango/container':
+        specifier: workspace:*
+        version: link:../../packages/container
+      '@jsango/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@jsango/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@jsango/events':
+        specifier: workspace:*
+        version: link:../../packages/events
+      '@jsango/http':
+        specifier: workspace:*
+        version: link:../../packages/http
+      '@jsango/middleware':
+        specifier: workspace:*
+        version: link:../../packages/middleware
+      '@jsango/migrations':
+        specifier: workspace:*
+        version: link:../../packages/migrations
+      '@jsango/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
+      '@jsango/openapi':
+        specifier: workspace:*
+        version: link:../../packages/openapi
+      '@jsango/orm':
+        specifier: workspace:*
+        version: link:../../packages/orm
+      '@jsango/queue':
+        specifier: workspace:*
+        version: link:../../packages/queue
+      '@jsango/router':
+        specifier: workspace:*
+        version: link:../../packages/router
+      '@jsango/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
+      '@jsango/websocket':
+        specifier: workspace:*
+        version: link:../../packages/websocket
+
   packages/admin-audit:
     dependencies:
       '@jsango/admin-core':
@@ -316,6 +388,28 @@ importers:
       '@jsango/core':
         specifier: workspace:*
         version: link:../core
+      '@jsango/http':
+        specifier: workspace:*
+        version: link:../http
+      lucide-react:
+        specifier: ^1.48.0
+        version: 1.48.0(react@19.3.0)
+      react:
+        specifier: ^19.3.0
+        version: 19.3.0
+      react-dom:
+        specifier: ^19.3.0
+        version: 19.3.0(react@19.3.0)
+    devDependencies:
+      '@types/react':
+        specifier: ^19.3.0
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: ^19.3.0
+        version: 19.3.0(@types/react@19.3.0)
+      esbuild:
+        specifier: ^0.28.2
+        version: 0.28.2
 
   packages/auth:
     dependencies:
@@ -981,6 +1075,14 @@ packages:
   '@types/node@26.6.2':
     resolution: {integrity: sha512-X1P21scMv4zGKLYqjdGjaKa7COa0RKVYYZZN/NfvLQ1JegxFhdhpZG/Lyn8AXx6CDUavKAd11v6BvfpkDByK8g==}
 
+  '@types/react-dom@19.3.0':
+    resolution: {integrity: sha512-ZI7bU42mZXXKHn/qNLEw2IrbiINU7X5+vfgdixBHkCNpYWXjKgfQ/P+uyGb5CjOLB9UcnTeg3rylQtV2hym44Q==}
+    peerDependencies:
+      '@types/react': ^19.3.0
+
+  '@types/react@19.3.0':
+    resolution: {integrity: sha512-N0rFCuH9YoxG9/m61l9MfpJKfmLOVU0em7ipIz6TRgSSkvReLB9vL85GB+yr8Bs5leqpvg96JSwF4ZS1s4viQg==}
+
   '@types/ws@8.18.1':
     resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
 
@@ -1143,6 +1245,9 @@ packages:
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
+
+  csstype@3.2.3:
+    resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
 
   debug@4.4.3:
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
@@ -1336,6 +1441,11 @@ packages:
   loupe@3.2.1:
     resolution: {integrity: sha512-CdzqowRJCeLU72bHvWqwRBBlLcMEtIvGrlvef74kMnV2AolS9Y8xUv1I0U/MNAWMhBlKIoyuEgoJ0t/bbwHbLQ==}
 
+  lucide-react@1.48.0:
+    resolution: {integrity: sha512-R0CIKY/fXiC6y9xRBADgsK+VW2p/pcTJOMhLZf1T+uG+vJUvyUR02nGOgmIIC7MPkiNK4Ox8QDnbqF8rJYWPZQ==}
+    peerDependencies:
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
 
@@ -1412,6 +1522,15 @@ packages:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
 
+  react-dom@19.3.0:
+    resolution: {integrity: sha512-JDk8dgif51OjFoDE70+OT9ICyYr+69HlmihNwp1+Nsfbna3t5sIiCa9ZJktDmQ4/1b/rn26hIAR2uYXDMr5r0Q==}
+    peerDependencies:
+      react: ^19.3.0
+
+  react@19.3.0:
+    resolution: {integrity: sha512-E8LUcbtBWt20bbl2YoHfx4ZDBdxVTfOKtCZn9cDSJ4l6/nuoApcpIBcj47t2wZoVX8g2ZHuMHbiShgCR1T5Sog==}
+    engines: {node: '>=0.10.0'}
+
   resolve-from@4.0.0:
     resolution: {integrity: sha512-pb/MYmXstAkysRFx8piNI1tGFNQIFA3vkE3Gq4EuA1dF6gHp/+vgZqsCGJapvy8N3Q+4o7FwvquPJcnZ7RYy4g==}
     engines: {node: '>=4'}
@@ -1420,6 +1539,9 @@ packages:
     resolution: {integrity: sha512-4U0liVayNIoLp3GFl1FcI8561WepLnZ1rqfraGh7S9B3Ur5F9S283y8Futii7RUU2C/97tOBmBy7nYvhoiOpbQ==}
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     hasBin: true
+
+  scheduler@0.28.0:
+    resolution: {integrity: sha512-juorfCmIkIw8tT+p5BXSm6PJjQF/ycEYmKyzURCIt/RaZIhL+PulbQ9Yu2z1HdOJDdqDTlxA1+xKBmHXJsczAw==}
 
   semver@7.8.5:
     resolution: {integrity: sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==}
@@ -1870,6 +1992,14 @@ snapshots:
     dependencies:
       undici-types: 8.9.0
 
+  '@types/react-dom@19.3.0(@types/react@19.3.0)':
+    dependencies:
+      '@types/react': 19.3.0
+
+  '@types/react@19.3.0':
+    dependencies:
+      csstype: 3.2.3
+
   '@types/ws@8.18.1':
     dependencies:
       '@types/node': 26.6.2
@@ -2074,6 +2204,8 @@ snapshots:
       shebang-command: 2.0.0
       which: 2.0.2
 
+  csstype@3.2.3: {}
+
   debug@4.4.3(supports-color@7.2.0):
     dependencies:
       ms: 2.1.3
@@ -2276,6 +2408,10 @@ snapshots:
 
   loupe@3.2.1: {}
 
+  lucide-react@1.48.0(react@19.3.0):
+    dependencies:
+      react: 19.3.0
+
   magic-string@0.30.21:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.6.0
@@ -2339,6 +2475,13 @@ snapshots:
 
   punycode@2.3.1: {}
 
+  react-dom@19.3.0(react@19.3.0):
+    dependencies:
+      react: 19.3.0
+      scheduler: 0.28.0
+
+  react@19.3.0: {}
+
   resolve-from@4.0.0: {}
 
   rollup@4.63.4:
@@ -2372,6 +2515,8 @@ snapshots:
       '@rollup/rollup-win32-x64-gnu': 4.63.4
       '@rollup/rollup-win32-x64-msvc': 4.63.4
       fsevents: 2.3.3
+
+  scheduler@0.28.0: {}
 
   semver@7.8.5: {}
 
