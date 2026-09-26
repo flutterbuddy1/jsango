@@ -559,7 +559,9 @@ export class MemoryDriverConnection implements IDriverConnection {
         case '<=':
           return Number(actualVal) <= Number(targetVal);
         case 'LIKE': {
-          const rawTarget = String(targetVal ?? '').replace(/%/g, '').toLowerCase();
+          const rawTarget = String(targetVal ?? '')
+            .replace(/%/g, '')
+            .toLowerCase();
           const rawActual = String(actualVal ?? '').toLowerCase();
           return rawActual.includes(rawTarget);
         }

@@ -12,27 +12,30 @@ When registering the admin SPA in your JSango HTTP router via `createAdminUiHand
 import { createAdminUiHandler } from '@jsango/admin-ui';
 
 // In your application route setup (e.g., src/app.ts or routes/admin.ts):
-router.get('/admin', createAdminUiHandler({
-  title: 'Acme Corp Admin Portal',           // Top-left branding title
-  brandSubtitle: 'JSango Enterprise Platform', // Subtitle underneath title
-  siteUrl: 'https://acme.example.com',       // "View Site" external link
-  apiBasePath: '/admin/api/v1',              // Admin API endpoint root
-  defaultTheme: 'dark',                      // 'dark' | 'light' | 'system'
-  enableCommandPalette: true,                // Enables ⌘K / Ctrl+K quick navigator
-  enableTwoFactor: true,                     // Enables 2FA / TOTP profile section
-}));
+router.get(
+  '/admin',
+  createAdminUiHandler({
+    title: 'Acme Corp Admin Portal', // Top-left branding title
+    brandSubtitle: 'JSango Enterprise Platform', // Subtitle underneath title
+    siteUrl: 'https://acme.example.com', // "View Site" external link
+    apiBasePath: '/admin/api/v1', // Admin API endpoint root
+    defaultTheme: 'dark', // 'dark' | 'light' | 'system'
+    enableCommandPalette: true, // Enables ⌘K / Ctrl+K quick navigator
+    enableTwoFactor: true, // Enables 2FA / TOTP profile section
+  })
+);
 ```
 
 ### Configuration Property Reference
 
-| Property | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `title` | `string` | `'JSango Administration'` | Main brand title in topbar and browser page title |
-| `brandSubtitle` | `string` | `'Enterprise Admin Control'` | Small sub-text under the brand title |
-| `siteUrl` | `string` | `'/'` | URL linked by the "View Site" header button |
-| `apiBasePath` | `string` | `'/admin/api/v1'` | Prefix path where `@jsango/admin-server` is mounted |
-| `defaultTheme` | `'light' \| 'dark' \| 'system'` | `'dark'` | Initial color mode before user toggle |
-| `enableCommandPalette` | `boolean` | `true` | Keyboard shortcut `⌘K` or `Ctrl+K` for instant search |
+| Property               | Type                            | Default                      | Description                                           |
+| :--------------------- | :------------------------------ | :--------------------------- | :---------------------------------------------------- |
+| `title`                | `string`                        | `'JSango Administration'`    | Main brand title in topbar and browser page title     |
+| `brandSubtitle`        | `string`                        | `'Enterprise Admin Control'` | Small sub-text under the brand title                  |
+| `siteUrl`              | `string`                        | `'/'`                        | URL linked by the "View Site" header button           |
+| `apiBasePath`          | `string`                        | `'/admin/api/v1'`            | Prefix path where `@jsango/admin-server` is mounted   |
+| `defaultTheme`         | `'light' \| 'dark' \| 'system'` | `'dark'`                     | Initial color mode before user toggle                 |
+| `enableCommandPalette` | `boolean`                       | `true`                       | Keyboard shortcut `⌘K` or `Ctrl+K` for instant search |
 
 ---
 
@@ -58,7 +61,7 @@ The Admin UI is styled using **Chakra UI v3** semantic design tokens and CSS cus
   --admin-sidebar-width: 260px;
 }
 
-[data-theme="dark"] {
+[data-theme='dark'] {
   --chakra-colors-brand-subtle: rgba(13, 148, 136, 0.15);
   --chakra-colors-bg-default: #090d16;
   --chakra-colors-bg-card: #0f172a;
@@ -80,18 +83,18 @@ export const ProductResource: AdminResourceConfig = {
   id: 'products',
   label: 'Product',
   pluralLabel: 'Products',
-  
+
   // Sidebar Grouping & Lucide Icon
   navigationGroup: 'E-Commerce & Catalog',
   navigationIcon: 'shopping-bag', // Any Lucide icon name: package, users, file-text, layers, etc.
-  
+
   // List View Configuration
   listDisplay: ['id', 'title', 'sku', 'price', 'status', 'createdAt'],
   searchFields: ['title', 'sku', 'description'],
   listFilter: ['status', 'category'],
   listPerPage: 25,
   ordering: [{ field: 'createdAt', direction: 'desc' }],
-  
+
   // Field-level widget customizations
   fields: [
     { name: 'title', label: 'Product Title', type: 'string', required: true },
@@ -117,6 +120,7 @@ export const ProductResource: AdminResourceConfig = {
 ## 4. Authentication, Profile & 2FA Management
 
 The Admin UI includes a built-in **Profile & Security** center accessible from:
+
 1. The sidebar navigation under **Platform → Profile & Security** (`#profile`).
 2. The user avatar badge in the top right header.
 
@@ -156,6 +160,7 @@ npx jsango make:admin Order --output="./src/admin/resources"
 ```
 
 The CLI automatically generates:
+
 - Typed TypeScript resource definition with full `AdminResourceConfig` schema.
 - Automatic fields, `listDisplay`, `searchFields`, `listFilter`, and batch export action.
 - Ready to register directly into your `createAdminRegistry()` and `createOrmAdminQueryAdapter()`.
@@ -182,10 +187,13 @@ const queryAdapter = createOrmAdminQueryAdapter({
 });
 
 // 3. Mount Admin UI Handler
-router.get('/admin', createAdminUiHandler({
-  title: 'Acme Super Admin',
-  brandSubtitle: 'Production Cluster',
-  siteUrl: '/',
-  defaultTheme: 'dark',
-}));
+router.get(
+  '/admin',
+  createAdminUiHandler({
+    title: 'Acme Super Admin',
+    brandSubtitle: 'Production Cluster',
+    siteUrl: '/',
+    defaultTheme: 'dark',
+  })
+);
 ```

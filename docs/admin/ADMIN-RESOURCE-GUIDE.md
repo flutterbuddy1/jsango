@@ -26,12 +26,13 @@ npx jsango make:admin ProductReview --group "Catalog" --output "src/admin"
 ```
 
 ### CLI Options:
-| Flag | Short | Default | Description |
-|---|---|---|---|
-| `--group` | `-g` | `'Content Management'` | Category group in the admin sidebar |
-| `--icon` | `-i` | `'file-text'` | [Lucide Icon](https://lucide.dev/icons) name |
-| `--output` | `-o` | `'src/admin'` | Target folder for resource file |
-| `--with-model` | `-m` | `true` | Generate ORM model in `src/models` if not existing |
+
+| Flag           | Short | Default                | Description                                        |
+| -------------- | ----- | ---------------------- | -------------------------------------------------- |
+| `--group`      | `-g`  | `'Content Management'` | Category group in the admin sidebar                |
+| `--icon`       | `-i`  | `'file-text'`          | [Lucide Icon](https://lucide.dev/icons) name       |
+| `--output`     | `-o`  | `'src/admin'`          | Target folder for resource file                    |
+| `--with-model` | `-m`  | `true`                 | Generate ORM model in `src/models` if not existing |
 
 ---
 
@@ -97,16 +98,16 @@ export const PageResource = new AdminResource({
 
 ## 3. Supported Field Types
 
-| Field Type | Form Widget | Supported Options |
-|---|---|---|
-| `'text'` | Single-line Text Input | `required`, `searchable`, `label` |
-| `'textarea'` | Multi-line Textarea | `rows`, `required`, `label` |
-| `'number'` | Numeric Input (int/float) | `min`, `max`, `step` |
-| `'email'` | Email Input | Validates email syntax |
-| `'boolean'` | Checkbox / Switch | Rendered with Yes/No badges in changelist |
-| `'enum'` | Select Dropdown | `enumChoices: [{ label, value }]` |
-| `'datetime'` | Datetime Display / Picker | Formats timestamps gracefully |
-| `'uuid'` | Readonly identifier | Automatically generated |
+| Field Type   | Form Widget               | Supported Options                         |
+| ------------ | ------------------------- | ----------------------------------------- |
+| `'text'`     | Single-line Text Input    | `required`, `searchable`, `label`         |
+| `'textarea'` | Multi-line Textarea       | `rows`, `required`, `label`               |
+| `'number'`   | Numeric Input (int/float) | `min`, `max`, `step`                      |
+| `'email'`    | Email Input               | Validates email syntax                    |
+| `'boolean'`  | Checkbox / Switch         | Rendered with Yes/No badges in changelist |
+| `'enum'`     | Select Dropdown           | `enumChoices: [{ label, value }]`         |
+| `'datetime'` | Datetime Display / Picker | Formats timestamps gracefully             |
+| `'uuid'`     | Readonly identifier       | Automatically generated                   |
 
 ---
 
@@ -154,10 +155,13 @@ Mount the single-page application directly on your HTTP router:
 import { createAdminUiHandler } from '@jsango/admin-ui';
 
 // Mounts Chakra UI v3 Admin Console with full mobile & desktop responsiveness
-router.get('/admin', createAdminUiHandler({
-  title: 'JSango Enterprise Admin',
-  brandSubtitle: 'Management Console',
-  apiPrefix: '/api/admin',
-  defaultTheme: 'dark',
-}));
+router.get(
+  '/admin',
+  createAdminUiHandler({
+    title: 'JSango Enterprise Admin',
+    brandSubtitle: 'Management Console',
+    apiPrefix: '/api/admin',
+    defaultTheme: 'dark',
+  })
+);
 ```

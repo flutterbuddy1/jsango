@@ -27,4 +27,3 @@ export { HealthCommand } from './commands/health.js';
 export { MetricsCommand } from './commands/metrics.js';
 export { DiagnosticsCommand } from './commands/diagnostics.js';
 export { AdminGenerateCommand } from './commands/admin-generate.js';
-

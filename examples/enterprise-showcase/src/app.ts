@@ -177,7 +177,8 @@ async function seedInitialData(): Promise<void> {
     id: 'page-01',
     title: 'About JSango Framework',
     description: 'Enterprise-grade TypeScript web application framework.',
-    content: 'JSango brings batteries-included developer happiness to high-performance Node.js and Bun applications.',
+    content:
+      'JSango brings batteries-included developer happiness to high-performance Node.js and Bun applications.',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   } as never);
@@ -186,7 +187,8 @@ async function seedInitialData(): Promise<void> {
     id: 'page-02',
     title: 'Terms of Service & Privacy',
     description: 'Usage terms, compliance policies, and privacy disclosures.',
-    content: 'All user data is encrypted in transit and at rest with strict zero-trust security invariants.',
+    content:
+      'All user data is encrypted in transit and at rest with strict zero-trust security invariants.',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   } as never);

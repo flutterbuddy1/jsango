@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSango - Production-Grade TypeScript Backend Framework</title>
+  
+  <!-- SEO & Social Meta Tags -->
+  <meta name="description" content="JSango is a batteries-included, high-performance TypeScript backend framework inspired by Django's convention-over-configuration philosophy, featuring an ORM, SegRadix router (>7.7M ops/sec), auto-generated React admin console, 2FA auth, and background queues.">
+  <meta name="keywords" content="JSango, TypeScript framework, Django for TypeScript, backend framework, Node.js, ORM, Admin Panel, REST API, SegRadix Router">
+  <meta property="og:title" content="JSango - The Django for TypeScript">
+  <meta property="og:description" content="Production-grade, batteries-included TypeScript backend framework for modern JavaScript runtimes.">
+  <meta property="og:image" content="images/logo.png">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="images/logo.png">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Ambient Glowing Blobs -->
+  <div class="ambient-glow" aria-hidden="true">
+    <div class="blob-1"></div>
+    <div class="blob-2"></div>
+    <div class="blob-3"></div>
+  </div>
+  <div class="bg-grid" aria-hidden="true"></div>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar" id="navbar">
+    <div class="container nav-container">
+      <a href="#" class="logo-brand">
+        <img src="images/logo.png" alt="JSango Logo" class="logo-img">
+        <span>JSango</span>
+        <span class="brand-badge">v1.0.0</span>
+      </a>
+
+      <ul class="nav-links" id="navLinks">
+        <li><a href="#features" class="nav-link">Features</a></li>
+        <li><a href="#showcase" class="nav-link">Showcase</a></li>
+        <li><a href="#architecture" class="nav-link">Architecture</a></li>
+        <li><a href="#benchmarks" class="nav-link">Benchmarks</a></li>
+        <li><a href="#packages" class="nav-link">Packages</a></li>
+        <li><a href="#quickstart" class="nav-link">Quickstart</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <a href="https://github.com/flutterbuddy1/jsango" target="_blank" rel="noopener noreferrer" class="btn-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          <span>Star on GitHub</span>
+        </a>
+        <a href="#quickstart" class="btn-primary">Get Started</a>
+        <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle Navigation Menu">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <header class="hero-section">
+    <div class="container">
+      <div class="hero-pill">
+        <span class="pulse-dot"></span>
+        <span>JSango v1.0.0 Production Release · Batteries-Included</span>
+      </div>
+
+      <h1 class="hero-title">
+        The Django for TypeScript.<br>
+        <span class="gradient-text">Fast. Typed. Batteries Included.</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        Stop stitching together dozens of disjointed libraries. JSango delivers a cohesive, enterprise-grade ecosystem: Declarative ORM, SegRadix Router (&gt;7.7M ops/sec), Auto-Generated React Admin Panel, 2FA Auth, Background Queues, and WebSockets.
+      </p>
+
+      <div class="hero-actions">
+        <div class="quick-install">
+          <span>$</span>
+          <code>npx jsango create my-app</code>
+          <button class="copy-btn copy-trigger" data-copy="npx jsango create my-app" title="Copy CLI Command">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          </button>
+        </div>
+        <a href="#showcase" class="btn-secondary">Explore Interactive Tour</a>
+      </div>
+
+      <!-- Hero Interactive Code Window -->
+      <div class="hero-showcase" id="showcase">
+        <div class="showcase-header">
+          <div class="window-dots">
+            <div class="dot red"></div>
+            <div class="dot yellow"></div>
+            <div class="dot green"></div>
+          </div>
+          <div class="showcase-tabs">
+            <button class="tab-btn active" data-tab="orm">
+              <span>🗄️</span> ORM & Relations
+            </button>
+            <button class="tab-btn" data-tab="router">
+              <span>⚡</span> SegRadix Router
+            </button>
+            <button class="tab-btn" data-tab="admin">
+              <span>🖥️</span> Auto Admin Panel
+            </button>
+            <button class="tab-btn" data-tab="auth">
+              <span>🔐</span> 2FA & Auth Security
+            </button>
+            <button class="tab-btn" data-tab="queue">
+              <span>📬</span> Queues & Workers
+            </button>
+            <button class="tab-btn" data-tab="ws">
+              <span>🔌</span> Realtime WebSockets
+            </button>
+          </div>
+        </div>
+
+        <div class="showcase-body">
+          <!-- ORM Tab -->
+          <div class="code-pane active" id="pane-orm">
+            <pre><code><span class="hl-kw">import</span> { defineModel, fields } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/orm'</span>;
+
+<span class="hl-comm">// 1. Strongly-typed declarative schema with automatic relations</span>
+<span class="hl-kw">export const</span> <span class="hl-type">User</span> = <span class="hl-fn">defineModel</span>({
+  name: <span class="hl-str">'User'</span>,
+  table: <span class="hl-str">'users'</span>,
+  fields: {
+    id: fields.<span class="hl-fn">uuid</span>({ primaryKey: <span class="hl-kw">true</span> }),
+    email: fields.<span class="hl-fn">string</span>({ unique: <span class="hl-kw">true</span>, maxLength: <span class="hl-num">255</span> }),
+    fullName: fields.<span class="hl-fn">string</span>(),
+    role: fields.<span class="hl-fn">enum</span>([<span class="hl-str">'admin'</span>, <span class="hl-str">'editor'</span>, <span class="hl-str">'viewer'</span>]),
+    isActive: fields.<span class="hl-fn">boolean</span>({ default: <span class="hl-kw">true</span> }),
+  },
+  relations: (rel) => ({
+    orders: rel.<span class="hl-fn">hasMany</span>(<span class="hl-str">'Order'</span>, { foreignKey: <span class="hl-str">'userId'</span> }),
+    profile: rel.<span class="hl-fn">hasOne</span>(<span class="hl-str">'UserProfile'</span>, { foreignKey: <span class="hl-str">'userId'</span> }),
+  }),
+});
+
+<span class="hl-comm">// 2. High-performance AST query with batch eager loading (no N+1!)</span>
+<span class="hl-kw">const</span> usersWithOrders = <span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">query</span>()
+  .<span class="hl-fn">where</span>(<span class="hl-str">'isActive'</span>, <span class="hl-str">'='</span>, <span class="hl-kw">true</span>)
+  .<span class="hl-fn">with</span>(<span class="hl-str">'orders'</span>, (q) => q.<span class="hl-fn">where</span>(<span class="hl-str">'status'</span>, <span class="hl-str">'='</span>, <span class="hl-str">'completed'</span>))
+  .<span class="hl-fn">orderBy</span>(<span class="hl-str">'createdAt'</span>, <span class="hl-str">'desc'</span>)
+  .<span class="hl-fn">limit</span>(<span class="hl-num">20</span>);</code></pre>
+          </div>
+
+          <!-- Router Tab -->
+          <div class="code-pane" id="pane-router">
+            <pre><code><span class="hl-kw">import</span> { Application } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/middleware'</span>;
+<span class="hl-kw">import</span> { schema } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/validation'</span>;
+
+<span class="hl-kw">const</span> app = <span class="hl-kw">new</span> <span class="hl-type">Application</span>();
+
+<span class="hl-comm">// Ultra-fast SegRadix Trie routing (>7.7M lookups/sec) with typed parameters</span>
+app.<span class="hl-fn">get</span>(<span class="hl-str">'/api/v1/users/:id:uuid'</span>, <span class="hl-kw">async</span> (ctx) => {
+  <span class="hl-kw">const</span> userId = ctx.request.params[<span class="hl-str">'id'</span>];
+  <span class="hl-kw">const</span> user = <span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">query</span>().<span class="hl-fn">findById</span>(userId);
+
+  <span class="hl-kw">if</span> (!user) {
+    <span class="hl-kw">return</span> ctx.response.<span class="hl-fn">notFound</span>({ error: <span class="hl-str">'User not found'</span> });
+  }
+
+  <span class="hl-kw">return</span> ctx.response.<span class="hl-fn">json</span>(user.<span class="hl-fn">toJSON</span>());
+});
+
+<span class="hl-comm">// Scoped middleware pipeline with automatic OpenAPI schema registration</span>
+app.<span class="hl-fn">group</span>(<span class="hl-str">'/api/v1/protected'</span>, (router) => {
+  router.<span class="hl-fn">use</span>(authMiddleware);
+  router.<span class="hl-fn">post</span>(<span class="hl-str">'/checkout'</span>, checkoutHandler);
+});</code></pre>
+          </div>
+
+          <!-- Admin Tab -->
+          <div class="code-pane" id="pane-admin">
+            <pre><code><span class="hl-kw">import</span> { createAdminResource } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/admin-core'</span>;
+<span class="hl-kw">import</span> { AdminServer } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/admin-server'</span>;
+<span class="hl-kw">import</span> { User } <span class="hl-kw">from</span> <span class="hl-str">'./models/user.js'</span>;
+
+<span class="hl-comm">// 1. Zero-boilerplate Admin Resource generated directly from ORM metadata</span>
+<span class="hl-kw">export const</span> <span class="hl-type">UserAdmin</span> = <span class="hl-fn">createAdminResource</span>(User, {
+  label: <span class="hl-str">'Users & Customers'</span>,
+  icon: <span class="hl-str">'users'</span>,
+  searchFields: [<span class="hl-str">'email'</span>, <span class="hl-str">'fullName'</span>],
+  listFields: [<span class="hl-str">'id'</span>, <span class="hl-str">'email'</span>, <span class="hl-str">'role'</span>, <span class="hl-str">'isActive'</span>],
+  filters: [{ field: <span class="hl-str">'role'</span>, type: <span class="hl-str">'select'</span> }, { field: <span class="hl-str">'isActive'</span>, type: <span class="hl-str">'boolean'</span> }],
+  export: { formats: [<span class="hl-str">'csv'</span>, <span class="hl-str">'json'</span>] },
+});
+
+<span class="hl-comm">// 2. Mounts interactive React SPA with CRUD, 2FA, Session Control & Audit Logs</span>
+<span class="hl-kw">const</span> adminServer = <span class="hl-kw">new</span> <span class="hl-type">AdminServer</span>({ resources: [UserAdmin], path: <span class="hl-str">'/admin'</span> });
+app.<span class="hl-fn">mount</span>(adminServer);</code></pre>
+          </div>
+
+          <!-- Auth Tab -->
+          <div class="code-pane" id="pane-auth">
+            <pre><code><span class="hl-kw">import</span> { TotpService, ScryptPasswordHasher, SessionManager } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/auth'</span>;
+
+<span class="hl-comm">// RFC 6238 Time-based One-Time Password (TOTP) 2FA</span>
+<span class="hl-kw">const</span> totp = <span class="hl-kw">new</span> <span class="hl-type">TotpService</span>();
+
+<span class="hl-comm">// Setup Two-Factor Authenticator</span>
+<span class="hl-kw">const</span> secret = totp.<span class="hl-fn">generateSecret</span>();
+<span class="hl-kw">const</span> qrUri = totp.<span class="hl-fn">generateKeyUri</span>({
+  secret,
+  accountName: <span class="hl-str">'admin@jsango.dev'</span>,
+  issuer: <span class="hl-str">'JSango Security'</span>
+});
+
+<span class="hl-comm">// Validate 6-digit TOTP code during login</span>
+<span class="hl-kw">const</span> isValid = totp.<span class="hl-fn">verifyToken</span>({ secret, token: <span class="hl-str">'482910'</span>, window: <span class="hl-num">1</span> });
+<span class="hl-kw">if</span> (!isValid) {
+  <span class="hl-kw">throw new</span> <span class="hl-type">AuthenticationError</span>(<span class="hl-str">'Invalid 2FA Verification Code'</span>);
+}</code></pre>
+          </div>
+
+          <!-- Queue Tab -->
+          <div class="code-pane" id="pane-queue">
+            <pre><code><span class="hl-kw">import</span> { QueueManager, defineJob } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/queue'</span>;
+
+<span class="hl-comm">// Define background job with automatic retries and dead-letter queue</span>
+<span class="hl-kw">export const</span> SendWelcomeEmailJob = <span class="hl-fn">defineJob</span>({
+  name: <span class="hl-str">'send-welcome-email'</span>,
+  retryPolicy: { maxAttempts: <span class="hl-num">3</span>, backoffMultiplier: <span class="hl-num">2</span> },
+  <span class="hl-kw">async</span> <span class="hl-fn">handler</span>({ email, name }) {
+    <span class="hl-kw">await</span> mailClient.<span class="hl-fn">send</span>({ to: email, subject: <span class="hl-str">\`Welcome \${name}!\`</span> });
+  }
+});
+
+<span class="hl-comm">// Push job to Redis/Memory queue</span>
+<span class="hl-kw">await</span> SendWelcomeEmailJob.<span class="hl-fn">dispatch</span>({ email: <span class="hl-str">'user@example.com'</span>, name: <span class="hl-str">'Alex'</span> });</code></pre>
+          </div>
+
+          <!-- WebSocket Tab -->
+          <div class="code-pane" id="pane-ws">
+            <pre><code><span class="hl-kw">import</span> { WebSocketServer } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/websocket'</span>;
+
+<span class="hl-kw">const</span> ws = <span class="hl-kw">new</span> <span class="hl-type">WebSocketServer</span>({ path: <span class="hl-str">'/realtime'</span> });
+
+ws.<span class="hl-fn">onConnection</span>((socket, identity) => {
+  socket.<span class="hl-fn">joinRoom</span>(<span class="hl-str">\`org:\${identity.organizationId}\`</span>);
+
+  socket.<span class="hl-fn">on</span>(<span class="hl-str">'chat:send'</span>, <span class="hl-kw">async</span> (payload) => {
+    <span class="hl-comm">// Broadcast to multi-room channel with zero memory leak backpressure</span>
+    ws.<span class="hl-fn">broadcast</span>(<span class="hl-str">\`org:\${identity.organizationId}\`</span>, <span class="hl-str">'chat:message'</span>, {
+      from: identity.id,
+      text: payload.text,
+      timestamp: Date.<span class="hl-fn">now</span>()
+    });
+  });
+});</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Features Section -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag">Batteries Included</div>
+        <h2 class="section-title">Everything You Need for Enterprise Backends</h2>
+        <p class="section-desc">
+          JSango eliminates decision fatigue. Enjoy curated, strictly typed tools engineered to work together seamlessly without configuration hell.
+        </p>
+      </div>
+
+      <div class="features-grid">
+        <!-- Feature 1 -->
+        <div class="feature-card">
+          <div class="feature-icon-wrapper icon-emerald">🖥️</div>
+          <h3>Auto-Generated Admin Console</h3>
+          <p>
+            Complete React SPA admin interface with CRUD, instant search, faceted filters, batch bulk actions, dynamic relations, and export/import.
+          </p>
+          <ul class="feature-list">
+            <li><span class="check">✓</span> Zero boilerplate resource registration</li>
+            <li><span class="check">✓</span> 2FA TOTP security & active session management</li>
+            <li><span class="check">✓</span> Granular RBAC field & resource permissions</li>
+          </ul>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="feature-card">
+          <div class="feature-icon-wrapper icon-indigo">🗄️</div>
+          <h3>Declarative ORM & Migrations</h3>
+          <p>
+            Type-safe schema definitions, AST query builders, batch eager loading to eliminate N+1 queries, and automated schema diff migrations.
+          </p>
+          <ul class="feature-list">
+            <li><span class="check">✓</span> Strict compile-time query validation</li>
+            <li><span class="check">✓</span> Automated schema diffing & DDL compilers</li>
+            <li><span class="check">✓</span> Connection pooling & scoped transactions</li>
+          </ul>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="feature-card">
+          <div class="feature-icon-wrapper icon-cyan">⚡</div>
+          <h3>SegRadix Router (&gt;7.7M ops/sec)</h3>
+          <p>
+            Custom Segment Radix Trie router designed for extreme concurrency, zero allocations on hot paths, and constraint-based param matching.
+          </p>
+          <ul class="feature-list">
+            <li><span class="check">✓</span> 7,700,000+ route lookups per second</li>
+            <li><span class="check">✓</span> Typed parameter constraints (:uuid, :int, :slug)</li>
+            <li><span class="check">✓</span> Onion middleware pipeline with async context</li>
+          </ul>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="feature-card">
+          <div class="feature-icon-wrapper icon-pink">🔐</div>
+          <h3>Authentication & Security</h3>
+          <p>
+            Battle-tested authentication with Session cookies, JWTs, API Keys, Scrypt password hashing, TOTP 2FA, and CSRF/CORS protection.
+          </p>
+          <ul class="feature-list">
+            <li><span class="check">✓</span> Built-in RFC 6238 TOTP 2FA engine</li>
+            <li><span class="check">✓</span> Device session tracking & remote revocation</li>
+            <li><span class="check">✓</span> Scrypt key derivation & brute-force throttling</li>
+          </ul>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="feature-card">
+          <div class="feature-icon-wrapper icon-amber">📬</div>
+          <h3>Queues, Events & Realtime</h3>
+          <p>
+            Background job worker queues with retries and dead-letter stores, typed event emitter with tri-mode execution, and multi-room WebSockets.
+          </p>
+          <ul class="feature-list">
+            <li><span class="check">✓</span> At-least-once background queue processing</li>
+            <li><span class="check">✓</span> Typed event bus (Sync, Async, Queued)</li>
+            <li><span class="check">✓</span> Multi-room WebSocket with heartbeat monitor</li>
+          </ul>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="feature-card">
+          <div class="feature-icon-wrapper icon-purple">📊</div>
+          <h3>Observability & OpenAPI 3.1</h3>
+          <p>
+            First-class Prometheus metrics, structured JSON telemetry, monotonic request tracing, health probes, and automated OpenAPI 3.1 docs.
+          </p>
+          <ul class="feature-list">
+            <li><span class="check">✓</span> Automated OpenAPI 3.1 & Swagger generation</li>
+            <li><span class="check">✓</span> Prometheus metrics endpoint (/metrics)</li>
+            <li><span class="check">✓</span> Liveness & readiness health check probes</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Architecture Explorer -->
+  <section class="section" id="architecture">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag">Clean Separation of Concerns</div>
+        <h2 class="section-title">Strict Layered Architecture</h2>
+        <p class="section-desc">
+          Click any layer below to explore how JSango enforces strict dependency boundaries and runtime independence.
+        </p>
+      </div>
+
+      <div class="arch-explorer">
+        <div class="arch-layers-list">
+          <div class="arch-layer-item active" data-layer="runtime">
+            <div class="layer-info">
+              <span class="layer-num">01</span>
+              <span class="layer-name">Runtime Adapter</span>
+            </div>
+            <span class="layer-package">@jsango/runtime</span>
+          </div>
+
+          <div class="arch-layer-item" data-layer="core">
+            <div class="layer-info">
+              <span class="layer-num">02</span>
+              <span class="layer-name">Core Lifecycle & DI</span>
+            </div>
+            <span class="layer-package">@jsango/core</span>
+          </div>
+
+          <div class="arch-layer-item" data-layer="http">
+            <div class="layer-info">
+              <span class="layer-num">03</span>
+              <span class="layer-name">HTTP Abstraction</span>
+            </div>
+            <span class="layer-package">@jsango/http</span>
+          </div>
+
+          <div class="arch-layer-item" data-layer="router">
+            <div class="layer-info">
+              <span class="layer-num">04</span>
+              <span class="layer-name">SegRadix Router</span>
+            </div>
+            <span class="layer-package">@jsango/router</span>
+          </div>
+
+          <div class="arch-layer-item" data-layer="middleware">
+            <div class="layer-info">
+              <span class="layer-num">05</span>
+              <span class="layer-name">Middleware Pipeline</span>
+            </div>
+            <span class="layer-package">@jsango/middleware</span>
+          </div>
+
+          <div class="arch-layer-item" data-layer="orm">
+            <div class="layer-info">
+              <span class="layer-num">06</span>
+              <span class="layer-name">Declarative ORM</span>
+            </div>
+            <span class="layer-package">@jsango/orm</span>
+          </div>
+
+          <div class="arch-layer-item" data-layer="admin">
+            <div class="layer-info">
+              <span class="layer-num">07</span>
+              <span class="layer-name">Auto Admin Console</span>
+            </div>
+            <span class="layer-package">@jsango/admin-ui</span>
+          </div>
+        </div>
+
+        <div class="arch-layer-detail">
+          <div class="detail-header">
+            <h4 id="archLayerTitle">1. Runtime Layer</h4>
+            <span class="brand-badge" id="archLayerPkg" style="margin-bottom: 12px; display: inline-block;">@jsango/runtime</span>
+            <p id="archLayerDesc">
+              Abstracts platform differences between Node.js 20+ and modern JavaScript runtimes without coupling business logic to node APIs.
+            </p>
+          </div>
+          <div class="detail-code">
+            <pre><code id="archLayerSnippet">import { createRuntimeAdapter } from '@jsango/runtime';
+
+// High-performance Node.js runtime adapter
+export const runtime = createRuntimeAdapter({
+  platform: 'node',
+  features: { http2: true, cluster: true }
+});</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Performance & Benchmarks Section -->
+  <section class="section" id="benchmarks">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag">Extreme Throughput</div>
+        <h2 class="section-title">Engineered for High-Concurrency Workloads</h2>
+        <p class="section-desc">
+          Zero reflection on hot paths, segment radix tree matching, and zero-allocation body streaming deliver outstanding real-world performance.
+        </p>
+      </div>
+
+      <div class="benchmark-container">
+        <div class="benchmark-stats-grid">
+          <div class="stat-box">
+            <div class="stat-val">&gt;7.7M</div>
+            <div class="stat-label">Route Lookups / sec</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val">0.02ms</div>
+            <div class="stat-label">P99 Router Latency</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val">0</div>
+            <div class="stat-label">Runtime Reflection Overhead</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val">100%</div>
+            <div class="stat-label">Strict TypeScript Safety</div>
+          </div>
+        </div>
+
+        <div class="benchmark-bars">
+          <div class="bar-row">
+            <div class="bar-label-group">
+              <span class="jsango-tag">⚡ JSango SegRadix Router</span>
+              <span>7,720,000 ops/sec</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill jsango" style="width: 100%;">100%</div>
+            </div>
+          </div>
+
+          <div class="bar-row">
+            <div class="bar-label-group">
+              <span>Fastify Find-My-Way</span>
+              <span>5,410,000 ops/sec</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill fastify" style="width: 70%;">70%</div>
+            </div>
+          </div>
+
+          <div class="bar-row">
+            <div class="bar-label-group">
+              <span>Express Path-To-Regexp</span>
+              <span>1,250,000 ops/sec</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill express" style="width: 16%;">16%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Monorepo Packages Section -->
+  <section class="section" id="packages">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag">Modular Architecture</div>
+        <h2 class="section-title">24 Cohesive Monorepo Packages</h2>
+        <p class="section-desc">
+          Use the full stack together or pick individual packages. Each package adheres to strict zero-circular-dependency rules.
+        </p>
+      </div>
+
+      <div class="package-explorer-controls">
+        <input type="text" id="packageSearch" class="search-input" placeholder="Search packages (e.g. orm, admin, auth)..." aria-label="Search Packages">
+        <div class="package-filter-tags">
+          <button class="filter-tag active" data-filter="all">All Packages</button>
+          <button class="filter-tag" data-filter="core">Core & HTTP</button>
+          <button class="filter-tag" data-filter="data">Data & ORM</button>
+          <button class="filter-tag" data-filter="admin">Admin System</button>
+          <button class="filter-tag" data-filter="services">Services & Queue</button>
+        </div>
+      </div>
+
+      <div class="packages-grid" id="packagesGrid">
+        <div class="pkg-card" data-category="core">
+          <div class="pkg-header">
+            <span class="pkg-name">@jsango/core</span>
+            <span class="pkg-category">Core</span>
+          </div>
+          <p class="pkg-desc">Application lifecycle coordinator, structured error hierarchy, and logging abstractions.</p>
+        </div>
+
+        <div class="pkg-card" data-category="core">
+          <div class="pkg-header">
+            <span class="pkg-name">@jsango/container</span>
+            <span class="pkg-category">Core</span>
+          </div>
+          <p class="pkg-desc">High-performance DI container supporting transient, singleton, and scoped lifetimes.</p>
+        </div>
+
+        <div class="pkg-card" data-category="core">
+          <div class="pkg-header">
+            <span class="pkg-name">@jsango/router</span>
+            <span class="pkg-category">Core</span>
+          </div>
+          <p class="pkg-desc">Segment Radix Trie router (>7.7M ops/sec) with typed constraint matching.</p>
+        </div>
+
+        <div class="pkg-card" data-category="core">
+          <div class="pkg-header">
+            <span class="pkg-name">@jsango/http</span>
+            <span class="pkg-category">Core</span>
+          </div>
+          <p class="pkg-desc">Runtime-independent HTTP request/response abstractions and streaming body parsers.</p>
+        </div>
+
+        <div class="pkg-card" data-category="data">
+          <div class="pkg-header">
+            <span class="pkg-name">@jsango/orm</span>
+            <span class="pkg-category">Data</span>
+          </div>
+          <p class="pkg-desc">Declarative models, AST query builder, and pure batch eager loading (.with()).</p>
+        </div>
+
+        <div class="pkg-card" data-category="data">
+          <div class="pkg-header">
+            <span class="pkg-name">@jsango/migrations</span>
+            <span class="pkg-category">Data</span>
+          </div>
+          <p class="pkg-desc">Schema diffing engine, DDL compilers, distributed locks, and migration runners.</p>
+        </div>
+
+        <div class="pkg-card" data-category="data">
+          <div class="pkg-header">
+            <span class="pkg-name">@jsango/database</span>
+            <span class="pkg-category">Data</span>
+          </div>
+          <p class="pkg-desc">Multi-connection manager, FIFO connection pool, and scoped transaction state machines.</p>
+        </div>
+
+        <div class="pkg-card" data-category="admin">
+          <div class="pkg-header">
+            <span class="pkg-name">@jsango/admin-ui</span>
+            <span class="pkg-category">Admin</span>
+          </div>
+          <p class="pkg-desc">Interactive React SPA admin dashboard with CRUD views, filters, and theme switcher.</p>
+        </div>
+
+        <div class="pkg-card" data-category="admin">
+          <div class="pkg-header">
+            <span class="pkg-name">@jsango/admin-server</span>
+            <span class="pkg-category">Admin</span>
+          </div>
+          <p class="pkg-desc">Admin REST orchestrator for CRUD endpoints, 2FA auth, session revoke, and export.</p>
+        </div>
+
+        <div class="pkg-card" data-category="admin">
+          <div class="pkg-header">
+            <span class="pkg-name">@jsango/admin-auth</span>
+            <span class="pkg-category">Admin</span>
+          </div>
+          <p class="pkg-desc">Staff authorization, resource-level CRUD permissions, and field-level visibility rules.</p>
+        </div>
+
+        <div class="pkg-card" data-category="services">
+          <div class="pkg-header">
+            <span class="pkg-name">@jsango/auth</span>
+            <span class="pkg-category">Services</span>
+          </div>
+          <p class="pkg-desc">RFC 6238 TOTP 2FA engine, Session/JWT auth, Scrypt hashing, and policy RBAC.</p>
+        </div>
+
+        <div class="pkg-card" data-category="services">
+          <div class="pkg-header">
+            <span class="pkg-name">@jsango/queue</span>
+            <span class="pkg-category">Services</span>
+          </div>
+          <p class="pkg-desc">At-least-once background job queues, concurrent worker polling, and dead-letter store.</p>
+        </div>
+
+        <div class="pkg-card" data-category="services">
+          <div class="pkg-header">
+            <span class="pkg-name">@jsango/websocket</span>
+            <span class="pkg-category">Services</span>
+          </div>
+          <p class="pkg-desc">Multi-room WebSocket management with heartbeat monitoring and backpressure safeguards.</p>
+        </div>
+
+        <div class="pkg-card" data-category="services">
+          <div class="pkg-header">
+            <span class="pkg-name">@jsango/openapi</span>
+            <span class="pkg-category">Services</span>
+          </div>
+          <p class="pkg-desc">Deterministic OpenAPI 3.1 document generation from router, validation, ORM, and Admin.</p>
+        </div>
+
+        <div class="pkg-card" data-category="services">
+          <div class="pkg-header">
+            <span class="pkg-name">@jsango/observability</span>
+            <span class="pkg-category">Services</span>
+          </div>
+          <p class="pkg-desc">Structured JSON logging, Prometheus metrics, monotonic tracing, and health checks.</p>
+        </div>
+
+        <div class="pkg-card" data-category="core">
+          <div class="pkg-header">
+            <span class="pkg-name">@jsango/cli</span>
+            <span class="pkg-category">Core</span>
+          </div>
+          <p class="pkg-desc">CLI developer tooling, scaffolding commands, migration generators, and dev servers.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quickstart Guide Section -->
+  <section class="section" id="quickstart">
+    <div class="container">
+      <div class="cta-banner">
+        <h2>Start Building with JSango in 60 Seconds</h2>
+        <p>Scaffold a production-grade TypeScript application complete with ORM, Admin Panel, and API routing.</p>
+        
+        <div class="hero-actions" style="margin-bottom: 0;">
+          <div class="quick-install">
+            <span>$</span>
+            <code>npx jsango create my-app && cd my-app && pnpm dev</code>
+            <button class="copy-btn copy-trigger" data-copy="npx jsango create my-app && cd my-app && pnpm dev" title="Copy Setup Command">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </button>
+          </div>
+          <a href="https://github.com/flutterbuddy1/jsango" target="_blank" rel="noopener noreferrer" class="btn-primary">
+            View Source on GitHub
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="#" class="logo-brand">
+            <img src="images/logo.png" alt="JSango Logo" class="logo-img">
+            <span>JSango</span>
+          </a>
+          <p>
+            The batteries-included TypeScript backend framework designed for high-concurrency workloads and delightful developer ergonomics.
+          </p>
+        </div>
+
+        <div class="footer-column">
+          <h4>Framework</h4>
+          <ul class="footer-links">
+            <li><a href="#features">Features</a></li>
+            <li><a href="#architecture">Architecture</a></li>
+            <li><a href="#benchmarks">Benchmarks</a></li>
+            <li><a href="#packages">Monorepo Packages</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-column">
+          <h4>Resources</h4>
+          <ul class="footer-links">
+            <li><a href="https://github.com/flutterbuddy1/jsango" target="_blank" rel="noopener noreferrer">GitHub Repository</a></li>
+            <li><a href="https://github.com/flutterbuddy1/jsango/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer">Changelog</a></li>
+            <li><a href="https://github.com/flutterbuddy1/jsango/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">Contributing Guide</a></li>
+            <li><a href="https://github.com/flutterbuddy1/jsango/blob/main/SECURITY.md" target="_blank" rel="noopener noreferrer">Security Policy</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-column">
+          <h4>Community</h4>
+          <ul class="footer-links">
+            <li><a href="https://github.com/flutterbuddy1/jsango/issues" target="_blank" rel="noopener noreferrer">Issue Tracker</a></li>
+            <li><a href="https://github.com/flutterbuddy1/jsango/discussions" target="_blank" rel="noopener noreferrer">Discussions</a></li>
+            <li><a href="https://github.com/flutterbuddy1/jsango/blob/main/CODE_OF_CONDUCT.md" target="_blank" rel="noopener noreferrer">Code of Conduct</a></li>
+            <li><a href="https://github.com/flutterbuddy1/jsango/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT License</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>© 2026 JSango contributors. Open-source under the MIT License.</p>
+        <p>Built with strict TypeScript for modern JavaScript runtimes.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast Component -->
+  <div class="toast" id="toast" role="alert" aria-live="assertive">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    <span id="toastMessage">Copied to clipboard</span>
+  </div>
+
+  <!-- JavaScript -->
+  <script src="js/app.js"></script>
+</body>
+</html>

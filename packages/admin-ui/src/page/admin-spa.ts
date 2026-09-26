@@ -79,7 +79,10 @@ function escapeHtml(str: string): string {
  */
 export function renderAdminSpaHtml(options: AdminSpaOptions = {}): string {
   const title = options.title ?? 'JSango Administration';
-  const apiBasePath = (options.apiBasePath ?? options.apiPrefix ?? '/admin/api/v1').replace(/\/$/, '');
+  const apiBasePath = (options.apiBasePath ?? options.apiPrefix ?? '/admin/api/v1').replace(
+    /\/$/,
+    ''
+  );
   const defaultTheme = options.defaultTheme ?? 'dark';
   const brandSubtitle = options.brandSubtitle ?? 'Enterprise Admin Control';
   const siteUrl = options.siteUrl ?? '/';

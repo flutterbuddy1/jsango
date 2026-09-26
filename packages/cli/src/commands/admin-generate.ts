@@ -6,7 +6,8 @@ import { ExitCode } from '../public/types.js';
 
 export class AdminGenerateCommand extends BaseCommand {
   public readonly name = 'make:admin';
-  public readonly description = 'Generate a new typed AdminResource and model scaffold for JSango Admin';
+  public readonly description =
+    'Generate a new typed AdminResource and model scaffold for JSango Admin';
   public readonly usage = 'jsango make:admin <ModelName> [options]';
   public readonly aliases = ['admin:generate', 'make:resource', 'admin:make'];
   public readonly options = [
@@ -144,9 +145,13 @@ export const ${modelName} = defineModel({
         model: modelFilePath ? { name: modelName, file: modelFilePath } : null,
       });
     } else {
-      context.output.success(`Admin resource generated at: ${path.relative(context.projectRoot, resourceFilePath)}`);
+      context.output.success(
+        `Admin resource generated at: ${path.relative(context.projectRoot, resourceFilePath)}`
+      );
       if (modelFilePath) {
-        context.output.success(`ORM model generated at: ${path.relative(context.projectRoot, modelFilePath)}`);
+        context.output.success(
+          `ORM model generated at: ${path.relative(context.projectRoot, modelFilePath)}`
+        );
       }
       context.output.info('\nNext steps to activate:');
       context.output.text(`  1. In src/admin/index.ts:`);

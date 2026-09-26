@@ -72,11 +72,22 @@ export class AdminServer {
   private readonly resolveIdentity: (req: HttpRequest) => Promise<Identity | undefined>;
   private readonly totp: TotpService;
   private readonly activeTokens = new Map<string, { identity: Identity; createdAt: number }>();
-  private readonly twoFactorStore = new Map<string, { secret: string; backupCodes: string[]; isEnabled: boolean }>();
+  private readonly twoFactorStore = new Map<
+    string,
+    { secret: string; backupCodes: string[]; isEnabled: boolean }
+  >();
   private readonly pending2faSecrets = new Map<string, string>();
   private readonly sessionsStore = new Map<
     string,
-    { id: string; identityId: string; device: string; ip: string; location: string; createdAt: number; lastActive: number }
+    {
+      id: string;
+      identityId: string;
+      device: string;
+      ip: string;
+      location: string;
+      createdAt: number;
+      lastActive: number;
+    }
   >();
 
   constructor(options: AdminServerOptions) {
@@ -499,7 +510,11 @@ export class AdminServer {
         const password = (body.password || '').trim();
 
         if (!email || !password) {
-          return sendError(400, 'ERR_VALIDATION', 'Please provide both email/username and password.');
+          return sendError(
+            400,
+            'ERR_VALIDATION',
+            'Please provide both email/username and password.'
+          );
         }
 
         // Demo admin or staff check
@@ -577,9 +592,7 @@ export class AdminServer {
           device: `${currentDevice} (Current)`,
           ip,
           location:
-            ip === '127.0.0.1' || ip === '::1'
-              ? 'Local Development Server'
-              : 'Secure Admin Portal',
+            ip === '127.0.0.1' || ip === '::1' ? 'Local Development Server' : 'Secure Admin Portal',
           createdAt: Date.now(),
           lastActive: Date.now(),
         });
@@ -680,8 +693,8 @@ export class AdminServer {
               typeof idProps['name'] === 'string'
                 ? idProps['name']
                 : typeof idProps['username'] === 'string'
-                ? idProps['username']
-                : 'System Administrator',
+                  ? idProps['username']
+                  : 'System Administrator',
             email: typeof idProps['email'] === 'string' ? idProps['email'] : 'admin@jsango.dev',
             role: identity.roles[0] ?? (identity.isSuperuser ? 'Superuser' : 'Staff'),
             isSuperuser: identity.isSuperuser,
@@ -705,7 +718,11 @@ export class AdminServer {
         }
         const body = await req.body.json<{ currentPassword?: string; newPassword?: string }>();
         if (!body.newPassword || body.newPassword.length < 8) {
-          return sendError(400, 'ERR_ADMIN_VALIDATION', 'New password must be at least 8 characters long.');
+          return sendError(
+            400,
+            'ERR_ADMIN_VALIDATION',
+            'New password must be at least 8 characters long.'
+          );
         }
 
         await this.audit.log('update', {
@@ -761,7 +778,11 @@ export class AdminServer {
         const body = await req.body.json<{ code?: string; secret?: string }>();
         const secret = body.secret || this.pending2faSecrets.get(identity.id);
         if (!secret) {
-          return sendError(400, 'ERR_ADMIN_2FA', 'No pending 2FA setup found. Please restart 2FA setup.');
+          return sendError(
+            400,
+            'ERR_ADMIN_2FA',
+            'No pending 2FA setup found. Please restart 2FA setup.'
+          );
         }
 
         const cleanCode = (body.code ?? '').trim();
@@ -856,7 +877,10 @@ export class AdminServer {
             identityId: identity.id,
             device: `${currentDevice} (Current)`,
             ip,
-            location: ip === '127.0.0.1' || ip === '::1' ? 'Local Development Server' : 'Secure Admin Portal',
+            location:
+              ip === '127.0.0.1' || ip === '::1'
+                ? 'Local Development Server'
+                : 'Secure Admin Portal',
             createdAt: Date.now() - 1000 * 60 * 30,
             lastActive: Date.now(),
           };
@@ -1091,4 +1115,3 @@ function formatRelativeTime(ts: number): string {
   const days = Math.floor(hours / 24);
   return `${days}d ago`;
 }
-

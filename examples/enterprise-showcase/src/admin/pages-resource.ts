@@ -1,82 +1,72 @@
 import { AdminResource } from '@jsango/admin-core';
 
 export const PageResource = new AdminResource({
-    id: 'pages',
+  id: 'pages',
 
-    modelName: 'Page',
+  modelName: 'Page',
 
-    label: 'Page',
+  label: 'Page',
 
-    pluralLabel: 'Pages',
+  pluralLabel: 'Pages',
 
-    navigationGroup: 'Content Management',
+  navigationGroup: 'Content Management',
 
-    navigationIcon: 'file-text',
+  navigationIcon: 'file-text',
 
-    navigationOrder: 1,
+  navigationOrder: 1,
 
-    primaryKey: 'id',
+  primaryKey: 'id',
 
-    fields: [
-        {
-            name: 'id',
-            type: 'uuid',
-            readonly: true,
-        },
+  fields: [
+    {
+      name: 'id',
+      type: 'uuid',
+      readonly: true,
+    },
 
-        {
-            name: 'title',
-            type: 'text',
-            required: true,
-            label: 'Title',
-            searchable: true,
-        },
+    {
+      name: 'title',
+      type: 'text',
+      required: true,
+      label: 'Title',
+      searchable: true,
+    },
 
-        {
-            name: 'description',
-            type: 'textarea',
-            required: false,
-            label: 'Description',
-            searchable: true,
-        },
+    {
+      name: 'description',
+      type: 'textarea',
+      required: false,
+      label: 'Description',
+      searchable: true,
+    },
 
-        {
-            name: 'content',
-            type: 'textarea',
-            required: true,
-            label: 'Content',
-        },
+    {
+      name: 'content',
+      type: 'textarea',
+      required: true,
+      label: 'Content',
+    },
 
-        {
-            name: 'createdAt',
-            type: 'datetime',
-            readonly: true,
-            label: 'Created At',
-        },
+    {
+      name: 'createdAt',
+      type: 'datetime',
+      readonly: true,
+      label: 'Created At',
+    },
 
-        {
-            name: 'updatedAt',
-            type: 'datetime',
-            readonly: true,
-            label: 'Updated At',
-        },
-    ],
+    {
+      name: 'updatedAt',
+      type: 'datetime',
+      readonly: true,
+      label: 'Updated At',
+    },
+  ],
 
-    listFields: [
-        'id',
-        'title',
-        'description',
-        'createdAt',
-        'updatedAt',
-    ],
+  listFields: ['id', 'title', 'description', 'createdAt', 'updatedAt'],
 
-    searchFields: [
-        'title',
-        'description',
-        'content',
-    ],
+  searchFields: ['title', 'description', 'content'],
 
-    defaultSortField: 'createdAt',
+  defaultSortField: 'createdAt',
 
-    defaultSortDirection: 'desc',
+  defaultSortDirection: 'desc',
 });

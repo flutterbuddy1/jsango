@@ -1,10 +1,19 @@
-# JSango
+<p align="center">
+  <img src="images/logo.png" alt="JSango Logo" width="180" />
+</p>
 
-> Production-grade, batteries-included TypeScript backend framework designed for modern JavaScript runtimes and high-concurrency workloads.
+<h1 align="center">JSango</h1>
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version: 1.0.0](https://img.shields.io/badge/version-1.0.0-green.svg)](CHANGELOG.md)
-[![TypeScript: Strict](https://img.shields.io/badge/TypeScript-Strict%205.8-blue.svg)](tsconfig.base.json)
+<p align="center">
+  <strong>Production-grade, batteries-included TypeScript backend framework designed for modern JavaScript runtimes and high-concurrency workloads.</strong>
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.0.0-green.svg" alt="Version: 1.0.0" /></a>
+  <a href="tsconfig.base.json"><img src="https://img.shields.io/badge/TypeScript-Strict%205.8-blue.svg" alt="TypeScript: Strict" /></a>
+  <a href="https://flutterbuddy1.github.io/jsango/"><img src="https://img.shields.io/badge/Docs-Landing%20Page-6366f1.svg" alt="Documentation Site" /></a>
+</p>
 
 ---
 

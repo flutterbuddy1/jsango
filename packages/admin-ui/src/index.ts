@@ -151,4 +151,3 @@ export {
 } from './page/admin-spa.js';
 
 export * from './react/index.js';
-

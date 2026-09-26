@@ -102,7 +102,11 @@ export class TotpService {
   /**
    * Generates a TOTP code for the given secret at a specific timestamp.
    */
-  public generateToken(secret: string, timestampMs = Date.now(), options?: TotpVerifyOptions): string {
+  public generateToken(
+    secret: string,
+    timestampMs = Date.now(),
+    options?: TotpVerifyOptions
+  ): string {
     const step = options?.stepSeconds ?? 30;
     const digits = options?.digits ?? 6;
     const counter = Math.floor(timestampMs / 1000 / step);
