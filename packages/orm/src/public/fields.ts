@@ -2,16 +2,19 @@ import type { FieldDefinition, FieldOptions } from './types.js';
 
 type CustomFieldOptions<T> = Omit<FieldOptions<T>, 'type'> & {
   readonly defaultValue?: T | (() => T) | undefined;
+  readonly maxLength?: number | undefined;
 };
 
 function createField<T>(
   type: FieldOptions['type'],
   options?: CustomFieldOptions<T>
 ): FieldDefinition<T> {
-  const { defaultValue, ...rest } = options ?? {};
+  const { defaultValue, maxLength, ...rest } = options ?? {};
   return {
     type,
     default: defaultValue ?? options?.default,
+    length: maxLength ?? options?.length,
+    maxLength: maxLength ?? options?.length,
     ...rest,
   };
 }
@@ -27,6 +30,10 @@ export const fields = {
 
   string<T = string>(options?: CustomFieldOptions<T>): FieldDefinition<T> {
     return createField<T>('string', options);
+  },
+
+  number<T = number>(options?: CustomFieldOptions<T>): FieldDefinition<T> {
+    return createField<T>('float', options);
   },
 
   text<T = string>(options?: CustomFieldOptions<T>): FieldDefinition<T> {

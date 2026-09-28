@@ -1,6 +1,6 @@
 {
   "name": "@jsango/websocket",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "WebSocket server abstraction, rooms, broadcasting, and Node adapter for jsango",
   "type": "module",
   "main": "./dist/index.js",

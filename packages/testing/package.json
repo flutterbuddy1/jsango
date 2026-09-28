@@ -1,6 +1,6 @@
 {
   "name": "@jsango/testing",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Framework testing utilities for jsango",
   "type": "module",
   "main": "./dist/index.js",

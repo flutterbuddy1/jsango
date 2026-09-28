@@ -247,7 +247,7 @@ export class ModelMetadata {
 
   constructor(options: ModelDefinitionOptions) {
     this.name = options.name;
-    this.table = options.table;
+    this.table = options.table ?? options.tableName ?? (options.name.toLowerCase() + 's');
     this.connection = options.connection ?? 'default';
 
     const fieldsMap = new Map<string, FieldMetadata>();

@@ -31,6 +31,7 @@ export interface FieldOptions<T = unknown> {
   readonly default?: T | (() => T) | undefined;
   readonly columnName?: string | undefined;
   readonly length?: number | undefined;
+  readonly maxLength?: number | undefined;
   readonly precision?: number | undefined;
   readonly scale?: number | undefined;
   readonly comment?: string | undefined;
@@ -76,7 +77,8 @@ export interface ModelDefinitionOptions<
   TRelations extends Record<string, RelationDefinition> = Record<string, RelationDefinition>,
 > {
   readonly name: string;
-  readonly table: string;
+  readonly table?: string | undefined;
+  readonly tableName?: string | undefined;
   readonly connection?: string | undefined;
   readonly primaryKey?: string | undefined;
   readonly fields: TFields;

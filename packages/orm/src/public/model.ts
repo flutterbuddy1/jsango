@@ -374,13 +374,38 @@ export interface DefinedModelStatic<
 export function defineModel<
   TFields extends Record<string, FieldDefinition<unknown>>,
   TRelations extends Record<string, RelationDefinition> = Record<string, RelationDefinition>,
->(options: ModelDefinitionOptions<TFields, TRelations>): DefinedModelStatic<TFields, TRelations> {
-  const metadata = new ModelMetadata(options);
+>(
+  name: string,
+  fields: TFields,
+  options?: Partial<Omit<ModelDefinitionOptions<TFields, TRelations>, 'name' | 'fields'>>
+): DefinedModelStatic<TFields, TRelations>;
+export function defineModel<
+  TFields extends Record<string, FieldDefinition<unknown>>,
+  TRelations extends Record<string, RelationDefinition> = Record<string, RelationDefinition>,
+>(options: ModelDefinitionOptions<TFields, TRelations>): DefinedModelStatic<TFields, TRelations>;
+export function defineModel<
+  TFields extends Record<string, FieldDefinition<unknown>>,
+  TRelations extends Record<string, RelationDefinition> = Record<string, RelationDefinition>,
+>(
+  nameOrOptions: string | ModelDefinitionOptions<TFields, TRelations>,
+  fieldsArg?: TFields,
+  extraOptions?: Partial<Omit<ModelDefinitionOptions<TFields, TRelations>, 'name' | 'fields'>>
+): DefinedModelStatic<TFields, TRelations> {
+  const options: ModelDefinitionOptions<TFields, TRelations> =
+    typeof nameOrOptions === 'string'
+      ? ({
+          name: nameOrOptions,
+          fields: fieldsArg ?? ({} as TFields),
+          ...extraOptions,
+        } as unknown as ModelDefinitionOptions<TFields, TRelations>)
+      : nameOrOptions;
+
+  const metadata = new ModelMetadata(options as unknown as ModelDefinitionOptions);
 
   class DefinedModel extends Model {
     public static override readonly metadata: ModelMetadata = metadata;
     public static override readonly modelName: string = options.name;
-    public static override readonly tableName: string = options.table;
+    public static override readonly tableName: string = metadata.table;
 
     public static query(): QueryBuilder<Model> {
       return new QueryBuilder(this as unknown as ModelStatic);

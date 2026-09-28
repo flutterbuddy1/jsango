@@ -317,79 +317,79 @@ importers:
   packages/admin-audit:
     dependencies:
       '@jsango/admin-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../admin-core
       '@jsango/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
 
   packages/admin-auth:
     dependencies:
       '@jsango/admin-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../admin-core
       '@jsango/auth':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../auth
       '@jsango/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
 
   packages/admin-core:
     dependencies:
       '@jsango/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@jsango/orm':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../orm
       '@jsango/validation':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../validation
 
   packages/admin-media:
     dependencies:
       '@jsango/admin-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../admin-core
       '@jsango/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
 
   packages/admin-server:
     dependencies:
       '@jsango/admin-audit':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../admin-audit
       '@jsango/admin-auth':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../admin-auth
       '@jsango/admin-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../admin-core
       '@jsango/auth':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../auth
       '@jsango/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@jsango/http':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../http
       '@jsango/router':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../router
 
   packages/admin-ui:
     dependencies:
       '@jsango/admin-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../admin-core
       '@jsango/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@jsango/http':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../http
       lucide-react:
         specifier: ^1.48.0
@@ -414,208 +414,208 @@ importers:
   packages/auth:
     dependencies:
       '@jsango/config':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../config
       '@jsango/container':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../container
       '@jsango/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@jsango/http':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../http
       '@jsango/middleware':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../middleware
       '@jsango/runtime':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../runtime
 
   packages/cache:
     dependencies:
       '@jsango/config':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../config
       '@jsango/container':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../container
       '@jsango/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@jsango/runtime':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../runtime
 
   packages/cli:
     dependencies:
       '@jsango/cache':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../cache
       '@jsango/config':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../config
       '@jsango/container':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../container
       '@jsango/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@jsango/database':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../database
       '@jsango/events':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../events
       '@jsango/http':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../http
       '@jsango/middleware':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../middleware
       '@jsango/migrations':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../migrations
       '@jsango/observability':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../observability
       '@jsango/openapi':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../openapi
       '@jsango/orm':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../orm
       '@jsango/queue':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../queue
       '@jsango/router':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../router
       '@jsango/runtime':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../runtime
       '@jsango/websocket':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../websocket
 
   packages/config:
     dependencies:
       '@jsango/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@jsango/runtime':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../runtime
 
   packages/container:
     dependencies:
       '@jsango/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
 
   packages/core:
     dependencies:
       '@jsango/runtime':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../runtime
 
   packages/database:
     dependencies:
       '@jsango/config':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../config
       '@jsango/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
 
   packages/events:
     dependencies:
       '@jsango/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
 
   packages/http:
     dependencies:
       '@jsango/container':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../container
       '@jsango/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
 
   packages/jsango:
     dependencies:
       '@jsango/admin-audit':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../admin-audit
       '@jsango/admin-auth':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../admin-auth
       '@jsango/admin-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../admin-core
       '@jsango/admin-server':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../admin-server
       '@jsango/admin-ui':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../admin-ui
       '@jsango/auth':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../auth
       '@jsango/cache':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../cache
       '@jsango/cli':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../cli
       '@jsango/config':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../config
       '@jsango/container':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../container
       '@jsango/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@jsango/database':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../database
       '@jsango/events':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../events
       '@jsango/http':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../http
       '@jsango/middleware':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../middleware
       '@jsango/migrations':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../migrations
       '@jsango/observability':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../observability
       '@jsango/openapi':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../openapi
       '@jsango/orm':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../orm
       '@jsango/queue':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../queue
       '@jsango/router':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../router
       '@jsango/runtime':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../runtime
       '@jsango/validation':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../validation
       '@jsango/websocket':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../websocket
       ws:
         specifier: ^8.18.0
@@ -628,91 +628,91 @@ importers:
   packages/middleware:
     dependencies:
       '@jsango/container':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../container
       '@jsango/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@jsango/http':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../http
       '@jsango/router':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../router
 
   packages/migrations:
     dependencies:
       '@jsango/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@jsango/database':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../database
       '@jsango/orm':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../orm
 
   packages/observability:
     dependencies:
       '@jsango/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@jsango/http':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../http
       '@jsango/router':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../router
 
   packages/openapi:
     dependencies:
       '@jsango/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@jsango/http':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../http
       '@jsango/router':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../router
       '@jsango/validation':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../validation
 
   packages/orm:
     dependencies:
       '@jsango/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@jsango/database':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../database
 
   packages/queue:
     dependencies:
       '@jsango/config':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../config
       '@jsango/container':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../container
       '@jsango/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@jsango/database':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../database
       '@jsango/runtime':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../runtime
 
   packages/router:
     dependencies:
       '@jsango/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@jsango/http':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../http
 
   packages/runtime: {}
@@ -720,28 +720,28 @@ importers:
   packages/testing:
     dependencies:
       '@jsango/container':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../container
       '@jsango/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
 
   packages/validation:
     dependencies:
       '@jsango/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@jsango/http':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../http
 
   packages/websocket:
     dependencies:
       '@jsango/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@jsango/http':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../http
       ws:
         specifier: ^8.18.0

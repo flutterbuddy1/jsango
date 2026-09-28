@@ -1,6 +1,6 @@
 {
   "name": "@jsango/middleware",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Middleware abstractions and middleware pipeline for jsango",
   "type": "module",
   "main": "./dist/index.js",
