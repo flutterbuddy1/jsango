@@ -2,7 +2,7 @@
 
 > At-least-once background job queues, concurrent worker polling, exponential backoff retries, and dead-letter store.
 
-Part of the **[jsango](https://github.com/jsango/jsango)** backend framework for TypeScript.
+Part of the **[jsango](https://github.com/flutterbuddy1/jsango)** backend framework for TypeScript.
 
 ## Installation
 
@@ -23,7 +23,7 @@ await manager.queue().dispatch(SendEmailJob.create({ email: 'user@test.com' }));
 
 ## Documentation
 
-For full architecture documentation and guides, visit the [jsango documentation](https://github.com/jsango/jsango/tree/main/docs).
+For full architecture documentation and guides, visit the [jsango documentation](https://github.com/flutterbuddy1/jsango/tree/main/docs).
 
 ## License
 

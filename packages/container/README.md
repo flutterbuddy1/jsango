@@ -2,7 +2,7 @@
 
 > High-performance dependency injection container with transient, singleton, and scoped resolution lifecycles.
 
-Part of the **[jsango](https://github.com/jsango/jsango)** backend framework for TypeScript.
+Part of the **[jsango](https://github.com/flutterbuddy1/jsango)** backend framework for TypeScript.
 
 ## Installation
 
@@ -24,7 +24,7 @@ const svc = scope.resolve('UserService');
 
 ## Documentation
 
-For full architecture documentation and guides, visit the [jsango documentation](https://github.com/jsango/jsango/tree/main/docs).
+For full architecture documentation and guides, visit the [jsango documentation](https://github.com/flutterbuddy1/jsango/tree/main/docs).
 
 ## License
 

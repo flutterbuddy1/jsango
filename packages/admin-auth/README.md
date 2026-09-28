@@ -2,7 +2,7 @@
 
 > Staff authorization, resource-level CRUD permissions, and field-level visibility checks for jsango Admin.
 
-Part of the **[jsango](https://github.com/jsango/jsango)** backend framework for TypeScript.
+Part of the **[jsango](https://github.com/flutterbuddy1/jsango)** backend framework for TypeScript.
 
 ## Installation
 
@@ -21,7 +21,7 @@ const allowed = checker.canAccessResource(identity, resource, 'create');
 
 ## Documentation
 
-For full architecture documentation and guides, visit the [jsango documentation](https://github.com/jsango/jsango/tree/main/docs).
+For full architecture documentation and guides, visit the [jsango documentation](https://github.com/flutterbuddy1/jsango/tree/main/docs).
 
 ## License
 

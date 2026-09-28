@@ -2,7 +2,7 @@
 
 > Production-grade audit logging, sensitive field redaction, and change tracking for jsango Admin.
 
-Part of the **[jsango](https://github.com/jsango/jsango)** backend framework for TypeScript.
+Part of the **[jsango](https://github.com/flutterbuddy1/jsango)** backend framework for TypeScript.
 
 ## Installation
 
@@ -29,7 +29,7 @@ await logger.log({
 
 ## Documentation
 
-For full architecture documentation and guides, visit the [jsango documentation](https://github.com/jsango/jsango/tree/main/docs).
+For full architecture documentation and guides, visit the [jsango documentation](https://github.com/flutterbuddy1/jsango/tree/main/docs).
 
 ## License
 

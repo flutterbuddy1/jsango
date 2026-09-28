@@ -2,7 +2,7 @@
 
 > CLI runner and developer tooling for project scaffolding, database migrations, inspection, and background workers.
 
-Part of the **[jsango](https://github.com/jsango/jsango)** backend framework for TypeScript.
+Part of the **[jsango](https://github.com/flutterbuddy1/jsango)** backend framework for TypeScript.
 
 ## Installation
 
@@ -26,7 +26,7 @@ npx jsango model:list
 
 ## Documentation
 
-For full architecture documentation and guides, visit the [jsango documentation](https://github.com/jsango/jsango/tree/main/docs).
+For full architecture documentation and guides, visit the [jsango documentation](https://github.com/flutterbuddy1/jsango/tree/main/docs).
 
 ## License
 

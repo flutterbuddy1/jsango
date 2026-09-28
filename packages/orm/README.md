@@ -2,7 +2,7 @@
 
 > Model definitions, dirty tracking, pure batch eager loading (.with()), AST query builder, and relationship resolvers.
 
-Part of the **[jsango](https://github.com/jsango/jsango)** backend framework for TypeScript.
+Part of the **[jsango](https://github.com/flutterbuddy1/jsango)** backend framework for TypeScript.
 
 ## Installation
 
@@ -26,7 +26,7 @@ const users = await User.query().with('posts').where('active', '=', true).all();
 
 ## Documentation
 
-For full architecture documentation and guides, visit the [jsango documentation](https://github.com/jsango/jsango/tree/main/docs).
+For full architecture documentation and guides, visit the [jsango documentation](https://github.com/flutterbuddy1/jsango/tree/main/docs).
 
 ## License
 

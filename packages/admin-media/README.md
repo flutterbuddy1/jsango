@@ -2,7 +2,7 @@
 
 > Secure media uploads, MIME/extension validation, and storage abstraction for jsango Admin.
 
-Part of the **[jsango](https://github.com/jsango/jsango)** backend framework for TypeScript.
+Part of the **[jsango](https://github.com/flutterbuddy1/jsango)** backend framework for TypeScript.
 
 ## Installation
 
@@ -21,7 +21,7 @@ const media = new AdminMediaManager(storage, { maxSizeBytes: 5 * 1024 * 1024 });
 
 ## Documentation
 
-For full architecture documentation and guides, visit the [jsango documentation](https://github.com/jsango/jsango/tree/main/docs).
+For full architecture documentation and guides, visit the [jsango documentation](https://github.com/flutterbuddy1/jsango/tree/main/docs).
 
 ## License
 
