@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSango Documentation - Production-Grade TypeScript Backend Framework</title>
+  
+  <meta name="description" content="Official documentation for JSango: The batteries-included TypeScript backend framework featuring ORM, SegRadix Router, Auto Admin Console, 2FA Auth, Queues, and WebSockets.">
+  <meta name="keywords" content="JSango docs, TypeScript framework, Django TypeScript, ORM, Admin Panel, 2FA Auth, SegRadix Router">
+  <meta property="og:title" content="JSango Documentation">
+  <meta property="og:description" content="Learn how to build production-grade, high-concurrency TypeScript applications with JSango.">
+  <meta property="og:image" content="images/logo.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="images/logo.png">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/docs.css">
+</head>
+<body class="docs-body">
+
+  <!-- Ambient Glows -->
+  <div class="ambient-glow" aria-hidden="true">
+    <div class="blob-1"></div>
+    <div class="blob-2"></div>
+  </div>
+
+  <!-- Top Navbar -->
+  <nav class="navbar docs-navbar">
+    <div class="container nav-container" style="max-width: 1440px;">
+      <div style="display: flex; align-items: center; gap: 20px;">
+        <button class="docs-sidebar-toggle" id="sidebarToggle" aria-label="Toggle Sidebar Navigation">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </button>
+        <a href="index.html" class="logo-brand">
+          <img src="images/logo.png" alt="JSango Logo" class="logo-img">
+          <span>JSango</span>
+          <span class="brand-badge">Docs v1.0.1</span>
+        </a>
+      </div>
+
+      <!-- Quick Search Bar -->
+      <div class="docs-search-wrapper">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" id="docsSearchInput" placeholder="Search documentation... (Press '/' to focus)" aria-label="Search Docs">
+        <kbd class="search-kbd">/</kbd>
+      </div>
+
+      <div class="nav-actions">
+        <a href="index.html" class="nav-link" style="margin-right: 12px;">Home</a>
+        <a href="https://github.com/flutterbuddy1/jsango" target="_blank" rel="noopener noreferrer" class="btn-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Docs Layout Container -->
+  <div class="docs-layout">
+    
+    <!-- Left Navigation Sidebar -->
+    <aside class="docs-sidebar" id="docsSidebar">
+      <div class="sidebar-group">
+        <div class="sidebar-heading">🚀 Getting Started</div>
+        <ul class="sidebar-links">
+          <li><a href="#intro" class="sidebar-link active">Introduction & Philosophy</a></li>
+          <li><a href="#quickstart" class="sidebar-link">5-Minute Quickstart</a></li>
+          <li><a href="#project-structure" class="sidebar-link">Project Structure</a></li>
+          <li><a href="#configuration" class="sidebar-link">Configuration & Environment</a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-heading">⚡ HTTP & Routing</div>
+        <ul class="sidebar-links">
+          <li><a href="#segradix-router" class="sidebar-link">SegRadix Trie Router</a></li>
+          <li><a href="#request-response" class="sidebar-link">Request & Response Context</a></li>
+          <li><a href="#middleware-pipeline" class="sidebar-link">Onion Middleware Pipeline</a></li>
+          <li><a href="#validation" class="sidebar-link">Schema Validation</a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-heading">🗄️ Database & ORM</div>
+        <ul class="sidebar-links">
+          <li><a href="#model-definitions" class="sidebar-link">Declarative Model Schemas</a></li>
+          <li><a href="#relationships" class="sidebar-link">Relations & Eager Loading</a></li>
+          <li><a href="#query-builder" class="sidebar-link">AST Query Builder</a></li>
+          <li><a href="#migrations-engine" class="sidebar-link">Automated Migrations</a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-heading">🖥️ Auto Admin Console</div>
+        <ul class="sidebar-links">
+          <li><a href="#admin-overview" class="sidebar-link">Admin System Overview</a></li>
+          <li><a href="#admin-resources" class="sidebar-link">Defining Admin Resources</a></li>
+          <li><a href="#admin-customization" class="sidebar-link">Filters, Search & Actions</a></li>
+          <li><a href="#admin-theming" class="sidebar-link">Theme & Branding</a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-heading">🔐 Auth & Security</div>
+        <ul class="sidebar-links">
+          <li><a href="#auth-session" class="sidebar-link">Session, JWT & Identity</a></li>
+          <li><a href="#auth-totp-2fa" class="sidebar-link">Two-Step Auth (TOTP 2FA)</a></li>
+          <li><a href="#session-management" class="sidebar-link">Active Device Sessions</a></li>
+          <li><a href="#rbac-policies" class="sidebar-link">Role-Based Access Control</a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-heading">📬 Queues & Realtime</div>
+        <ul class="sidebar-links">
+          <li><a href="#background-queues" class="sidebar-link">Background Job Queues</a></li>
+          <li><a href="#events-bus" class="sidebar-link">Typed Event Emitter</a></li>
+          <li><a href="#websocket-server" class="sidebar-link">Realtime WebSockets</a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-heading">📊 Observability & CLI</div>
+        <ul class="sidebar-links">
+          <li><a href="#metrics-telemetry" class="sidebar-link">Prometheus & Tracing</a></li>
+          <li><a href="#openapi-generator" class="sidebar-link">OpenAPI 3.1 & Swagger</a></li>
+          <li><a href="#cli-reference" class="sidebar-link">CLI Commands Reference</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="docs-content" id="docsMainContent">
+
+      <!-- Breadcrumbs -->
+      <div class="docs-breadcrumbs">
+        <span>Docs</span>
+        <span class="sep">/</span>
+        <span class="active-crumb" id="activeCrumb">Introduction & Philosophy</span>
+      </div>
+
+      <!-- SECTION: Introduction -->
+      <section id="intro" class="doc-section">
+        <h1>Introduction to JSango</h1>
+        <p class="lead-text">
+          <strong>JSango</strong> is a production-grade, batteries-included TypeScript backend framework inspired by Django’s convention-over-configuration philosophy, Laravel’s developer ergonomics, and modern high-concurrency JavaScript runtimes (Node.js 20+).
+        </p>
+
+        <div class="callout callout-tip">
+          <div class="callout-icon">💡</div>
+          <div class="callout-body">
+            <strong>Why JSango?</strong> In the JavaScript and TypeScript world, building a real-world backend traditionally requires assembling dozens of independent libraries for routing, ORM, migrations, auth, 2FA, admin dashboards, background queues, and telemetry. JSango solves this by providing a unified, strictly typed ecosystem with zero runtime reflection overhead.
+          </div>
+        </div>
+
+        <h2>Core Principles</h2>
+        <div class="principle-cards-grid">
+          <div class="p-card">
+            <h4>1. Strict Type Safety</h4>
+            <p>100% strict TypeScript throughout with compile-time query checking and zero <code>any</code>.</p>
+          </div>
+          <div class="p-card">
+            <h4>2. Batteries Included</h4>
+            <p>Built-in ORM, Migrations, Auto-Admin SPA, 2FA, Session Tracking, Queues, and WebSockets.</p>
+          </div>
+          <div class="p-card">
+            <h4>3. Extreme Concurrency</h4>
+            <p>Custom SegRadix Trie router executing &gt;7,700,000 lookups/second with zero allocations on hot paths.</p>
+          </div>
+          <div class="p-card">
+            <h4>4. Security by Default</h4>
+            <p>RFC 6238 TOTP 2FA, Scrypt password hashing, CSRF/CORS protections, and secure session management.</p>
+          </div>
+        </div>
+      </section>
+
+      <hr class="doc-divider">
+
+      <!-- SECTION: 5-Minute Quickstart -->
+      <section id="quickstart" class="doc-section">
+        <h2>5-Minute Quickstart</h2>
+        <p>You can scaffold and launch a fully functional JSango application in three simple steps.</p>
+
+        <h3>1. Create a New Project</h3>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>Terminal</span>
+            <button class="copy-code-btn copy-trigger" data-copy="npx jsango create my-backend && cd my-backend">Copy</button>
+          </div>
+          <pre><code><span class="hl-comm"># Scaffold project with TypeScript configuration, ORM models, and Admin Panel</span>
+npx jsango create my-backend
+cd my-backend
+pnpm install</code></pre>
+        </div>
+
+        <h3>2. Define Your Model & REST Route</h3>
+        <p>Open <code>src/index.ts</code> to define your declarative model and HTTP routes:</p>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>src/index.ts</span>
+            <button class="copy-code-btn copy-trigger" data-copy="import { Application } from '@jsango/middleware';
+import { defineModel, fields } from '@jsango/orm';
+
+export const Product = defineModel({
+  name: 'Product',
+  table: 'products',
+  fields: {
+    id: fields.uuid({ primaryKey: true }),
+    name: fields.string({ maxLength: 255 }),
+    price: fields.number(),
+    inStock: fields.boolean({ default: true }),
+  },
+});
+
+const app = new Application();
+
+app.get('/api/products', async (ctx) => {
+  const products = await Product.query().where('inStock', '=', true).get();
+  return ctx.response.json(products);
+});
+
+await app.listen(3000, '0.0.0.0');">Copy</button>
+          </div>
+          <pre><code><span class="hl-kw">import</span> { Application } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/middleware'</span>;
+<span class="hl-kw">import</span> { defineModel, fields } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/orm'</span>;
+
+<span class="hl-comm">// 1. Strongly typed ORM model</span>
+<span class="hl-kw">export const</span> <span class="hl-type">Product</span> = <span class="hl-fn">defineModel</span>({
+  name: <span class="hl-str">'Product'</span>,
+  table: <span class="hl-str">'products'</span>,
+  fields: {
+    id: fields.<span class="hl-fn">uuid</span>({ primaryKey: <span class="hl-kw">true</span> }),
+    name: fields.<span class="hl-fn">string</span>({ maxLength: <span class="hl-num">255</span> }),
+    price: fields.<span class="hl-fn">number</span>(),
+    inStock: fields.<span class="hl-fn">boolean</span>({ default: <span class="hl-kw">true</span> }),
+  },
+});
+
+<span class="hl-comm">// 2. High performance application instance</span>
+<span class="hl-kw">const</span> app = <span class="hl-kw">new</span> <span class="hl-type">Application</span>();
+
+app.<span class="hl-fn">get</span>(<span class="hl-str">'/api/products'</span>, <span class="hl-kw">async</span> (ctx) => {
+  <span class="hl-kw">const</span> products = <span class="hl-kw">await</span> <span class="hl-type">Product</span>.<span class="hl-fn">query</span>().<span class="hl-fn">where</span>(<span class="hl-str">'inStock'</span>, <span class="hl-str">'='</span>, <span class="hl-kw">true</span>).<span class="hl-fn">get</span>();
+  <span class="hl-kw">return</span> ctx.response.<span class="hl-fn">json</span>(products);
+});
+
+<span class="hl-kw">await</span> app.<span class="hl-fn">listen</span>(<span class="hl-num">3000</span>, <span class="hl-str">'0.0.0.0'</span>);
+console.<span class="hl-fn">log</span>(<span class="hl-str">'🚀 JSango running on http://localhost:3000'</span>);</code></pre>
+        </div>
+
+        <h3>3. Start Development Server</h3>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>Terminal</span>
+            <button class="copy-code-btn copy-trigger" data-copy="pnpm dev">Copy</button>
+          </div>
+          <pre><code>pnpm dev</code></pre>
+        </div>
+      </section>
+
+      <hr class="doc-divider">
+
+      <!-- SECTION: SegRadix Router -->
+      <section id="segradix-router" class="doc-section">
+        <h2>SegRadix Trie Router</h2>
+        <p>
+          JSango features a custom Segment Radix Trie router built for extreme throughput and sub-millisecond route resolution.
+        </p>
+
+        <h3>Typed Route Parameters</h3>
+        <p>Constrain parameters inline with built-in segment validators like <code>:uuid</code>, <code>:int</code>, and <code>:slug</code>:</p>
+
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>Router Example</span>
+            <button class="copy-code-btn copy-trigger" data-copy="app.get('/api/v1/users/:id:uuid', async (ctx) => {
+  const userId = ctx.request.params['id'];
+  const user = await User.query().findById(userId);
+  return user ? ctx.response.json(user) : ctx.response.notFound();
+});">Copy</button>
+          </div>
+          <pre><code><span class="hl-comm">// Automatically validates UUID format before triggering handler</span>
+app.<span class="hl-fn">get</span>(<span class="hl-str">'/api/v1/users/:id:uuid'</span>, <span class="hl-kw">async</span> (ctx) => {
+  <span class="hl-kw">const</span> userId = ctx.request.params[<span class="hl-str">'id'</span>];
+  <span class="hl-kw">const</span> user = <span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">query</span>().<span class="hl-fn">findById</span>(userId);
+  <span class="hl-kw">return</span> user ? ctx.response.<span class="hl-fn">json</span>(user) : ctx.response.<span class="hl-fn">notFound</span>();
+});</code></pre>
+        </div>
+
+        <h3>Route Groups & Scoped Middleware</h3>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>Route Groups</span>
+            <button class="copy-code-btn copy-trigger" data-copy="app.group('/api/v1/admin', (router) => {
+  router.use(requireAdminAuth);
+  router.get('/analytics', analyticsHandler);
+  router.post('/settings', settingsHandler);
+});">Copy</button>
+          </div>
+          <pre><code>app.<span class="hl-fn">group</span>(<span class="hl-str">'/api/v1/admin'</span>, (router) => {
+  router.<span class="hl-fn">use</span>(requireAdminAuth);
+  router.<span class="hl-fn">get</span>(<span class="hl-str">'/analytics'</span>, analyticsHandler);
+  router.<span class="hl-fn">post</span>(<span class="hl-str">'/settings'</span>, settingsHandler);
+});</code></pre>
+        </div>
+      </section>
+
+      <hr class="doc-divider">
+
+      <!-- SECTION: Declarative Model Schemas -->
+      <section id="model-definitions" class="doc-section">
+        <h2>Declarative ORM & Relationships</h2>
+        <p>
+          JSango’s ORM combines compile-time type inference with an Abstract Syntax Tree (AST) query engine, connection pooling, and batch eager loading to completely eliminate N+1 queries.
+        </p>
+
+        <h3>Defining Models & Relations</h3>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>src/models/user.ts</span>
+            <button class="copy-code-btn copy-trigger" data-copy="import { defineModel, fields } from '@jsango/orm';
+
+export const User = defineModel({
+  name: 'User',
+  table: 'users',
+  fields: {
+    id: fields.uuid({ primaryKey: true }),
+    email: fields.string({ unique: true, maxLength: 255 }),
+    fullName: fields.string(),
+    role: fields.enum(['admin', 'editor', 'viewer']),
+    isActive: fields.boolean({ default: true }),
+  },
+  relations: (rel) => ({
+    orders: rel.hasMany('Order', { foreignKey: 'userId' }),
+    profile: rel.hasOne('Profile', { foreignKey: 'userId' }),
+  }),
+});">Copy</button>
+          </div>
+          <pre><code><span class="hl-kw">import</span> { defineModel, fields } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/orm'</span>;
+
+<span class="hl-kw">export const</span> <span class="hl-type">User</span> = <span class="hl-fn">defineModel</span>({
+  name: <span class="hl-str">'User'</span>,
+  table: <span class="hl-str">'users'</span>,
+  fields: {
+    id: fields.<span class="hl-fn">uuid</span>({ primaryKey: <span class="hl-kw">true</span> }),
+    email: fields.<span class="hl-fn">string</span>({ unique: <span class="hl-kw">true</span>, maxLength: <span class="hl-num">255</span> }),
+    fullName: fields.<span class="hl-fn">string</span>(),
+    role: fields.<span class="hl-fn">enum</span>([<span class="hl-str">'admin'</span>, <span class="hl-str">'editor'</span>, <span class="hl-str">'viewer'</span>]),
+    isActive: fields.<span class="hl-fn">boolean</span>({ default: <span class="hl-kw">true</span> }),
+  },
+  relations: (rel) => ({
+    orders: rel.<span class="hl-fn">hasMany</span>(<span class="hl-str">'Order'</span>, { foreignKey: <span class="hl-str">'userId'</span> }),
+    profile: rel.<span class="hl-fn">hasOne</span>(<span class="hl-str">'Profile'</span>, { foreignKey: <span class="hl-str">'userId'</span> }),
+  }),
+});</code></pre>
+        </div>
+
+        <h3 id="relationships">Batch Eager Loading (No N+1)</h3>
+        <p>Load related models efficiently with <code>.with()</code>:</p>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>Querying with Relations</span>
+            <button class="copy-code-btn copy-trigger" data-copy="const activeUsers = await User.query()
+  .where('isActive', '=', true)
+  .with('orders', (q) => q.where('status', '=', 'paid'))
+  .orderBy('createdAt', 'desc')
+  .limit(20);
+
+// Automatically loaded in single batch query
+for (const user of activeUsers) {
+  console.log(user.fullName, user.orders.length);
+}">Copy</button>
+          </div>
+          <pre><code><span class="hl-kw">const</span> activeUsers = <span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">query</span>()
+  .<span class="hl-fn">where</span>(<span class="hl-str">'isActive'</span>, <span class="hl-str">'='</span>, <span class="hl-kw">true</span>)
+  .<span class="hl-fn">with</span>(<span class="hl-str">'orders'</span>, (q) => q.<span class="hl-fn">where</span>(<span class="hl-str">'status'</span>, <span class="hl-str">'='</span>, <span class="hl-str">'paid'</span>))
+  .<span class="hl-fn">orderBy</span>(<span class="hl-str">'createdAt'</span>, <span class="hl-str">'desc'</span>)
+  .<span class="hl-fn">limit</span>(<span class="hl-num">20</span>);
+
+<span class="hl-kw">for</span> (<span class="hl-kw">const</span> user <span class="hl-kw">of</span> activeUsers) {
+  console.<span class="hl-fn">log</span>(user.fullName, user.orders.length);
+}</code></pre>
+        </div>
+      </section>
+
+      <hr class="doc-divider">
+
+      <!-- SECTION: Auto Admin Console -->
+      <section id="admin-overview" class="doc-section">
+        <h2>Auto-Generated React Admin Console</h2>
+        <p>
+          Similar to Django's revered admin interface, JSango automatically generates a full-featured single-page application (SPA) with CRUD, search, faceted filters, batch bulk actions, CSV export, and RBAC security from your model schemas.
+        </p>
+
+        <h3 id="admin-resources">Defining an Admin Resource</h3>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>src/admin/user-resource.ts</span>
+            <button class="copy-code-btn copy-trigger" data-copy="import { createAdminResource } from '@jsango/admin-core';
+import { User } from '../models/user.js';
+
+export const UserAdminResource = createAdminResource(User, {
+  label: 'User Accounts',
+  icon: 'users',
+  listFields: ['id', 'email', 'fullName', 'role', 'isActive'],
+  searchFields: ['email', 'fullName'],
+  filters: [
+    { field: 'role', type: 'select', options: ['admin', 'editor', 'viewer'] },
+    { field: 'isActive', type: 'boolean' }
+  ],
+  export: { csv: true, json: true },
+});">Copy</button>
+          </div>
+          <pre><code><span class="hl-kw">import</span> { createAdminResource } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/admin-core'</span>;
+<span class="hl-kw">import</span> { User } <span class="hl-kw">from</span> <span class="hl-str">'../models/user.js'</span>;
+
+<span class="hl-kw">export const</span> <span class="hl-type">UserAdminResource</span> = <span class="hl-fn">createAdminResource</span>(User, {
+  label: <span class="hl-str">'User Accounts'</span>,
+  icon: <span class="hl-str">'users'</span>,
+  listFields: [<span class="hl-str">'id'</span>, <span class="hl-str">'email'</span>, <span class="hl-str">'fullName'</span>, <span class="hl-str">'role'</span>, <span class="hl-str">'isActive'</span>],
+  searchFields: [<span class="hl-str">'email'</span>, <span class="hl-str">'fullName'</span>],
+  filters: [
+    { field: <span class="hl-str">'role'</span>, type: <span class="hl-str">'select'</span>, options: [<span class="hl-str">'admin'</span>, <span class="hl-str">'editor'</span>, <span class="hl-str">'viewer'</span>] },
+    { field: <span class="hl-str">'isActive'</span>, type: <span class="hl-str">'boolean'</span> }
+  ],
+  export: { csv: <span class="hl-kw">true</span>, json: <span class="hl-kw">true</span> },
+});</code></pre>
+        </div>
+
+        <h3>Mounting the Admin Server</h3>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>Mounting Admin</span>
+            <button class="copy-code-btn copy-trigger" data-copy="import { AdminServer } from '@jsango/admin-server';
+import { UserAdminResource } from './admin/user-resource.js';
+
+const adminServer = new AdminServer({
+  title: 'My Enterprise Dashboard',
+  resources: [UserAdminResource],
+  path: '/admin'
+});
+
+app.mount(adminServer);">Copy</button>
+          </div>
+          <pre><code><span class="hl-kw">import</span> { AdminServer } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/admin-server'</span>;
+<span class="hl-kw">import</span> { UserAdminResource } <span class="hl-kw">from</span> <span class="hl-str">'./admin/user-resource.js'</span>;
+
+<span class="hl-kw">const</span> adminServer = <span class="hl-kw">new</span> <span class="hl-type">AdminServer</span>({
+  title: <span class="hl-str">'My Enterprise Dashboard'</span>,
+  resources: [UserAdminResource],
+  path: <span class="hl-str">'/admin'</span>
+});
+
+app.<span class="hl-fn">mount</span>(adminServer);</code></pre>
+        </div>
+      </section>
+
+      <hr class="doc-divider">
+
+      <!-- SECTION: Two-Step Auth & Security -->
+      <section id="auth-totp-2fa" class="doc-section">
+        <h2>Two-Step Auth (TOTP 2FA) & Sessions</h2>
+        <p>
+          Security is a first-class concern in JSango. It includes an RFC 6238 compliant Time-Based One-Time Password (TOTP) engine, active device session tracking, and remote session revocation.
+        </p>
+
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>2FA TOTP Service</span>
+            <button class="copy-code-btn copy-trigger" data-copy="import { TotpService } from '@jsango/auth';
+
+const totp = new TotpService();
+
+// 1. Generate base32 secret and QR code URI
+const secret = totp.generateSecret();
+const qrUri = totp.generateKeyUri({
+  secret,
+  accountName: 'developer@example.com',
+  issuer: 'JSango App'
+});
+
+// 2. Verify 6-digit TOTP token
+const isValid = totp.verifyToken({
+  secret,
+  token: '123456',
+  window: 1 // Sliding time window
+});">Copy</button>
+          </div>
+          <pre><code><span class="hl-kw">import</span> { TotpService } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/auth'</span>;
+
+<span class="hl-kw">const</span> totp = <span class="hl-kw">new</span> <span class="hl-type">TotpService</span>();
+
+<span class="hl-comm">// 1. Generate Base32 secret and otpauth:// URI</span>
+<span class="hl-kw">const</span> secret = totp.<span class="hl-fn">generateSecret</span>();
+<span class="hl-kw">const</span> qrUri = totp.<span class="hl-fn">generateKeyUri</span>({
+  secret,
+  accountName: <span class="hl-str">'developer@example.com'</span>,
+  issuer: <span class="hl-str">'JSango App'</span>
+});
+
+<span class="hl-comm">// 2. Verify 6-digit token with sliding window</span>
+<span class="hl-kw">const</span> isValid = totp.<span class="hl-fn">verifyToken</span>({
+  secret,
+  token: <span class="hl-str">'123456'</span>,
+  window: <span class="hl-num">1</span>
+});</code></pre>
+        </div>
+      </section>
+
+      <hr class="doc-divider">
+
+      <!-- SECTION: Background Queues -->
+      <section id="background-queues" class="doc-section">
+        <h2>Background Job Queues & Events</h2>
+        <p>
+          Execute heavy background tasks reliably with automatic retries, dead-letter store management, and concurrent worker loops.
+        </p>
+
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>Defining & Dispatching Jobs</span>
+            <button class="copy-code-btn copy-trigger" data-copy="import { defineJob } from '@jsango/queue';
+
+export const ProcessPaymentJob = defineJob({
+  name: 'process-payment',
+  retryPolicy: { maxAttempts: 5, backoffMultiplier: 2 },
+  async handler({ orderId, amount }) {
+    await paymentGateway.charge(orderId, amount);
+  }
+});
+
+// Dispatch asynchronously to Redis/Memory queue
+await ProcessPaymentJob.dispatch({ orderId: 'ord_123', amount: 99.00 });">Copy</button>
+          </div>
+          <pre><code><span class="hl-kw">import</span> { defineJob } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/queue'</span>;
+
+<span class="hl-kw">export const</span> <span class="hl-type">ProcessPaymentJob</span> = <span class="hl-fn">defineJob</span>({
+  name: <span class="hl-str">'process-payment'</span>,
+  retryPolicy: { maxAttempts: <span class="hl-num">5</span>, backoffMultiplier: <span class="hl-num">2</span> },
+  <span class="hl-kw">async</span> <span class="hl-fn">handler</span>({ orderId, amount }) {
+    <span class="hl-kw">await</span> paymentGateway.<span class="hl-fn">charge</span>(orderId, amount);
+  }
+});
+
+<span class="hl-comm">// Dispatch job</span>
+<span class="hl-kw">await</span> <span class="hl-type">ProcessPaymentJob</span>.<span class="hl-fn">dispatch</span>({ orderId: <span class="hl-str">'ord_123'</span>, amount: <span class="hl-num">99.00</span> });</code></pre>
+        </div>
+      </section>
+
+      <hr class="doc-divider">
+
+      <!-- SECTION: Realtime WebSockets -->
+      <section id="websocket-server" class="doc-section">
+        <h2>Realtime WebSockets</h2>
+        <p>
+          Multi-room WebSocket architecture with heartbeat monitoring, user identity binding, and backpressure management.
+        </p>
+
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>WebSocket Server</span>
+            <button class="copy-code-btn copy-trigger" data-copy="import { WebSocketServer } from '@jsango/websocket';
+
+const ws = new WebSocketServer({ path: '/realtime' });
+
+ws.onConnection((socket, identity) => {
+  socket.joinRoom(`team:${identity.teamId}`);
+
+  socket.on('message:send', (data) => {
+    ws.broadcast(`team:${identity.teamId}`, 'message:received', {
+      user: identity.name,
+      text: data.text
+    });
+  });
+});">Copy</button>
+          </div>
+          <pre><code><span class="hl-kw">import</span> { WebSocketServer } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/websocket'</span>;
+
+<span class="hl-kw">const</span> ws = <span class="hl-kw">new</span> <span class="hl-type">WebSocketServer</span>({ path: <span class="hl-str">'/realtime'</span> });
+
+ws.<span class="hl-fn">onConnection</span>((socket, identity) => {
+  socket.<span class="hl-fn">joinRoom</span>(<span class="hl-str">\`team:\${identity.teamId}\`</span>);
+
+  socket.<span class="hl-fn">on</span>(<span class="hl-str">'message:send'</span>, (data) => {
+    ws.<span class="hl-fn">broadcast</span>(<span class="hl-str">\`team:\${identity.teamId}\`</span>, <span class="hl-str">'message:received'</span>, {
+      user: identity.name,
+      text: data.text
+    });
+  });
+});</code></pre>
+        </div>
+      </section>
+
+      <hr class="doc-divider">
+
+      <!-- SECTION: CLI Commands Reference -->
+      <section id="cli-reference" class="doc-section">
+        <h2>CLI Commands Reference</h2>
+        <p>The JSango CLI provides fast code generation and developer workflows:</p>
+
+        <div class="cli-table-wrapper">
+          <table class="cli-table">
+            <thead>
+              <tr>
+                <th>Command</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>npx jsango create &lt;name&gt;</code></td>
+                <td>Scaffold a new batteries-included JSango project.</td>
+              </tr>
+              <tr>
+                <td><code>npx jsango dev</code></td>
+                <td>Start local development server with hot reloading.</td>
+              </tr>
+              <tr>
+                <td><code>npx jsango make:model &lt;Name&gt;</code></td>
+                <td>Generate a typed ORM model definition.</td>
+              </tr>
+              <tr>
+                <td><code>npx jsango make:admin &lt;Model&gt;</code></td>
+                <td>Generate an auto-admin resource definition.</td>
+              </tr>
+              <tr>
+                <td><code>npx jsango migrate</code></td>
+                <td>Run pending database migrations.</td>
+              </tr>
+              <tr>
+                <td><code>npx jsango migrate:diff</code></td>
+                <td>Diff ORM model schemas against database and generate migration file.</td>
+              </tr>
+              <tr>
+                <td><code>npx jsango openapi:generate</code></td>
+                <td>Generate an OpenAPI 3.1 JSON / YAML specification document.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Pagination / Next Prev Footer -->
+      <div class="docs-nav-footer">
+        <a href="#intro" class="doc-nav-btn prev">
+          <span class="sub">Previous</span>
+          <span class="title">← Introduction</span>
+        </a>
+        <a href="#quickstart" class="doc-nav-btn next">
+          <span class="sub">Next</span>
+          <span class="title">5-Minute Quickstart →</span>
+        </a>
+      </div>
+
+    </main>
+
+    <!-- Right "On This Page" Table of Contents -->
+    <aside class="docs-toc" id="docsToc">
+      <div class="toc-heading">On This Page</div>
+      <ul class="toc-links" id="tocLinks">
+        <li><a href="#intro" class="toc-link active">Introduction & Philosophy</a></li>
+        <li><a href="#quickstart" class="toc-link">5-Minute Quickstart</a></li>
+        <li><a href="#segradix-router" class="toc-link">SegRadix Router</a></li>
+        <li><a href="#model-definitions" class="toc-link">Declarative ORM</a></li>
+        <li><a href="#relationships" class="toc-link">Batch Eager Loading</a></li>
+        <li><a href="#admin-overview" class="toc-link">React Admin Console</a></li>
+        <li><a href="#auth-totp-2fa" class="toc-link">Two-Step Auth (2FA)</a></li>
+        <li><a href="#background-queues" class="toc-link">Background Queues</a></li>
+        <li><a href="#websocket-server" class="toc-link">Realtime WebSockets</a></li>
+        <li><a href="#cli-reference" class="toc-link">CLI Commands</a></li>
+      </ul>
+    </aside>
+
+  </div>
+
+  <!-- Toast Component -->
+  <div class="toast" id="toast" role="alert" aria-live="assertive">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    <span id="toastMessage">Copied to clipboard</span>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script src="js/docs.js"></script>
+</body>
+</html>
