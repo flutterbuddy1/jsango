@@ -1,6 +1,6 @@
 {
   "name": "@jsango/admin-core",
-  "version": "1.0.1",
+  "version": "1.0.4",
   "description": "Core Admin registry, resource definitions, fields, forms, tables, and auto-generation for jsango",
   "type": "module",
   "main": "./dist/index.js",

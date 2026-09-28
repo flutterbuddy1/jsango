@@ -1,6 +1,6 @@
 {
   "name": "jsango",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "Production-grade, batteries-included TypeScript backend framework",
   "type": "module",
   "main": "./dist/index.js",
