@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src"
+  },
+  "references": [
+    { "path": "../runtime" },
+    { "path": "../core" },
+    { "path": "../container" },
+    { "path": "../config" },
+    { "path": "../validation" },
+    { "path": "../events" },
+    { "path": "../http" },
+    { "path": "../observability" }
+  ],
+  "include": ["src/**/*"],
+  "exclude": ["**/*.test.ts", "**/*.spec.ts"]
+}

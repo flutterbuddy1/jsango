@@ -127,6 +127,16 @@
       </div>
 
       <div class="sidebar-group">
+        <div class="sidebar-heading">🤖 AI Platform & Agents</div>
+        <ul class="sidebar-links">
+          <li><a href="#ai-agents" class="sidebar-link">AI Agents & Tool Calling</a></li>
+          <li><a href="#ai-workflows" class="sidebar-link">Multi-Agent Workflows</a></li>
+          <li><a href="#ai-rag" class="sidebar-link">RAG & Vector Search</a></li>
+          <li><a href="#ai-mcp" class="sidebar-link">Model Context Protocol (MCP)</a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-group">
         <div class="sidebar-heading">📊 Observability & CLI</div>
         <ul class="sidebar-links">
           <li><a href="#metrics-telemetry" class="sidebar-link">Prometheus & Tracing</a></li>
@@ -774,6 +784,140 @@ app.<span class="hl-fn">openapi</span>({
 <span class="hl-kw">await</span> app.<span class="hl-fn">listen</span>(<span class="hl-num">3000</span>);
 <span class="hl-comm">// Interactive UI is live at: http://localhost:3000/docs</span>
 <span class="hl-comm">// OpenAPI JSON schema at: http://localhost:3000/openapi.json</span></code></pre>
+        </div>
+      </section>
+
+      <hr class="doc-divider">
+
+      <!-- SECTION: AI Agents & Tools -->
+      <section id="ai-agents" class="doc-section">
+        <h2>AI Agents &amp; Tool Calling</h2>
+        <p>JSango includes a native, provider-agnostic AI agent runtime with strongly typed tool execution and human-in-the-loop approvals:</p>
+
+        <div class="code-block-wrapper">
+          <div class="code-header">
+            <span class="file-name">src/agents/support.ts</span>
+            <button class="copy-btn" data-copy="src-ai-agents" aria-label="Copy Code">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span>Copy</span>
+            </button>
+          </div>
+          <pre><code id="src-ai-agents"><span class="hl-kw">import</span> { agent, tool, object, string, number, createApp } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
+
+<span class="hl-comm">// 1. Define tools with automatic schema validation</span>
+<span class="hl-kw">const</span> getOrder = <span class="hl-fn">tool</span>({
+  name: <span class="hl-str">'getOrder'</span>,
+  description: <span class="hl-str">'Fetch order details'</span>,
+  schema: <span class="hl-fn">object</span>({ orderId: <span class="hl-fn">string</span>() }),
+  execute: <span class="hl-kw">async</span> ({ orderId }) => <span class="hl-kw">await</span> Order.<span class="hl-fn">find</span>(orderId),
+});
+
+<span class="hl-kw">const</span> refundOrder = <span class="hl-fn">tool</span>({
+  name: <span class="hl-str">'refundOrder'</span>,
+  description: <span class="hl-str">'Process a customer refund'</span>,
+  schema: <span class="hl-fn">object</span>({ orderId: <span class="hl-fn">string</span>(), amount: <span class="hl-fn">number</span>() }),
+  requiresApproval: <span class="hl-kw">true</span>, <span class="hl-comm">// Human approval gate</span>
+  execute: <span class="hl-kw">async</span> ({ orderId, amount }) => <span class="hl-kw">await</span> Stripe.<span class="hl-fn">refund</span>(orderId, amount),
+});
+
+<span class="hl-comm">// 2. Create the Agent</span>
+<span class="hl-kw">export const</span> supportAgent = <span class="hl-fn">agent</span>({
+  name: <span class="hl-str">'SupportAgent'</span>,
+  model: <span class="hl-str">'openai:gpt-4o'</span>,
+  instructions: <span class="hl-str">'Help customers with orders and refunds.'</span>,
+  tools: { getOrder, refundOrder },
+});
+
+<span class="hl-comm">// 3. Expose over HTTP / SSE and WebSockets in 1 line</span>
+<span class="hl-kw">const</span> app = <span class="hl-fn">createApp</span>();
+app.<span class="hl-fn">agent</span>(<span class="hl-str">'/api/support'</span>, supportAgent);
+app.<span class="hl-fn">wsAgent</span>(<span class="hl-str">'/ws/support'</span>, supportAgent);</code></pre>
+        </div>
+      </section>
+
+      <hr class="doc-divider">
+
+      <!-- SECTION: Multi-Agent Workflows -->
+      <section id="ai-workflows" class="doc-section">
+        <h2>Multi-Agent Workflows &amp; Orchestration</h2>
+        <p>Compose sequential, parallel, and branching pipelines between multiple specialized agents:</p>
+
+        <div class="code-block-wrapper">
+          <div class="code-header">
+            <span class="file-name">src/workflows/research.ts</span>
+            <button class="copy-btn" data-copy="src-ai-workflows" aria-label="Copy Code">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span>Copy</span>
+            </button>
+          </div>
+          <pre><code id="src-ai-workflows"><span class="hl-kw">import</span> { workflow, agent } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
+
+<span class="hl-kw">const</span> pipeline = <span class="hl-fn">workflow</span>(<span class="hl-str">'document-review'</span>)
+  .<span class="hl-fn">step</span>(<span class="hl-str">'research'</span>, researcherAgent)
+  .<span class="hl-fn">step</span>(<span class="hl-str">'draft'</span>, writerAgent)
+  .<span class="hl-fn">branch</span>(
+    (state) => state.requiresApproval,
+    legalReviewerAgent,
+    fastTrackAgent
+  );
+
+<span class="hl-kw">const</span> result = <span class="hl-kw">await</span> pipeline.<span class="hl-fn">run</span>({ input: <span class="hl-str">'Analyze quarterly earnings'</span> });</code></pre>
+        </div>
+      </section>
+
+      <hr class="doc-divider">
+
+      <!-- SECTION: RAG & Vector Search -->
+      <section id="ai-rag" class="doc-section">
+        <h2>RAG &amp; Vector Search</h2>
+        <p>Embed, store, and retrieve semantic document chunks with zero external dependencies:</p>
+
+        <div class="code-block-wrapper">
+          <div class="code-header">
+            <span class="file-name">src/ai/knowledge.ts</span>
+            <button class="copy-btn" data-copy="src-ai-rag" aria-label="Copy Code">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span>Copy</span>
+            </button>
+          </div>
+          <pre><code id="src-ai-rag"><span class="hl-kw">import</span> { knowledge, InMemoryVectorStore } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
+
+<span class="hl-kw">export const</span> docs = <span class="hl-fn">knowledge</span>({
+  name: <span class="hl-str">'handbook'</span>,
+  vectorStore: <span class="hl-kw">new</span> <span class="hl-fn">InMemoryVectorStore</span>(),
+  chunkSize: <span class="hl-num">500</span>,
+});
+
+<span class="hl-kw">await</span> docs.<span class="hl-fn">ingest</span>({
+  id: <span class="hl-str">'doc_1'</span>,
+  text: <span class="hl-str">'JSango is a high-performance TypeScript backend framework with built-in AI agents.'</span>,
+});
+
+<span class="hl-kw">const</span> matches = <span class="hl-kw">await</span> docs.<span class="hl-fn">query</span>({ query: <span class="hl-str">'What is JSango?'</span>, limit: <span class="hl-num">3</span> });</code></pre>
+        </div>
+      </section>
+
+      <hr class="doc-divider">
+
+      <!-- SECTION: Model Context Protocol (MCP) -->
+      <section id="ai-mcp" class="doc-section">
+        <h2>Model Context Protocol (MCP)</h2>
+        <p>Expose JSango tools over standardized JSON-RPC MCP servers or consume remote MCP servers:</p>
+
+        <div class="code-block-wrapper">
+          <div class="code-header">
+            <span class="file-name">src/mcp/server.ts</span>
+            <button class="copy-btn" data-copy="src-ai-mcp" aria-label="Copy Code">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span>Copy</span>
+            </button>
+          </div>
+          <pre><code id="src-ai-mcp"><span class="hl-kw">import</span> { McpServer, getOrderTool } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
+
+<span class="hl-kw">const</span> server = <span class="hl-kw">new</span> <span class="hl-fn">McpServer</span>({ name: <span class="hl-str">'JSango Tools'</span>, version: <span class="hl-str">'1.0.0'</span> });
+server.<span class="hl-fn">registerTool</span>(getOrderTool);
+
+<span class="hl-comm">// Ready to handle standard MCP JSON-RPC messages</span></code></pre>
         </div>
       </section>
 

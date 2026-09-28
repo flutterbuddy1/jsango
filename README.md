@@ -217,6 +217,52 @@ export default defineConfig({
 
 ---
 
+### 6. Native AI Agents & Tool Calling
+
+Build production-grade AI agents, workflows, and tool execution with single-import simplicity:
+
+```typescript
+import { createApp, agent, tool, object, string, number } from "jsango";
+
+// 1. Define type-safe tools with automatic JSON schema generation
+const lookupOrder = tool({
+  name: "lookupOrder",
+  description: "Get order status by order ID",
+  schema: object({ orderId: string() }),
+  execute: async ({ orderId }) => {
+    return await Order.find(orderId);
+  },
+});
+
+const refundOrder = tool({
+  name: "refundOrder",
+  description: "Issue refund for an order",
+  schema: object({ orderId: string(), amount: number() }),
+  requiresApproval: true, // Human-in-the-loop approval gate
+  execute: async ({ orderId, amount }) => {
+    return await PaymentService.refund(orderId, amount);
+  },
+});
+
+// 2. Create the Agent
+const supportAgent = agent({
+  name: "SupportAgent",
+  instructions: "Help customers check orders and handle refund requests.",
+  tools: { lookupOrder, refundOrder },
+});
+
+// 3. Expose Agent over HTTP & SSE Streaming in 1 line
+const app = createApp();
+app.agent("/api/support", supportAgent);
+
+// 4. Or expose Agent over real-time WebSockets
+app.wsAgent("/ws/support", supportAgent);
+
+await app.listen(3000);
+```
+
+---
+
 ## CLI Commands
 
 | Command | Description |
@@ -227,6 +273,8 @@ export default defineConfig({
 | `jsango start` | Run production build |
 | `jsango migrate` | Run pending database migrations |
 | `jsango routes` | List all registered HTTP and WebSocket routes |
+| `jsango make:agent <name>` | Generate an AI Agent template |
+| `jsango ai:doctor` | Verify configured AI providers and API keys |
 | `jsango doctor` | Verify environment, dependencies, and configuration |
 
 ---
@@ -238,6 +286,7 @@ For advanced customization, internal packages remain independently available:
 | Package | Responsibility |
 |:---|:---|
 | [`jsango`](packages/jsango) | **Unified high-level developer facade and app coordinator** |
+| [`@jsango/ai`](packages/ai) | **AI Agent runtime, provider abstraction, tools, workflows, RAG, and MCP** |
 | [`@jsango/core`](packages/core) | Application lifecycle coordinator and structured error hierarchy |
 | [`@jsango/http`](packages/http) | HTTP request/response abstractions and streaming body parsers |
 | [`@jsango/router`](packages/router) | Segment Radix Trie router (>7.7M ops/sec) and parameter constraints |

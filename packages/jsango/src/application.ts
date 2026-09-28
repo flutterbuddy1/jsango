@@ -18,6 +18,7 @@ import { AdminServer, type IAdminQueryAdapter, type AdminListQuery, type AdminLi
 import { AdminPermissionChecker } from '@jsango/admin-auth';
 import { AdminAuditLogger, InMemoryAuditStore } from '@jsango/admin-audit';
 import { OpenApiRegistry, OpenApiGenerator } from '@jsango/openapi';
+import { Agent } from '@jsango/ai';
 import { WebSocketEndpointManager, type WebSocketRouteCallback } from './websocket-wrapper.js';
 
 export interface CrudOptions {
@@ -739,7 +740,114 @@ export class JSangoApplication {
     return this;
   }
 
+  /**
+   * Mounts an AI Agent as an HTTP endpoint.
+   * Handles POST /agent with JSON { input, conversationId, context }
+   * and GET /agent?input=... with optional Server-Sent Events (SSE) streaming.
+   */
+  public agent(path: string, targetAgent: Agent, options?: { maxSteps?: number }): this {
+    // POST Handler
+    this.post(path, async (ctx: any) => {
+      const body = (await ctx.request.json().catch(() => ({}))) as any;
+      const input = body?.input ?? body?.message ?? '';
+      const conversationId = body?.conversationId ?? body?.sessionId;
+      const userContext = (ctx.request as any).identity ?? (ctx.request as any).user;
+
+      const result = await targetAgent.run({
+        input,
+        maxSteps: options?.maxSteps,
+        context: {
+          user: userContext,
+          conversationId,
+          requestId: ctx.request.id,
+        },
+      });
+
+      return HttpResponse.json(result);
+    });
+
+    // GET / SSE Handler
+    this.get(path, async (ctx: any) => {
+      const input = (ctx.request.query?.['input'] ?? ctx.request.query?.['q'] ?? '') as string;
+      const conversationId = ctx.request.query?.['conversationId'] as string | undefined;
+      const wantsStream =
+        ctx.request.query?.['stream'] === 'true' ||
+        ctx.request.headers.get('accept')?.includes('text/event-stream');
+
+      if (!wantsStream) {
+        const result = await targetAgent.run({
+          input,
+          context: { conversationId, requestId: ctx.request.id },
+        });
+        return HttpResponse.json(result);
+      }
+
+      // SSE Streaming response
+      const readable = new ReadableStream<Uint8Array>({
+        async start(controller) {
+          try {
+            for await (const event of targetAgent.stream({
+              input,
+              context: { conversationId, requestId: ctx.request.id },
+            })) {
+              controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(event)}\n\n`));
+            }
+            controller.enqueue(new TextEncoder().encode(`data: [DONE]\n\n`));
+            controller.close();
+          } catch (err: unknown) {
+            controller.error(err);
+          }
+        },
+      });
+
+      return new HttpResponse(readable, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        },
+      });
+    });
+
+
+    return this;
+  }
+
+  /**
+   * Mounts an AI Agent as a Real-time WebSocket endpoint.
+   * Streams token deltas, tool calls, and progress events automatically.
+   */
+  public wsAgent(path: string, targetAgent: Agent): this {
+    return this.ws(path, (socket) => {
+      socket.on('message', async (data: any) => {
+        const input = typeof data === 'string' ? data : data?.input ?? data?.text ?? '';
+        const conversationId = data?.conversationId ?? socket.id;
+
+        try {
+          socket.send({ type: 'run.started', agent: targetAgent.name, input });
+
+          for await (const event of targetAgent.stream({
+            input,
+            context: {
+              conversationId,
+              requestId: `ws_${socket.id}_${Date.now()}`,
+            },
+          })) {
+            socket.send(event);
+          }
+        } catch (err: unknown) {
+          socket.send({
+            type: 'run.failed',
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      });
+    });
+  }
+
   // --- Request Lifecycle & Listening ---
+
 
   public async handle(input: HttpRequest | RequestContext): Promise<HttpResponse> {
     return this.app.handle(input);

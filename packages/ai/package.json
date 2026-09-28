@@ -1,0 +1,41 @@
+{
+  "name": "@jsango/ai",
+  "version": "1.0.7",
+  "description": "First-class LLM, AI Agent, and Workflow Orchestration Runtime for JSango",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@jsango/runtime": "workspace:^",
+    "@jsango/core": "workspace:^",
+    "@jsango/container": "workspace:^",
+    "@jsango/config": "workspace:^",
+    "@jsango/validation": "workspace:^",
+    "@jsango/events": "workspace:^",
+    "@jsango/http": "workspace:^",
+    "@jsango/observability": "workspace:^"
+  },
+  "files": [
+    "dist"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/flutterbuddy1/jsango.git",
+    "directory": "packages/ai"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

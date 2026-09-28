@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.7] - 2026-09-28
+
+### Phase 20: First-Class AI Platform & Agent Orchestration Runtime
+
+#### Added
+- **`@jsango/ai` Package**:
+  - Universal provider abstraction supporting OpenAI, Anthropic Claude, Google Gemini, Ollama, and `FakeLlmProvider`.
+  - Model Router with multi-provider prefix resolution (`openai:`, `gemini:`, `anthropic:`), automatic fallback chains, and retries.
+  - Strongly-typed structured output generation integrated with `@jsango/validation`.
+  - Autonomous AI Agents with reasoning loops, tool calling, memory management, and guardrails.
+  - Type-safe tool definitions (`tool()`) with schema validation, permission checks, timeouts, and human-in-the-loop approvals (`requiresApproval: true`).
+  - Multi-agent orchestration workflows (`workflow()`) supporting sequential steps, parallel fan-out, conditional branching, and loops.
+  - Unified short-term and long-term conversation memory (`InMemoryMemoryStore`, `DatabaseMemoryStore`) with user and tenant isolation.
+  - RAG & Vector Search: Ingestion, chunking, embeddings, and vector similarity retrieval (`InMemoryVectorStore`).
+  - Model Context Protocol (MCP): Native `McpServer` and `McpClient` for JSON-RPC tool sharing.
+  - One-line Application Transports: `app.agent('/path', agent)` (REST & SSE streaming) and `app.wsAgent('/path', agent)` (WebSocket streaming).
+  - CLI generators: `jsango make:agent <Name>` and `jsango ai:doctor`.
+  - Comprehensive documentation in `docs/ai/`, `docs/architecture/ai.md`, `docs/security/AI-SECURITY.md`, `docs/performance/AI-PERFORMANCE.md`, `docs/dx/AI-API-SIMPLICITY.md`.
+
+---
+
 ## [1.0.0] - 2026-09-25
 
 ### Official 1.0.0 General Availability Release & Rebranding

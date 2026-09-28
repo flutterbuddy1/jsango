@@ -36,6 +36,8 @@ import { HealthCommand } from '../commands/health.js';
 import { MetricsCommand } from '../commands/metrics.js';
 import { DiagnosticsCommand } from '../commands/diagnostics.js';
 import { AdminGenerateCommand } from '../commands/admin-generate.js';
+import { AiGenerateCommand } from '../commands/ai-generate.js';
+import { AiDoctorCommand } from '../commands/ai-doctor.js';
 
 export interface CliApplicationOptions {
   readonly registry?: CommandRegistry | undefined;
@@ -93,8 +95,11 @@ export class CliApplication {
     registry.register(new MetricsCommand());
     registry.register(new DiagnosticsCommand());
     registry.register(new AdminGenerateCommand());
+    registry.register(new AiGenerateCommand());
+    registry.register(new AiDoctorCommand());
 
     return app;
+
   }
 
   public registerCommand(command: ICommand): this {

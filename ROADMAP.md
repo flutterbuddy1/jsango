@@ -334,3 +334,22 @@ This roadmap outlines the phased development plan for the **JSango** framework. 
   - `AdminUiPluginRegistry`: Custom widget, page, and field renderer extensions.
   - Complete architecture guide & manual in `docs/admin/ADMIN-UI.md`.
   - 100% test coverage with unit, component, view, and orchestration test suites.
+
+---
+
+### [x] PHASE 20 — JSango AI Platform ("First-Class LLM, AI Agent & Orchestration Runtime")
+
+- **`@jsango/ai` Package**:
+  - Provider-neutral LLM abstraction supporting OpenAI, Anthropic Claude, Google Gemini, Ollama, and FakeLlmProvider for zero-cost testing.
+  - Model Router with multi-provider prefix resolution (`openai:`, `gemini:`, `anthropic:`), automatic fallback chains, and retries.
+  - Strongly-typed structured output generation with seamless `@jsango/validation` schema integration (`toJsonSchema()`).
+  - First-class AI Agents with autonomous reasoning loops, tool calling, memory management, and guardrails.
+  - Type-safe tool definitions (`tool()`) with schema validation, permission checks, timeouts, and human-in-the-loop approvals (`requiresApproval: true`).
+  - Multi-agent orchestration workflows (`workflow()`) supporting sequential steps, parallel fan-out, conditional branching, and loops.
+  - Unified short-term and long-term conversation memory (`InMemoryMemoryStore`, `DatabaseMemoryStore`) with user and tenant isolation.
+  - RAG & Vector Search: Ingestion, chunking, embeddings, and vector similarity retrieval (`InMemoryVectorStore`).
+  - Model Context Protocol (MCP): Native `McpServer` and `McpClient` for JSON-RPC tool sharing.
+  - One-line Application Transports: `app.agent('/path', agent)` (REST & SSE streaming) and `app.wsAgent('/path', agent)` (WebSocket streaming).
+  - CLI generators: `jsango make:agent <Name>` and `jsango ai:doctor`.
+  - Deterministic testing fixtures, AI Evals suite, comprehensive benchmarks, and full security analysis.
+
