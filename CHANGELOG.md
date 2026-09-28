@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.9] - 2026-09-28
+
+### Enhancements & Simplification
+- **Admin Panel Simplification**: Streamlined Admin Console navigation, removed clutter and extraneous reports views in favor of focused CRUD and model administration.
+- **Accurate Live System Diagnostics**: Added real-time V8 heap memory, RSS footprint, uptime, Node runtime version, and subsystem integrity indicators fetched live from `/system/health`.
+- **Configurable Super Admin Credentials**: Super admin login credentials can now be customized via `app.admin({ auth: { ... } })` or environment variables (`JSANGO_ADMIN_USER`, `JSANGO_ADMIN_PASSWORD`).
+- **Clean Login UI**: Removed demo credentials helper buttons from the login page.
+- **Mobile Responsive Web & Docs**: Complete responsive polish for landing page and developer documentation.
+
+---
+
 ## [1.0.8] - 2026-09-28
 
 ### Fixes & Enhancements

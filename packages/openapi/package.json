@@ -1,6 +1,6 @@
 {
   "name": "@jsango/openapi",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Deterministic OpenAPI 3.x document generation and documentation foundation for jsango",
   "type": "module",
   "main": "./dist/index.js",

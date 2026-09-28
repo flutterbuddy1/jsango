@@ -1,6 +1,6 @@
 {
   "name": "@jsango/runtime",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Runtime abstraction and runtime adapters for jsango",
   "type": "module",
   "main": "./dist/index.js",

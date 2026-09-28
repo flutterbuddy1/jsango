@@ -1,6 +1,6 @@
 {
   "name": "@jsango/orm",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Models, query builder and relationships for jsango",
   "type": "module",
   "main": "./dist/index.js",
