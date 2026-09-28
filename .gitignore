@@ -34,4 +34,6 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
-.idea/
+# Private Notes & Strategy
+post-ideas.md
+
