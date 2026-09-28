@@ -1,0 +1,48 @@
+{
+  "name": "jsango",
+  "version": "1.0.1",
+  "description": "Production-grade, batteries-included TypeScript backend framework",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "jsango": "./dist/bin/jsango.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@jsango/cli": "workspace:*",
+    "@jsango/core": "workspace:*",
+    "@jsango/http": "workspace:*",
+    "@jsango/router": "workspace:*",
+    "@jsango/middleware": "workspace:*",
+    "@jsango/database": "workspace:*",
+    "@jsango/orm": "workspace:*",
+    "@jsango/migrations": "workspace:*",
+    "@jsango/auth": "workspace:*",
+    "@jsango/admin-core": "workspace:*",
+    "@jsango/admin-server": "workspace:*",
+    "@jsango/admin-ui": "workspace:*"
+  },
+  "files": [
+    "dist"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/flutterbuddy1/jsango.git",
+    "directory": "packages/jsango"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
