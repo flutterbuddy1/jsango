@@ -17,9 +17,9 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@jsango/core": "workspace:*",
-    "@jsango/http": "workspace:*",
-    "@jsango/router": "workspace:*"
+    "@jsango/core": "workspace:^",
+    "@jsango/http": "workspace:^",
+    "@jsango/router": "workspace:^"
   },
   "files": [
     "dist"

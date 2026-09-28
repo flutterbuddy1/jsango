@@ -20,22 +20,22 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@jsango/runtime": "workspace:*",
-    "@jsango/core": "workspace:*",
-    "@jsango/container": "workspace:*",
-    "@jsango/config": "workspace:*",
-    "@jsango/http": "workspace:*",
-    "@jsango/router": "workspace:*",
-    "@jsango/middleware": "workspace:*",
-    "@jsango/database": "workspace:*",
-    "@jsango/orm": "workspace:*",
-    "@jsango/migrations": "workspace:*",
-    "@jsango/cache": "workspace:*",
-    "@jsango/queue": "workspace:*",
-    "@jsango/events": "workspace:*",
-    "@jsango/websocket": "workspace:*",
-    "@jsango/openapi": "workspace:*",
-    "@jsango/observability": "workspace:*"
+    "@jsango/runtime": "workspace:^",
+    "@jsango/core": "workspace:^",
+    "@jsango/container": "workspace:^",
+    "@jsango/config": "workspace:^",
+    "@jsango/http": "workspace:^",
+    "@jsango/router": "workspace:^",
+    "@jsango/middleware": "workspace:^",
+    "@jsango/database": "workspace:^",
+    "@jsango/orm": "workspace:^",
+    "@jsango/migrations": "workspace:^",
+    "@jsango/cache": "workspace:^",
+    "@jsango/queue": "workspace:^",
+    "@jsango/events": "workspace:^",
+    "@jsango/websocket": "workspace:^",
+    "@jsango/openapi": "workspace:^",
+    "@jsango/observability": "workspace:^"
   },
   "files": [
     "dist"

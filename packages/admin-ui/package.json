@@ -33,9 +33,9 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@jsango/admin-core": "workspace:*",
-    "@jsango/core": "workspace:*",
-    "@jsango/http": "workspace:*",
+    "@jsango/admin-core": "workspace:^",
+    "@jsango/core": "workspace:^",
+    "@jsango/http": "workspace:^",
     "lucide-react": "^1.48.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"

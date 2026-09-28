@@ -21,8 +21,8 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@jsango/core": "workspace:*",
-    "@jsango/http": "workspace:*",
+    "@jsango/core": "workspace:^",
+    "@jsango/http": "workspace:^",
     "ws": "^8.18.0"
   },
   "devDependencies": {
