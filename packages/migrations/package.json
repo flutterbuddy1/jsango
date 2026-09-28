@@ -1,6 +1,6 @@
 {
   "name": "@jsango/migrations",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Database schema management and migrations for jsango",
   "type": "module",
   "main": "./dist/index.js",

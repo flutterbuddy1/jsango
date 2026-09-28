@@ -1,6 +1,6 @@
 {
   "name": "@jsango/http",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "HTTP request and response abstractions for jsango",
   "type": "module",
   "main": "./dist/index.js",
