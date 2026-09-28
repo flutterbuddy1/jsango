@@ -116,22 +116,12 @@ export const Sidebar: React.FC = () => {
           <div className="nav-group-heading">Platform</div>
           <a
             href="#profile"
-            className={`nav-link-item ${route === '#profile' || route === '#password-change' ? 'active' : ''}`}
+            className={`nav-link-item ${route === '#profile' || route === '#password-change' || route === '#security' ? 'active' : ''}`}
             onClick={() => setMobileSidebarOpen(false)}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <UserCheck style={{ width: 15, height: 15 }} />
               <span>Profile & Security</span>
-            </span>
-          </a>
-          <a
-            href="#reports"
-            className={`nav-link-item ${route === '#reports' ? 'active' : ''}`}
-            onClick={() => setMobileSidebarOpen(false)}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <ShoppingBag style={{ width: 15, height: 15 }} />
-              <span>Reports & Analytics</span>
             </span>
           </a>
           <a
@@ -142,16 +132,6 @@ export const Sidebar: React.FC = () => {
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <History style={{ width: 15, height: 15 }} />
               <span>Audit Trail</span>
-            </span>
-          </a>
-          <a
-            href="#security"
-            className={`nav-link-item ${route === '#security' ? 'active' : ''}`}
-            onClick={() => setMobileSidebarOpen(false)}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <ShieldCheck style={{ width: 15, height: 15 }} />
-              <span>Security & Roles</span>
             </span>
           </a>
           <a

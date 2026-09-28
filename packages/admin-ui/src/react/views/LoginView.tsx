@@ -9,7 +9,6 @@ import {
   Smartphone,
   ArrowRight,
   ArrowLeft,
-  Sparkles,
   AlertCircle,
 } from 'lucide-react';
 
@@ -23,12 +22,6 @@ export const LoginView: React.FC = () => {
   const [requires2fa, setRequires2fa] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const handleDemoFill = (demoEmail: string, demoPass: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-    setErrorMessage(null);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -241,49 +234,6 @@ export const LoginView: React.FC = () => {
                   </>
                 )}
               </button>
-
-              {/* Quick Demo Fill Helper */}
-              <div
-                style={{
-                  marginTop: '1.5rem',
-                  paddingTop: '1.25rem',
-                  borderTop: '1px solid var(--chakra-colors-border-subtle)',
-                  textAlign: 'center',
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: '0.75rem',
-                    color: 'var(--chakra-colors-fg-muted)',
-                    marginBottom: '0.6rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 4,
-                  }}
-                >
-                  <Sparkles style={{ width: 13, height: 13, color: '#f59e0b' }} />
-                  <span>Quick Demo Credentials</span>
-                </div>
-                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                  <button
-                    type="button"
-                    className="chakra-button subtle"
-                    style={{ fontSize: '0.75rem', padding: '4px 10px' }}
-                    onClick={() => handleDemoFill('admin@jsango.dev', 'admin123')}
-                  >
-                    👑 Superuser
-                  </button>
-                  <button
-                    type="button"
-                    className="chakra-button subtle"
-                    style={{ fontSize: '0.75rem', padding: '4px 10px' }}
-                    onClick={() => handleDemoFill('staff@jsango.dev', 'staff123')}
-                  >
-                    🛡️ Staff
-                  </button>
-                </div>
-              </div>
             </>
           ) : (
             <>

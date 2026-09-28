@@ -7,7 +7,6 @@ import { DynamicForm } from './components/forms/DynamicForm.js';
 import { ProfileSecurityView } from './views/ProfileSecurityView.js';
 import { AuditTrailView } from './views/AuditTrailView.js';
 import { SystemDiagnosticsView } from './views/SystemDiagnosticsView.js';
-import { ReportsAnalyticsView } from './views/ReportsAnalyticsView.js';
 import { LoginView } from './views/LoginView.js';
 
 export const AppContent: React.FC = () => {
@@ -45,20 +44,12 @@ export const AppContent: React.FC = () => {
     return <DynamicForm key={`${res.id}_${recordId || 'new'}`} resource={res} recordId={recordId} />;
   }
 
-  if (route === '#profile' || route === '#password-change') {
+  if (route === '#profile' || route === '#password-change' || route === '#security') {
     return <ProfileSecurityView />;
   }
 
   if (route === '#audit') {
     return <AuditTrailView />;
-  }
-
-  if (route === '#security') {
-    return <ProfileSecurityView />;
-  }
-
-  if (route === '#reports') {
-    return <ReportsAnalyticsView />;
   }
 
   if (route === '#system') {

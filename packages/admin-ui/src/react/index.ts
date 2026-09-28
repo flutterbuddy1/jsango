@@ -9,6 +9,5 @@ export * from './views/DashboardView.js';
 export * from './views/ProfileSecurityView.js';
 export * from './views/AuditTrailView.js';
 export * from './views/SystemDiagnosticsView.js';
-export * from './views/ReportsAnalyticsView.js';
 export * from './views/LoginView.js';
 export * from './App.js';

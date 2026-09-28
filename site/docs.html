@@ -533,10 +533,100 @@ for (const user of activeUsers) {
       <section id="admin-overview" class="doc-section">
         <h2>Auto-Generated React Admin Console</h2>
         <p>
-          Similar to Django's revered admin interface, JSango automatically generates a full-featured single-page application (SPA) with CRUD, search, faceted filters, batch bulk actions, CSV export, and RBAC security from your model schemas.
+          Similar to Django's revered admin interface, JSango automatically generates a full-featured, responsive single-page application (SPA) with CRUD tables, dynamic search, faceted filters, batch bulk actions, CSV export, RBAC security, and live System Diagnostics.
         </p>
 
-        <h3 id="admin-resources">Defining an Admin Resource</h3>
+        <h3>1-Line Instant Admin Setup</h3>
+        <p>
+          Mount a complete admin console directly on your JSango application in a single method call:
+        </p>
+
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>src/index.ts</span>
+            <button class="copy-code-btn copy-trigger" data-copy="import { createApp, model, fields } from 'jsango';
+
+export const Product = model('Product', {
+  id: fields.id(),
+  name: fields.string({ maxLength: 255 }),
+  price: fields.number(),
+  inStock: fields.boolean({ defaultValue: true }),
+});
+
+const app = createApp();
+
+// Mount Admin SPA with custom prefix & models
+app.admin({
+  prefix: '/admin',
+  title: 'My Store Admin',
+  resources: [Product],
+  auth: {
+    email: 'admin@jsango.dev',
+    password: process.env.JSANGO_ADMIN_PASSWORD || 'admin123',
+    name: 'Super Administrator',
+  }
+});
+
+await app.listen(3000);">Copy</button>
+          </div>
+          <pre><code><span class="hl-kw">import</span> { createApp, model, fields } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
+
+<span class="hl-kw">export const</span> <span class="hl-type">Product</span> = <span class="hl-fn">model</span>(<span class="hl-str">'Product'</span>, {
+  id: fields.<span class="hl-fn">id</span>(),
+  name: fields.<span class="hl-fn">string</span>({ maxLength: <span class="hl-num">255</span> }),
+  price: fields.<span class="hl-fn">number</span>(),
+  inStock: fields.<span class="hl-fn">boolean</span>({ defaultValue: <span class="hl-kw">true</span> }),
+});
+
+<span class="hl-kw">const</span> app = <span class="hl-fn">createApp</span>();
+
+<span class="hl-comm">// Mount Admin SPA with custom prefix, models & super admin credentials</span>
+app.<span class="hl-fn">admin</span>({
+  prefix: <span class="hl-str">'/admin'</span>,
+  title: <span class="hl-str">'My Store Admin'</span>,
+  resources: [Product],
+  auth: {
+    email: <span class="hl-str">'admin@jsango.dev'</span>,
+    password: process.env.JSANGO_ADMIN_PASSWORD || <span class="hl-str">'admin123'</span>,
+    name: <span class="hl-str">'Super Administrator'</span>,
+  }
+});
+
+<span class="hl-kw">await</span> app.<span class="hl-fn">listen</span>(<span class="hl-num">3000</span>);</code></pre>
+        </div>
+
+        <h3>Default Super Admin Credentials</h3>
+        <p>
+          Out-of-the-box, the admin console initializes with the following default super admin credentials:
+        </p>
+        <div class="table-container">
+          <table class="doc-table">
+            <thead>
+              <tr>
+                <th>Field</th>
+                <th>Default Value</th>
+                <th>Environment Variable Override</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Email / Username</strong></td>
+                <td><code>admin@jsango.dev</code> or <code>admin</code></td>
+                <td><code>JSANGO_ADMIN_USER</code> or <code>JSANGO_ADMIN_EMAIL</code></td>
+              </tr>
+              <tr>
+                <td><strong>Password</strong></td>
+                <td><code>admin123</code></td>
+                <td><code>JSANGO_ADMIN_PASSWORD</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">
+          💡 <em>Tip: You can also change the password at runtime directly inside the <strong>Profile &amp; Security</strong> page in the Admin Panel or configure custom credentials in <code>app.admin({ auth: { ... } })</code>.</em>
+        </p>
+
+        <h3 id="admin-resources">Defining Custom Admin Resources with Rules</h3>
         <div class="code-box">
           <div class="code-box-header">
             <span>src/admin/user-resource.ts</span>
@@ -571,32 +661,10 @@ export const UserAdminResource = createAdminResource(User, {
 });</code></pre>
         </div>
 
-        <h3>Mounting the Admin Server</h3>
-        <div class="code-box">
-          <div class="code-box-header">
-            <span>Mounting Admin</span>
-            <button class="copy-code-btn copy-trigger" data-copy="import { AdminServer } from '@jsango/admin-server';
-import { UserAdminResource } from './admin/user-resource.js';
-
-const adminServer = new AdminServer({
-  title: 'My Enterprise Dashboard',
-  resources: [UserAdminResource],
-  path: '/admin'
-});
-
-app.mount(adminServer);">Copy</button>
-          </div>
-          <pre><code><span class="hl-kw">import</span> { AdminServer } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/admin-server'</span>;
-<span class="hl-kw">import</span> { UserAdminResource } <span class="hl-kw">from</span> <span class="hl-str">'./admin/user-resource.js'</span>;
-
-<span class="hl-kw">const</span> adminServer = <span class="hl-kw">new</span> <span class="hl-type">AdminServer</span>({
-  title: <span class="hl-str">'My Enterprise Dashboard'</span>,
-  resources: [UserAdminResource],
-  path: <span class="hl-str">'/admin'</span>
-});
-
-app.<span class="hl-fn">mount</span>(adminServer);</code></pre>
-        </div>
+        <h3>Real-time System Diagnostics</h3>
+        <p>
+          The Admin Panel includes a dedicated <strong>System Diagnostics</strong> dashboard displaying live V8 Heap Memory, Resident Set Size (RSS), Node.js runtime version, process uptime, and status indicators for ORM database pools, HTTP kernel, RBAC authentication, and audit logs.
+        </p>
       </section>
 
       <hr class="doc-divider">

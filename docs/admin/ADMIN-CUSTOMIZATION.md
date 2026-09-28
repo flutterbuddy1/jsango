@@ -39,6 +39,34 @@ router.get(
 
 ---
 
+## 1.1 Super Admin Credentials & Authentication
+
+By default, the Admin Console initializes with default super admin credentials:
+
+- **Email / Username**: `admin@jsango.dev` or `admin`
+- **Password**: `admin123`
+
+You can customize credentials via the `auth` property in `app.admin()` or environment variables:
+
+```typescript
+app.admin({
+  prefix: '/admin',
+  title: 'Acme Admin',
+  resources: [Product, User],
+  auth: {
+    email: 'admin@acme.com',
+    password: process.env.JSANGO_ADMIN_PASSWORD || 'Secret#2026',
+    name: 'Chief Admin',
+  },
+});
+```
+
+### Supported Environment Variables:
+- `JSANGO_ADMIN_USER` or `JSANGO_ADMIN_EMAIL`: Override default admin username/email.
+- `JSANGO_ADMIN_PASSWORD`: Override default admin password.
+
+---
+
 ## 2. Theme & Design Token Overrides
 
 The Admin UI is styled using **Chakra UI v3** semantic design tokens and CSS custom properties. You can customize the look and feel by injecting custom CSS overrides or configuring your brand palette:

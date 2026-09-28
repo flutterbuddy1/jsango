@@ -59,6 +59,26 @@ export interface AdminOptions {
    */
   readonly brandSubtitle?: string;
   /**
+   * Super admin credentials for login authentication.
+   * Can also be configured via JSANGO_ADMIN_USER / JSANGO_ADMIN_PASSWORD env variables.
+   * @default username: 'admin@jsango.dev', password: 'admin123'
+   */
+  readonly auth?: {
+    readonly username?: string;
+    readonly email?: string;
+    readonly password?: string;
+    readonly name?: string;
+  };
+  /**
+   * Alias for auth options.
+   */
+  readonly credentials?: {
+    readonly username?: string;
+    readonly email?: string;
+    readonly password?: string;
+    readonly name?: string;
+  };
+  /**
    * List of ORM models to register into the Admin console.
    */
   readonly resources?: readonly (DefinedModelStatic<any, any> | Model)[];
@@ -338,6 +358,7 @@ export class JSangoApplication {
       audit,
       queryAdapter,
       prefix: apiPrefix,
+      credentials: options.credentials || options.auth,
     });
 
     adminServer.mount(this.app.router);
