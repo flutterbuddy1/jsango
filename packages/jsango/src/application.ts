@@ -17,6 +17,7 @@ import { AdminRegistry } from '@jsango/admin-core';
 import { AdminServer, type IAdminQueryAdapter, type AdminListQuery, type AdminListResult } from '@jsango/admin-server';
 import { AdminPermissionChecker } from '@jsango/admin-auth';
 import { AdminAuditLogger, InMemoryAuditStore } from '@jsango/admin-audit';
+import { createAdminUiHandler } from '@jsango/admin-ui';
 import { OpenApiRegistry, OpenApiGenerator } from '@jsango/openapi';
 import { Agent } from '@jsango/ai';
 import { WebSocketEndpointManager, type WebSocketRouteCallback } from './websocket-wrapper.js';
@@ -28,7 +29,38 @@ export interface CrudOptions {
 }
 
 export interface AdminOptions {
+  /**
+   * Browser URL path where the React Admin UI SPA is accessible.
+   * @default '/admin'
+   */
+  readonly path?: string;
+  /**
+   * Alias for path (e.g. '/admin-panel').
+   */
   readonly prefix?: string;
+  /**
+   * REST API prefix for @jsango/admin-server backend endpoints.
+   * @default `${path}/api/v1`
+   */
+  readonly apiPrefix?: string;
+  /**
+   * Branding title displayed in the Admin UI header and page title.
+   * @default 'JSango Administration'
+   */
+  readonly title?: string;
+  /**
+   * Default theme mode ('light', 'dark', or 'system').
+   * @default 'dark'
+   */
+  readonly defaultTheme?: 'light' | 'dark' | 'system';
+  /**
+   * Subtitle displayed under the brand title.
+   * @default 'Enterprise Admin Control'
+   */
+  readonly brandSubtitle?: string;
+  /**
+   * List of ORM models to register into the Admin console.
+   */
   readonly resources?: readonly (DefinedModelStatic<any, any> | Model)[];
 }
 
@@ -231,7 +263,9 @@ export class JSangoApplication {
   // --- Automatic Admin Mounting ---
 
   public admin(options: AdminOptions = {}): this {
-    const prefix = options.prefix ?? '/admin/api/v1';
+    const rawPath = options.path ?? options.prefix ?? '/admin';
+    const uiPath = rawPath.startsWith('/') ? rawPath.replace(/\/$/, '') : `/${rawPath.replace(/\/$/, '')}`;
+    const apiPrefix = options.apiPrefix ?? `${uiPath}/api/v1`;
     const registry = new AdminRegistry();
 
     if (options.resources) {
@@ -303,10 +337,22 @@ export class JSangoApplication {
       permissions,
       audit,
       queryAdapter,
-      prefix,
+      prefix: apiPrefix,
     });
 
     adminServer.mount(this.app.router);
+
+    // Mount the React Chakra UI SPA at the configured UI path
+    const uiHandler = createAdminUiHandler({
+      title: options.title,
+      apiBasePath: apiPrefix,
+      defaultTheme: options.defaultTheme,
+      brandSubtitle: options.brandSubtitle,
+    });
+
+    this.get(uiPath, uiHandler);
+    this.get(`${uiPath}/*adminPath`, uiHandler);
+
     return this;
   }
 
