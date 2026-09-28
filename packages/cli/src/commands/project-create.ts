@@ -10,7 +10,7 @@ export class ProjectCreateCommand extends BaseCommand {
   public readonly name = 'create';
   public readonly description = 'Create and scaffold a new jsango project';
   public readonly usage = 'jsango create <projectName> [options]';
-  public readonly aliases = ['init'];
+  public readonly aliases = ['init', 'new'];
   public readonly arguments = [
     {
       name: 'projectName',
@@ -70,13 +70,7 @@ export class ProjectCreateCommand extends BaseCommand {
           dev: 'tsc -b && node dist/index.js',
         },
         dependencies: {
-          '@jsango/core': '^1.0.1',
-          '@jsango/http': '^1.0.1',
-          '@jsango/router': '^1.0.1',
-          '@jsango/middleware': '^1.0.1',
-          '@jsango/database': '^1.0.1',
-          '@jsango/orm': '^1.0.1',
-          '@jsango/migrations': '^1.0.1',
+          jsango: '^1.0.2',
         },
         devDependencies: {
           typescript: '^5.8.2',
@@ -110,13 +104,13 @@ export class ProjectCreateCommand extends BaseCommand {
     fs.writeFileSync(path.join(targetDir, 'tsconfig.json'), tsconfigContent, 'utf8');
 
     // 3. src/index.ts
-    const indexTsContent = `import { Application } from '@jsango/middleware';
+    const indexTsContent = `import { createApp } from 'jsango';
 
-export function createApplication(): Application {
-  const app = new Application({ isProduction: process.env.NODE_ENV === 'production' });
+export function createApplication() {
+  const app = createApp();
 
   app.get('/', () => ({
-    message: 'Welcome to your new jsango application!',
+    message: 'Welcome to your new JSango application!',
     status: 'ok',
     timestamp: new Date().toISOString(),
   }));
@@ -131,18 +125,7 @@ if (process.env.NODE_ENV !== 'test') {
   const port = Number(process.env.PORT) || 3000;
   const host = process.env.HOST || '127.0.0.1';
 
-  app.listen(port, host).then((server) => {
-    console.log(\`Server running at http://\${host}:\${port}\`);
-
-    const shutdown = async () => {
-      console.log('Shutting down server...');
-      await server.close();
-      process.exit(0);
-    };
-
-    process.on('SIGINT', shutdown);
-    process.on('SIGTERM', shutdown);
-  });
+  await app.listen(port, host);
 }
 `;
     fs.writeFileSync(path.join(srcDir, 'index.ts'), indexTsContent, 'utf8');

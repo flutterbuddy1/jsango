@@ -5,154 +5,218 @@
 <h1 align="center">JSango</h1>
 
 <p align="center">
-  <strong>Production-grade, batteries-included TypeScript backend framework designed for modern JavaScript runtimes and high-concurrency workloads.</strong>
+  <strong>Production-grade, batteries-included TypeScript backend framework.</strong><br>
+  <em>"Powerful Internally, Simple Externally"</em>
 </p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.0.0-green.svg" alt="Version: 1.0.0" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.0.2-green.svg" alt="Version: 1.0.2" /></a>
   <a href="tsconfig.base.json"><img src="https://img.shields.io/badge/TypeScript-Strict%205.8-blue.svg" alt="TypeScript: Strict" /></a>
   <a href="https://flutterbuddy1.github.io/jsango/"><img src="https://img.shields.io/badge/Docs-Landing%20Page-6366f1.svg" alt="Documentation Site" /></a>
 </p>
 
 ---
 
-## Overview
+## Why JSango?
 
-**JSango** combines the convention-over-configuration philosophy, developer ergonomics, and built-in batteries of Django with modern TypeScript type safety, modular package architecture, and the high-throughput performance of contemporary JavaScript runtimes (Node.js 20+).
+JSango combines the convention-over-configuration philosophy, developer ergonomics, and built-in batteries of Django with modern TypeScript type safety, modular package architecture, and the high-throughput performance of contemporary JavaScript runtimes.
 
-### Core Principles
-
-- **TypeScript-First**: Strict type safety throughout (`strict: true`, zero `any`, strict null checks).
-- **Convention Over Configuration**: Opinionated, secure defaults with extensive configurability.
-- **Explicit Over Magical**: Zero monkey-patching or opaque runtime reflection on hot execution paths.
-- **Runtime Independent**: Clean runtime abstraction supporting Node.js today and modern JavaScript runtimes.
-- **High Performance**: Designed from day one for high concurrency, zero-allocation hot paths (>7.7M route lookups/sec), and non-blocking I/O.
-- **Security by Default**: Built-in protections against SQL injection, CSRF, CRLF header injection, path traversal, and sensitive credential leakage.
+- **One Single Dependency**: Install `jsango` and get HTTP routing, WebSockets, ORM, Validation, Auth, Admin UI, OpenAPI, Queue, and Events out of the box.
+- **Zero Boilerplate**: Write handlers that directly return objects, strings, streams, or promises. Automatic JSON serialization.
+- **Type-Safe Validation**: Define schemas once with fluent builders (`string()`, `number()`, `email()`).
+- **Intuitive ORM**: Expressive declarative models with static query helpers (`User.where('active', true).get()`, `User.find(id)`).
+- **Built-in WebSockets**: Broadcast to rooms and manage real-time sockets with simple, ergonomic APIs.
+- **Auto Admin & OpenAPI**: Instant OpenAPI documentation (`app.openapi()`) and metadata-driven Admin UI (`app.admin()`).
 
 ---
 
-## Quick Start
+## 5-Minute Quick Start
 
-### 1. Scaffolding a New Application
+### 1. Scaffold a New Project
 
 ```bash
-# Create a new jsango project using the CLI
-npx @jsango/cli create my-app
+# Using npx
+npx jsango new my-app
 cd my-app
 pnpm install
 pnpm dev
 ```
 
-### 2. Application Example
+### 2. Hello World in 6 Lines
 
 ```typescript
-import { Application } from '@jsango/middleware';
-import { defineModel, fields } from '@jsango/orm';
+import { createApp } from "jsango";
 
-// 1. Define Model
-export const User = defineModel({
-  name: 'User',
-  table: 'users',
-  fields: {
-    id: fields.uuid({ primaryKey: true }),
-    email: fields.string({ unique: true }),
-    name: fields.string(),
-  },
+const app = createApp();
+
+app.get("/hello", () => ({ message: "Hello from JSango!" }));
+
+await app.listen(3000);
+```
+
+---
+
+## Essential Guides
+
+### 1. Simple REST & CRUD APIs
+
+```typescript
+import { createApp, model, fields, validate, schema, string, email, notFound } from "jsango";
+
+// Define ORM Model
+export const User = model("User", {
+  id: fields.id(),
+  name: fields.string(),
+  email: fields.string({ unique: true }),
+  active: fields.boolean({ defaultValue: true }),
 });
 
-// 2. Instantiate Application
-const app = new Application({ isProduction: process.env.NODE_ENV === 'production' });
+const app = createApp();
 
-app.get('/api/users/:id', async (ctx) => {
-  const id = ctx.request.params['id'];
-  const user = await User.query().where('id', '=', id).first();
-  if (!user) {
-    return ctx.response.notFound({ error: 'User not found' });
+// Query all users
+app.get("/users", async () => {
+  return User.all();
+});
+
+// Query single user
+app.get("/users/:id", async ({ params }) => {
+  const user = await User.find(params.id);
+  if (!user) throw notFound("User not found");
+  return user;
+});
+
+// Create user with automatic schema validation
+app.post(
+  "/users",
+  validate({
+    body: schema({
+      name: string().min(2),
+      email: email(),
+    }),
+  }),
+  async ({ body }) => {
+    return User.create(body);
   }
-  return user.toJSON();
+);
+
+// Or generate a full CRUD resource in one line:
+app.crud("/api/users", User);
+
+await app.listen(3000);
+```
+
+### 2. Real-Time WebSockets & Rooms
+
+```typescript
+import { createApp } from "jsango";
+
+const app = createApp();
+
+app.ws("/chat", (socket) => {
+  // Join a room
+  socket.on("join", (room) => {
+    socket.join(room);
+    socket.to(room).send({ type: "notification", text: `User ${socket.id} joined.` });
+  });
+
+  // Broadcast to room
+  socket.on("message", ({ room, text }) => {
+    socket.to(room).send({ type: "message", from: socket.id, text });
+  });
 });
 
-// 3. Start Server
-const server = await app.listen(3000, '0.0.0.0');
-console.log('Server running on http://localhost:3000');
+await app.listen(3000);
+```
+
+### 3. Background Jobs, Events & Cache
+
+```typescript
+import { events, jobs, cache } from "jsango";
+
+// 1. Events
+events.on("user.registered", async (user) => {
+  console.log("Welcome email queued for", user.email);
+});
+await events.emit("user.registered", { id: "1", email: "alex@example.com" });
+
+// 2. Background Jobs
+jobs.define("send-email", async ({ to, subject }) => {
+  // perform async sending...
+});
+await jobs.dispatch("send-email", { to: "alex@example.com", subject: "Welcome!" });
+
+// 3. Cache with Stampede Protection
+const stats = await cache.remember("dashboard.stats", 60, async () => {
+  return { activeUsers: 1420, uptime: process.uptime() };
+});
+```
+
+### 4. Automatic Admin UI & OpenAPI Documentation
+
+```typescript
+import { createApp } from "jsango";
+import { User } from "./models/user.js";
+
+const app = createApp();
+
+// Mount OpenAPI 3.1 JSON and Swagger UI
+app.openapi({
+  path: "/openapi.json",
+  docsPath: "/docs",
+  title: "My Application API",
+  version: "1.0.0",
+});
+
+// Mount Instant Admin Dashboard with Model Introspection
+app.admin({
+  path: "/admin",
+  resources: [User],
+});
+
+await app.listen(3000);
 ```
 
 ---
 
-## Monorepo Packages (`v1.0.0`)
+## CLI Commands
 
-| Package                                           | Purpose & Responsibility                                                                       |
-| :------------------------------------------------ | :--------------------------------------------------------------------------------------------- |
-| [`@jsango/runtime`](packages/runtime)             | Runtime abstraction and platform adapters (Node.js)                                            |
-| [`@jsango/core`](packages/core)                   | Application lifecycle coordinator, structured error hierarchy, and logging abstractions        |
-| [`@jsango/container`](packages/container)         | High-performance DI container supporting transient, singleton, and scoped lifetimes            |
-| [`@jsango/config`](packages/config)               | Centralized, immutable configuration provider with type casting and schema validation          |
-| [`@jsango/http`](packages/http)                   | Runtime-independent HTTP request/response abstractions and streaming body parsers              |
-| [`@jsango/router`](packages/router)               | Segment Radix Trie router (>7.7M ops/sec), typed parameter constraints, and route groups       |
-| [`@jsango/middleware`](packages/middleware)       | Onion-style middleware pipeline, response normalization, and application coordinator           |
-| [`@jsango/database`](packages/database)           | Multi-connection manager, FIFO connection pool, and scoped transaction state machines          |
-| [`@jsango/orm`](packages/orm)                     | Declarative models, AST query builder, and pure batch eager loading (`.with()`)                |
-| [`@jsango/migrations`](packages/migrations)       | Schema diffing engine, DDL compilers, distributed locks, and migration runner                  |
-| [`@jsango/validation`](packages/validation)       | High-throughput schema validation engine for body, query, and parameter payloads               |
-| [`@jsango/cli`](packages/cli)                     | CLI commands (`jsango`, `jsango`), scaffolding, and developer tooling                          |
-| [`@jsango/auth`](packages/auth)                   | Authentication (Session, JWT, API Key), Scrypt hashing, and object-level policy engine         |
-| [`@jsango/cache`](packages/cache)                 | Driver-agnostic caching with stampede protection (`remember`) and namespaces                   |
-| [`@jsango/queue`](packages/queue)                 | At-least-once background job queues, concurrent worker polling, and dead-letter store          |
-| [`@jsango/events`](packages/events)               | Typed event definitions, tri-mode execution (`sync`, `async`, `queued`), and priority handlers |
-| [`@jsango/websocket`](packages/websocket)         | Multi-room WebSocket management with heartbeat monitoring and backpressure safeguards          |
-| [`@jsango/admin-core`](packages/admin-core)       | Declarative admin resource definitions, auto-generation from ORM metadata, and registry        |
-| [`@jsango/admin-server`](packages/admin-server)   | Admin REST API server orchestrating CRUD operations, permissions, and audit logging            |
-| [`@jsango/admin-auth`](packages/admin-auth)       | Staff authorization, resource-level CRUD permissions, and field-level visibility checks        |
-| [`@jsango/admin-audit`](packages/admin-audit)     | Immutable audit trails, change diff calculation, and sensitive field redaction                 |
-| [`@jsango/admin-media`](packages/admin-media)     | Secure media uploads, MIME/extension validation, and storage abstractions                      |
-| [`@jsango/openapi`](packages/openapi)             | Deterministic OpenAPI 3.1 document generation from router, validation, ORM, and Admin          |
-| [`@jsango/observability`](packages/observability) | Structured JSON logging, Prometheus metrics, monotonic tracing, and health checks              |
-| [`@jsango/testing`](packages/testing)             | Testing utilities, HTTP client simulator, and mock transports                                  |
+| Command | Description |
+|---|---|
+| `jsango new <name>` | Scaffold a fresh, production-ready JSango application |
+| `jsango dev` | Start development server with TypeScript compilation |
+| `jsango build` | Compile application for production |
+| `jsango start` | Run production build |
+| `jsango migrate` | Run pending database migrations |
+| `jsango routes` | List all registered HTTP and WebSocket routes |
+| `jsango doctor` | Verify environment, dependencies, and configuration |
 
 ---
 
-## Development & Testing
+## Monorepo Packages
 
-```bash
-# Install dependencies
-pnpm install
+For advanced customization, internal packages remain independently available:
 
-# Build all packages with Turborepo
-pnpm build
-
-# Run strict TypeScript typechecking
-pnpm typecheck
-
-# Run unit, integration, and E2E test suites with Vitest
-pnpm test
-
-# Run microbenchmarks
-pnpm bench
-
-# Verify lint and code formatting
-pnpm lint
-pnpm format:check
-```
-
----
-
-## Documentation
-
-- [Architecture Overview](docs/architecture/01-overview.md)
-- [Performance & Benchmarks](docs/performance/README.md)
-- [Release Candidate Report](docs/performance/PHASE-15-REPORT.md)
-- [Architectural Decision Records (ADRs)](docs/decisions/)
-- [Production Deployment Guide](docs/deployment/README.md)
-- [Migration Guide](docs/migration/MIGRATION-GUIDE.md)
-- [Known Limitations](docs/LIMITATIONS.md)
-- [Release Checklist](docs/release/RELEASE-CHECKLIST.md)
-- [Security Policy](SECURITY.md)
-- [Roadmap](ROADMAP.md)
-- [Project Status](PROJECT_STATUS.md)
+| Package | Responsibility |
+|:---|:---|
+| [`jsango`](packages/jsango) | **Unified high-level developer facade and app coordinator** |
+| [`@jsango/core`](packages/core) | Application lifecycle coordinator and structured error hierarchy |
+| [`@jsango/http`](packages/http) | HTTP request/response abstractions and streaming body parsers |
+| [`@jsango/router`](packages/router) | Segment Radix Trie router (>7.7M ops/sec) and parameter constraints |
+| [`@jsango/middleware`](packages/middleware) | Middleware execution pipeline and response normalizers |
+| [`@jsango/orm`](packages/orm) | Declarative models, AST query builder, and batch eager loading |
+| [`@jsango/database`](packages/database) | Multi-connection manager, connection pool, and transactions |
+| [`@jsango/validation`](packages/validation) | Fluent schema validation engine and request middleware |
+| [`@jsango/websocket`](packages/websocket) | Real-time WebSocket server, room manager, and heartbeat engine |
+| [`@jsango/admin`](packages/admin) | Metadata-driven administrative dashboard engine |
+| [`@jsango/auth`](packages/auth) | Authentication (JWT, Session, API Key) and policy authorization |
+| [`@jsango/cache`](packages/cache) | Driver-agnostic caching with stampede protection (`remember`) |
+| [`@jsango/queue`](packages/queue) | Asynchronous background job queues with exponential retries |
+| [`@jsango/events`](packages/events) | In-process and distributed asynchronous event bus |
+| [`@jsango/cli`](packages/cli) | CLI tooling and project generators |
 
 ---
 
 ## License
 
-MIT © 2026 jsango contributors.
+MIT © JSango Authors.

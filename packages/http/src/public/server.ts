@@ -12,6 +12,7 @@ export interface ServerAddress {
 export interface IHttpServer {
   readonly isListening: boolean;
   readonly address: ServerAddress | null;
+  getUnderlyingServer?(): unknown;
   listen(port?: number, host?: string): Promise<ServerAddress>;
   close(timeoutMs?: number): Promise<void>;
 }

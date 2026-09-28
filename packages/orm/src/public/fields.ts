@@ -1,18 +1,30 @@
 import type { FieldDefinition, FieldOptions } from './types.js';
 
-type CustomFieldOptions<T> = Omit<FieldOptions<T>, 'type'>;
+type CustomFieldOptions<T> = Omit<FieldOptions<T>, 'type'> & {
+  readonly defaultValue?: T | (() => T) | undefined;
+};
 
 function createField<T>(
   type: FieldOptions['type'],
   options?: CustomFieldOptions<T>
 ): FieldDefinition<T> {
+  const { defaultValue, ...rest } = options ?? {};
   return {
     type,
-    ...options,
+    default: defaultValue ?? options?.default,
+    ...rest,
   };
 }
 
 export const fields = {
+  id<T = number>(options?: CustomFieldOptions<T>): FieldDefinition<T> {
+    return createField<T>('integer', {
+      primaryKey: true,
+      autoIncrement: true,
+      ...options,
+    });
+  },
+
   string<T = string>(options?: CustomFieldOptions<T>): FieldDefinition<T> {
     return createField<T>('string', options);
   },

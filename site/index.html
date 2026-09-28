@@ -119,22 +119,22 @@
           </div>
           <div class="showcase-tabs">
             <button class="tab-btn active" data-tab="orm">
-              <span>🗄️</span> ORM & Relations
+              <span>🗄️</span> ORM & Models
             </button>
             <button class="tab-btn" data-tab="router">
-              <span>⚡</span> SegRadix Router
+              <span>⚡</span> Simple App & Routes
             </button>
             <button class="tab-btn" data-tab="admin">
-              <span>🖥️</span> Auto Admin Panel
-            </button>
-            <button class="tab-btn" data-tab="auth">
-              <span>🔐</span> 2FA & Auth Security
-            </button>
-            <button class="tab-btn" data-tab="queue">
-              <span>📬</span> Queues & Workers
+              <span>🖥️</span> Auto Admin & CRUD
             </button>
             <button class="tab-btn" data-tab="ws">
               <span>🔌</span> Realtime WebSockets
+            </button>
+            <button class="tab-btn" data-tab="queue">
+              <span>📬</span> Queues & Events
+            </button>
+            <button class="tab-btn" data-tab="auth">
+              <span>🔐</span> 2FA & Security
             </button>
           </div>
         </div>
@@ -142,83 +142,117 @@
         <div class="showcase-body">
           <!-- ORM Tab -->
           <div class="code-pane active" id="pane-orm">
-            <pre><code><span class="hl-kw">import</span> { defineModel, fields } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/orm'</span>;
+            <pre><code><span class="hl-kw">import</span> { model, fields } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
 
-<span class="hl-comm">// 1. Strongly-typed declarative schema with automatic relations</span>
-<span class="hl-kw">export const</span> <span class="hl-type">User</span> = <span class="hl-fn">defineModel</span>({
-  name: <span class="hl-str">'User'</span>,
-  table: <span class="hl-str">'users'</span>,
-  fields: {
-    id: fields.<span class="hl-fn">uuid</span>({ primaryKey: <span class="hl-kw">true</span> }),
-    email: fields.<span class="hl-fn">string</span>({ unique: <span class="hl-kw">true</span>, maxLength: <span class="hl-num">255</span> }),
-    fullName: fields.<span class="hl-fn">string</span>(),
-    role: fields.<span class="hl-fn">enum</span>([<span class="hl-str">'admin'</span>, <span class="hl-str">'editor'</span>, <span class="hl-str">'viewer'</span>]),
-    isActive: fields.<span class="hl-fn">boolean</span>({ default: <span class="hl-kw">true</span> }),
-  },
-  relations: (rel) => ({
-    orders: rel.<span class="hl-fn">hasMany</span>(<span class="hl-str">'Order'</span>, { foreignKey: <span class="hl-str">'userId'</span> }),
-    profile: rel.<span class="hl-fn">hasOne</span>(<span class="hl-str">'UserProfile'</span>, { foreignKey: <span class="hl-str">'userId'</span> }),
-  }),
+<span class="hl-comm">// 1. Strongly-typed declarative model</span>
+<span class="hl-kw">export const</span> <span class="hl-type">User</span> = <span class="hl-fn">model</span>(<span class="hl-str">'User'</span>, {
+  id: fields.<span class="hl-fn">id</span>(),
+  email: fields.<span class="hl-fn">string</span>({ unique: <span class="hl-kw">true</span> }),
+  name: fields.<span class="hl-fn">string</span>(),
+  role: fields.<span class="hl-fn">string</span>({ defaultValue: <span class="hl-str">'viewer'</span> }),
+  active: fields.<span class="hl-fn">boolean</span>({ defaultValue: <span class="hl-kw">true</span> }),
 });
 
-<span class="hl-comm">// 2. High-performance AST query with batch eager loading (no N+1!)</span>
-<span class="hl-kw">const</span> usersWithOrders = <span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">query</span>()
-  .<span class="hl-fn">where</span>(<span class="hl-str">'isActive'</span>, <span class="hl-str">'='</span>, <span class="hl-kw">true</span>)
-  .<span class="hl-fn">with</span>(<span class="hl-str">'orders'</span>, (q) => q.<span class="hl-fn">where</span>(<span class="hl-str">'status'</span>, <span class="hl-str">'='</span>, <span class="hl-str">'completed'</span>))
+<span class="hl-comm">// 2. Query seamlessly with static model helpers</span>
+<span class="hl-kw">const</span> users = <span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">where</span>(<span class="hl-str">'active'</span>, <span class="hl-kw">true</span>)
   .<span class="hl-fn">orderBy</span>(<span class="hl-str">'createdAt'</span>, <span class="hl-str">'desc'</span>)
-  .<span class="hl-fn">limit</span>(<span class="hl-num">20</span>);</code></pre>
+  .<span class="hl-fn">limit</span>(<span class="hl-num">20</span>)
+  .<span class="hl-fn">get</span>();
+
+<span class="hl-kw">const</span> newUser = <span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">create</span>({ name: <span class="hl-str">'Alex'</span>, email: <span class="hl-str">'alex@jsango.dev'</span> });</code></pre>
           </div>
 
           <!-- Router Tab -->
           <div class="code-pane" id="pane-router">
-            <pre><code><span class="hl-kw">import</span> { Application } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/middleware'</span>;
-<span class="hl-kw">import</span> { schema } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/validation'</span>;
+            <pre><code><span class="hl-kw">import</span> { createApp, validate, schema, string, email, notFound } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
+<span class="hl-kw">import</span> { User } <span class="hl-kw">from</span> <span class="hl-str">'./models/user.js'</span>;
 
-<span class="hl-kw">const</span> app = <span class="hl-kw">new</span> <span class="hl-type">Application</span>();
+<span class="hl-kw">const</span> app = <span class="hl-fn">createApp</span>();
 
-<span class="hl-comm">// Ultra-fast SegRadix Trie routing (>7.7M lookups/sec) with typed parameters</span>
-app.<span class="hl-fn">get</span>(<span class="hl-str">'/api/v1/users/:id:uuid'</span>, <span class="hl-kw">async</span> (ctx) => {
-  <span class="hl-kw">const</span> userId = ctx.request.params[<span class="hl-str">'id'</span>];
-  <span class="hl-kw">const</span> user = <span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">query</span>().<span class="hl-fn">findById</span>(userId);
-
-  <span class="hl-kw">if</span> (!user) {
-    <span class="hl-kw">return</span> ctx.response.<span class="hl-fn">notFound</span>({ error: <span class="hl-str">'User not found'</span> });
-  }
-
-  <span class="hl-kw">return</span> ctx.response.<span class="hl-fn">json</span>(user.<span class="hl-fn">toJSON</span>());
+<span class="hl-comm">// Ultra-fast routing with automatic JSON responses & typed context</span>
+app.<span class="hl-fn">get</span>(<span class="hl-str">'/users/:id'</span>, <span class="hl-kw">async</span> ({ params }) => {
+  <span class="hl-kw">const</span> user = <span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">find</span>(params.id);
+  <span class="hl-kw">if</span> (!user) <span class="hl-kw">throw</span> <span class="hl-fn">notFound</span>(<span class="hl-str">'User not found'</span>);
+  <span class="hl-kw">return</span> user;
 });
 
-<span class="hl-comm">// Scoped middleware pipeline with automatic OpenAPI schema registration</span>
-app.<span class="hl-fn">group</span>(<span class="hl-str">'/api/v1/protected'</span>, (router) => {
-  router.<span class="hl-fn">use</span>(authMiddleware);
-  router.<span class="hl-fn">post</span>(<span class="hl-str">'/checkout'</span>, checkoutHandler);
-});</code></pre>
+<span class="hl-comm">// Fluent request validation</span>
+app.<span class="hl-fn">post</span>(<span class="hl-str">'/users'</span>, <span class="hl-fn">validate</span>({
+  body: <span class="hl-fn">schema</span>({ name: <span class="hl-fn">string</span>().<span class="hl-fn">min</span>(<span class="hl-num">2</span>), email: <span class="hl-fn">email</span>() })
+}), <span class="hl-kw">async</span> ({ body }) => {
+  <span class="hl-kw">return</span> <span class="hl-type">User</span>.<span class="hl-fn">create</span>(body);
+});
+
+<span class="hl-kw">await</span> app.<span class="hl-fn">listen</span>(<span class="hl-num">3000</span>);</code></pre>
           </div>
 
           <!-- Admin Tab -->
           <div class="code-pane" id="pane-admin">
-            <pre><code><span class="hl-kw">import</span> { createAdminResource } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/admin-core'</span>;
-<span class="hl-kw">import</span> { AdminServer } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/admin-server'</span>;
+            <pre><code><span class="hl-kw">import</span> { createApp } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
 <span class="hl-kw">import</span> { User } <span class="hl-kw">from</span> <span class="hl-str">'./models/user.js'</span>;
 
-<span class="hl-comm">// 1. Zero-boilerplate Admin Resource generated directly from ORM metadata</span>
-<span class="hl-kw">export const</span> <span class="hl-type">UserAdmin</span> = <span class="hl-fn">createAdminResource</span>(User, {
-  label: <span class="hl-str">'Users & Customers'</span>,
-  icon: <span class="hl-str">'users'</span>,
-  searchFields: [<span class="hl-str">'email'</span>, <span class="hl-str">'fullName'</span>],
-  listFields: [<span class="hl-str">'id'</span>, <span class="hl-str">'email'</span>, <span class="hl-str">'role'</span>, <span class="hl-str">'isActive'</span>],
-  filters: [{ field: <span class="hl-str">'role'</span>, type: <span class="hl-str">'select'</span> }, { field: <span class="hl-str">'isActive'</span>, type: <span class="hl-str">'boolean'</span> }],
-  export: { formats: [<span class="hl-str">'csv'</span>, <span class="hl-str">'json'</span>] },
+<span class="hl-kw">const</span> app = <span class="hl-fn">createApp</span>();
+
+<span class="hl-comm">// 1. Generate full REST CRUD endpoints in one single call</span>
+app.<span class="hl-fn">crud</span>(<span class="hl-str">'/api/users'</span>, User);
+
+<span class="hl-comm">// 2. Mount instant React Admin Panel with automatic schema discovery</span>
+app.<span class="hl-fn">admin</span>({
+  path: <span class="hl-str">'/admin'</span>,
+  resources: [User],
 });
 
-<span class="hl-comm">// 2. Mounts interactive React SPA with CRUD, 2FA, Session Control & Audit Logs</span>
-<span class="hl-kw">const</span> adminServer = <span class="hl-kw">new</span> <span class="hl-type">AdminServer</span>({ resources: [UserAdmin], path: <span class="hl-str">'/admin'</span> });
-app.<span class="hl-fn">mount</span>(adminServer);</code></pre>
+<span class="hl-comm">// 3. Expose interactive OpenAPI documentation</span>
+app.<span class="hl-fn">openapi</span>({ path: <span class="hl-str">'/openapi.json'</span>, docsPath: <span class="hl-str">'/docs'</span> });
+
+<span class="hl-kw">await</span> app.<span class="hl-fn">listen</span>(<span class="hl-num">3000</span>);</code></pre>
+          </div>
+
+          <!-- WebSocket Tab -->
+          <div class="code-pane" id="pane-ws">
+            <pre><code><span class="hl-kw">import</span> { createApp } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
+
+<span class="hl-kw">const</span> app = <span class="hl-fn">createApp</span>();
+
+<span class="hl-comm">// Concise WebSocket endpoint with automatic JSON serialization & rooms</span>
+app.<span class="hl-fn">ws</span>(<span class="hl-str">'/chat'</span>, (socket) => {
+  socket.<span class="hl-fn">on</span>(<span class="hl-str">'join'</span>, (room) => {
+    socket.<span class="hl-fn">join</span>(room);
+    socket.<span class="hl-fn">to</span>(room).<span class="hl-fn">send</span>({ type: <span class="hl-str">'joined'</span>, user: socket.id });
+  });
+
+  socket.<span class="hl-fn">on</span>(<span class="hl-str">'message'</span>, ({ room, text }) => {
+    socket.<span class="hl-fn">to</span>(room).<span class="hl-fn">send</span>({ type: <span class="hl-str">'message'</span>, from: socket.id, text });
+  });
+});
+
+<span class="hl-kw">await</span> app.<span class="hl-fn">listen</span>(<span class="hl-num">3000</span>);</code></pre>
+          </div>
+
+          <!-- Queue Tab -->
+          <div class="code-pane" id="pane-queue">
+            <pre><code><span class="hl-kw">import</span> { jobs, events, cache } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
+
+<span class="hl-comm">// 1. Background Jobs with exponential retries</span>
+jobs.<span class="hl-fn">define</span>(<span class="hl-str">'send-welcome-email'</span>, <span class="hl-kw">async</span> ({ email, name }) => {
+  <span class="hl-kw">await</span> mailService.<span class="hl-fn">send</span>(email, <span class="hl-str">\`Welcome \${name}!\`</span>);
+});
+<span class="hl-kw">await</span> jobs.<span class="hl-fn">dispatch</span>(<span class="hl-str">'send-welcome-email'</span>, { email: <span class="hl-str">'alex@jsango.dev'</span>, name: <span class="hl-str">'Alex'</span> });
+
+<span class="hl-comm">// 2. Application Events</span>
+events.<span class="hl-fn">on</span>(<span class="hl-str">'user.created'</span>, <span class="hl-kw">async</span> (user) => {
+  <span class="hl-kw">await</span> analytics.<span class="hl-fn">track</span>(<span class="hl-str">'Signup'</span>, { id: user.id });
+});
+
+<span class="hl-comm">// 3. Stampede-protected Caching</span>
+<span class="hl-kw">const</span> metrics = <span class="hl-kw">await</span> cache.<span class="hl-fn">remember</span>(<span class="hl-str">'app:metrics'</span>, <span class="hl-num">60</span>, <span class="hl-kw">async</span> () => {
+  <span class="hl-kw">return</span> computeHeavyMetrics();
+});</code></pre>
           </div>
 
           <!-- Auth Tab -->
           <div class="code-pane" id="pane-auth">
-            <pre><code><span class="hl-kw">import</span> { TotpService, ScryptPasswordHasher, SessionManager } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/auth'</span>;
+            <pre><code><span class="hl-kw">import</span> { TotpService } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/auth'</span>;
 
 <span class="hl-comm">// RFC 6238 Time-based One-Time Password (TOTP) 2FA</span>
 <span class="hl-kw">const</span> totp = <span class="hl-kw">new</span> <span class="hl-type">TotpService</span>();
@@ -236,43 +270,6 @@ app.<span class="hl-fn">mount</span>(adminServer);</code></pre>
 <span class="hl-kw">if</span> (!isValid) {
   <span class="hl-kw">throw new</span> <span class="hl-type">AuthenticationError</span>(<span class="hl-str">'Invalid 2FA Verification Code'</span>);
 }</code></pre>
-          </div>
-
-          <!-- Queue Tab -->
-          <div class="code-pane" id="pane-queue">
-            <pre><code><span class="hl-kw">import</span> { QueueManager, defineJob } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/queue'</span>;
-
-<span class="hl-comm">// Define background job with automatic retries and dead-letter queue</span>
-<span class="hl-kw">export const</span> SendWelcomeEmailJob = <span class="hl-fn">defineJob</span>({
-  name: <span class="hl-str">'send-welcome-email'</span>,
-  retryPolicy: { maxAttempts: <span class="hl-num">3</span>, backoffMultiplier: <span class="hl-num">2</span> },
-  <span class="hl-kw">async</span> <span class="hl-fn">handler</span>({ email, name }) {
-    <span class="hl-kw">await</span> mailClient.<span class="hl-fn">send</span>({ to: email, subject: <span class="hl-str">\`Welcome \${name}!\`</span> });
-  }
-});
-
-<span class="hl-comm">// Push job to Redis/Memory queue</span>
-<span class="hl-kw">await</span> SendWelcomeEmailJob.<span class="hl-fn">dispatch</span>({ email: <span class="hl-str">'user@example.com'</span>, name: <span class="hl-str">'Alex'</span> });</code></pre>
-          </div>
-
-          <!-- WebSocket Tab -->
-          <div class="code-pane" id="pane-ws">
-            <pre><code><span class="hl-kw">import</span> { WebSocketServer } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/websocket'</span>;
-
-<span class="hl-kw">const</span> ws = <span class="hl-kw">new</span> <span class="hl-type">WebSocketServer</span>({ path: <span class="hl-str">'/realtime'</span> });
-
-ws.<span class="hl-fn">onConnection</span>((socket, identity) => {
-  socket.<span class="hl-fn">joinRoom</span>(<span class="hl-str">\`org:\${identity.organizationId}\`</span>);
-
-  socket.<span class="hl-fn">on</span>(<span class="hl-str">'chat:send'</span>, <span class="hl-kw">async</span> (payload) => {
-    <span class="hl-comm">// Broadcast to multi-room channel with zero memory leak backpressure</span>
-    ws.<span class="hl-fn">broadcast</span>(<span class="hl-str">\`org:\${identity.organizationId}\`</span>, <span class="hl-str">'chat:message'</span>, {
-      from: identity.id,
-      text: payload.text,
-      timestamp: Date.<span class="hl-fn">now</span>()
-    });
-  });
-});</code></pre>
           </div>
         </div>
       </div>

@@ -161,26 +161,9 @@ export type InferModelAttributes<TFields extends Record<string, FieldDefinition<
   [K in keyof TFields]: InferFieldType<TFields[K]>;
 };
 
-type OptionalPropertyNames<TFields extends Record<string, FieldDefinition<unknown>>> = {
-  [K in keyof TFields]: TFields[K] extends { default: unknown }
-    ? K
-    : TFields[K] extends { autoIncrement: true }
-      ? K
-      : TFields[K] extends { nullable: true }
-        ? K
-        : never;
-}[keyof TFields];
-
-type RequiredPropertyNames<TFields extends Record<string, FieldDefinition<unknown>>> = Exclude<
-  keyof TFields,
-  OptionalPropertyNames<TFields>
->;
-
 export type InferCreationAttributes<TFields extends Record<string, FieldDefinition<unknown>>> = {
-  [K in RequiredPropertyNames<TFields>]: InferFieldType<TFields[K]>;
-} & {
-  [K in OptionalPropertyNames<TFields>]?: InferFieldType<TFields[K]> | undefined;
-};
+  [K in keyof TFields]?: InferFieldType<TFields[K]> | undefined;
+} & Record<string, unknown>;
 
 export interface ModelStatic<TModel extends Model = Model> {
   new (attributes?: Record<string, unknown>, isNew?: boolean): TModel;

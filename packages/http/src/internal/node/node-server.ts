@@ -33,6 +33,10 @@ export class NodeHttpServer implements IHttpServer {
     return this.server !== null && this.server.listening;
   }
 
+  public getUnderlyingServer(): Server | null {
+    return this.server;
+  }
+
   public get address(): ServerAddress | null {
     if (!this.server) return null;
     const addr = this.server.address();

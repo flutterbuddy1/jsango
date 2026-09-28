@@ -330,8 +330,41 @@ export interface DefinedModelStatic<
   readonly tableName: string;
   readonly metadata: ModelMetadata;
   query(): QueryBuilder<ModelInstance<TFields, TRelations>>;
+  all(): Promise<readonly ModelInstance<TFields, TRelations>[]>;
   find(id: unknown): Promise<ModelInstance<TFields, TRelations> | null>;
   findOrFail(id: unknown): Promise<ModelInstance<TFields, TRelations>>;
+  first(): Promise<ModelInstance<TFields, TRelations> | null>;
+  where(
+    columnOrConditions: string | Record<string, unknown>,
+    operatorOrValue?: unknown,
+    value?: unknown
+  ): QueryBuilder<ModelInstance<TFields, TRelations>>;
+  orWhere(
+    columnOrConditions: string | Record<string, unknown>,
+    operatorOrValue?: unknown,
+    value?: unknown
+  ): QueryBuilder<ModelInstance<TFields, TRelations>>;
+  whereIn(
+    column: string,
+    values: readonly unknown[]
+  ): QueryBuilder<ModelInstance<TFields, TRelations>>;
+  whereNotIn(
+    column: string,
+    values: readonly unknown[]
+  ): QueryBuilder<ModelInstance<TFields, TRelations>>;
+  whereNull(column: string): QueryBuilder<ModelInstance<TFields, TRelations>>;
+  whereNotNull(column: string): QueryBuilder<ModelInstance<TFields, TRelations>>;
+  orderBy(
+    column: string,
+    direction?: 'ASC' | 'DESC'
+  ): QueryBuilder<ModelInstance<TFields, TRelations>>;
+  limit(n: number): QueryBuilder<ModelInstance<TFields, TRelations>>;
+  offset(n: number): QueryBuilder<ModelInstance<TFields, TRelations>>;
+  count(column?: string): Promise<number>;
+  paginate(
+    options: import('./types.js').PaginationOptions
+  ): Promise<import('./types.js').PaginationResult<ModelInstance<TFields, TRelations>>>;
+  with(...relations: readonly string[]): QueryBuilder<ModelInstance<TFields, TRelations>>;
   create(attributes: InferCreationAttributes<TFields>): Promise<ModelInstance<TFields, TRelations>>;
   bulkCreate(
     records: readonly InferCreationAttributes<TFields>[]
@@ -353,12 +386,78 @@ export function defineModel<
       return new QueryBuilder(this as unknown as ModelStatic);
     }
 
+    public static async all(): Promise<readonly Model[]> {
+      return this.query().get();
+    }
+
     public static async find(id: unknown): Promise<Model | null> {
       return this.query().find(id);
     }
 
     public static async findOrFail(id: unknown): Promise<Model> {
       return this.query().findOrFail(id);
+    }
+
+    public static async first(): Promise<Model | null> {
+      return this.query().first();
+    }
+
+    public static where(
+      columnOrConditions: string | Record<string, unknown>,
+      operatorOrValue?: unknown,
+      value?: unknown
+    ): QueryBuilder<Model> {
+      return this.query().where(columnOrConditions as any, operatorOrValue as any, value);
+    }
+
+    public static orWhere(
+      columnOrConditions: string | Record<string, unknown>,
+      operatorOrValue?: unknown,
+      value?: unknown
+    ): QueryBuilder<Model> {
+      return this.query().orWhere(columnOrConditions as any, operatorOrValue as any, value);
+    }
+
+    public static whereIn(column: string, values: readonly unknown[]): QueryBuilder<Model> {
+      return this.query().whereIn(column, values);
+    }
+
+    public static whereNotIn(column: string, values: readonly unknown[]): QueryBuilder<Model> {
+      return this.query().whereNotIn(column, values);
+    }
+
+    public static whereNull(column: string): QueryBuilder<Model> {
+      return this.query().whereNull(column);
+    }
+
+    public static whereNotNull(column: string): QueryBuilder<Model> {
+      return this.query().whereNotNull(column);
+    }
+
+    public static orderBy(column: string, direction: 'ASC' | 'DESC' = 'ASC'): QueryBuilder<Model> {
+      return this.query().orderBy(column, direction);
+    }
+
+    public static limit(n: number): QueryBuilder<Model> {
+      return this.query().limit(n);
+    }
+
+    public static offset(n: number): QueryBuilder<Model> {
+      return this.query().offset(n);
+    }
+
+    public static async count(column?: string): Promise<number> {
+      return this.query().count(column);
+    }
+
+    public static async paginate(
+      options: import('./types.js').PaginationOptions
+    ): Promise<import('./types.js').PaginationResult<Model>> {
+      return this.query().paginate(options);
+    }
+
+    public static with(...relations: readonly string[]): QueryBuilder<Model> {
+      return this.query().with(...relations);
     }
 
     public static async create(attributes: Record<string, unknown>): Promise<Model> {
@@ -466,3 +565,6 @@ export function defineModel<
 
   return DefinedModel as unknown as DefinedModelStatic<TFields, TRelations>;
 }
+
+export const model = defineModel;
+

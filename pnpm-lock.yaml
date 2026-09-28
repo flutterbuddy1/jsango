@@ -545,6 +545,12 @@ importers:
 
   packages/jsango:
     dependencies:
+      '@jsango/admin-audit':
+        specifier: workspace:*
+        version: link:../admin-audit
+      '@jsango/admin-auth':
+        specifier: workspace:*
+        version: link:../admin-auth
       '@jsango/admin-core':
         specifier: workspace:*
         version: link:../admin-core
@@ -557,15 +563,27 @@ importers:
       '@jsango/auth':
         specifier: workspace:*
         version: link:../auth
+      '@jsango/cache':
+        specifier: workspace:*
+        version: link:../cache
       '@jsango/cli':
         specifier: workspace:*
         version: link:../cli
+      '@jsango/config':
+        specifier: workspace:*
+        version: link:../config
+      '@jsango/container':
+        specifier: workspace:*
+        version: link:../container
       '@jsango/core':
         specifier: workspace:*
         version: link:../core
       '@jsango/database':
         specifier: workspace:*
         version: link:../database
+      '@jsango/events':
+        specifier: workspace:*
+        version: link:../events
       '@jsango/http':
         specifier: workspace:*
         version: link:../http
@@ -575,12 +593,37 @@ importers:
       '@jsango/migrations':
         specifier: workspace:*
         version: link:../migrations
+      '@jsango/observability':
+        specifier: workspace:*
+        version: link:../observability
+      '@jsango/openapi':
+        specifier: workspace:*
+        version: link:../openapi
       '@jsango/orm':
         specifier: workspace:*
         version: link:../orm
+      '@jsango/queue':
+        specifier: workspace:*
+        version: link:../queue
       '@jsango/router':
         specifier: workspace:*
         version: link:../router
+      '@jsango/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      '@jsango/validation':
+        specifier: workspace:*
+        version: link:../validation
+      '@jsango/websocket':
+        specifier: workspace:*
+        version: link:../websocket
+      ws:
+        specifier: ^8.18.0
+        version: 8.21.3
+    devDependencies:
+      '@types/ws':
+        specifier: ^8.5.14
+        version: 8.18.1
 
   packages/middleware:
     dependencies:
@@ -688,6 +731,9 @@ importers:
       '@jsango/core':
         specifier: workspace:*
         version: link:../core
+      '@jsango/http':
+        specifier: workspace:*
+        version: link:../http
 
   packages/websocket:
     dependencies:

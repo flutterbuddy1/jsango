@@ -47,6 +47,14 @@ export class HttpResponse {
     this._status = code;
   }
 
+  public get status(): number {
+    return this._status;
+  }
+
+  public set status(code: number) {
+    this.statusCode = code;
+  }
+
   public get statusText(): string {
     return getStatusText(this._status);
   }
@@ -162,6 +170,82 @@ export class HttpResponse {
       status,
       headers,
     });
+  }
+
+  public static created(data: unknown, options: ResponseOptions = {}): HttpResponse {
+    return HttpResponse.json(data, {
+      ...options,
+      status: HttpStatus.CREATED,
+    });
+  }
+
+  public static noContent(): HttpResponse {
+    return new HttpResponse(null, { status: HttpStatus.NO_CONTENT });
+  }
+
+  public static badRequest(
+    message = 'Bad Request',
+    code = 'ERR_BAD_REQUEST',
+    details?: unknown
+  ): HttpResponse {
+    return HttpResponse.json(
+      {
+        error: {
+          code,
+          message,
+          ...(details !== undefined ? { details } : {}),
+        },
+      },
+      { status: HttpStatus.BAD_REQUEST }
+    );
+  }
+
+  public static unauthorized(message = 'Unauthorized'): HttpResponse {
+    return HttpResponse.json(
+      {
+        error: {
+          code: 'ERR_UNAUTHORIZED',
+          message,
+        },
+      },
+      { status: HttpStatus.UNAUTHORIZED }
+    );
+  }
+
+  public static forbidden(message = 'Forbidden'): HttpResponse {
+    return HttpResponse.json(
+      {
+        error: {
+          code: 'ERR_FORBIDDEN',
+          message,
+        },
+      },
+      { status: HttpStatus.FORBIDDEN }
+    );
+  }
+
+  public static notFound(message = 'Not Found'): HttpResponse {
+    return HttpResponse.json(
+      {
+        error: {
+          code: 'ERR_NOT_FOUND',
+          message,
+        },
+      },
+      { status: HttpStatus.NOT_FOUND }
+    );
+  }
+
+  public static serverError(message = 'Internal Server Error'): HttpResponse {
+    return HttpResponse.json(
+      {
+        error: {
+          code: 'ERR_INTERNAL_SERVER_ERROR',
+          message,
+        },
+      },
+      { status: HttpStatus.INTERNAL_SERVER_ERROR }
+    );
   }
 
   public static empty(status: number = HttpStatus.NO_CONTENT): HttpResponse {

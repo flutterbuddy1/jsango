@@ -191,67 +191,64 @@
         <div class="code-box">
           <div class="code-box-header">
             <span>Terminal</span>
-            <button class="copy-code-btn copy-trigger" data-copy="npx @jsango/cli create my-backend && cd my-backend && pnpm install && pnpm dev">Copy</button>
+            <button class="copy-code-btn copy-trigger" data-copy="npx jsango new my-backend && cd my-backend && pnpm install && pnpm dev">Copy</button>
           </div>
           <pre><code><span class="hl-comm"># Scaffold project with TypeScript configuration, ORM models, and Admin Panel</span>
-npx @jsango/cli create my-backend
+npx jsango new my-backend
 cd my-backend
 pnpm install
 pnpm dev</code></pre>
         </div>
 
         <h3>2. Define Your Model & REST Route</h3>
-        <p>Open <code>src/index.ts</code> to define your declarative model and HTTP routes:</p>
+        <p>Open <code>src/index.ts</code> to define your declarative model and HTTP routes with zero boilerplate:</p>
         <div class="code-box">
           <div class="code-box-header">
             <span>src/index.ts</span>
-            <button class="copy-code-btn copy-trigger" data-copy="import { Application } from '@jsango/middleware';
-import { defineModel, fields } from '@jsango/orm';
+            <button class="copy-code-btn copy-trigger" data-copy="import { createApp, model, fields } from 'jsango';
 
-export const Product = defineModel({
-  name: 'Product',
-  table: 'products',
-  fields: {
-    id: fields.uuid({ primaryKey: true }),
-    name: fields.string({ maxLength: 255 }),
-    price: fields.number(),
-    inStock: fields.boolean({ default: true }),
-  },
+export const Product = model('Product', {
+  id: fields.id(),
+  name: fields.string({ maxLength: 255 }),
+  price: fields.number(),
+  inStock: fields.boolean({ defaultValue: true }),
 });
 
-const app = new Application();
+const app = createApp();
 
-app.get('/api/products', async (ctx) => {
-  const products = await Product.query().where('inStock', '=', true).get();
-  return ctx.response.json(products);
+// Query products and return JSON directly
+app.get('/api/products', async () => {
+  return Product.where('inStock', true).get();
 });
 
-await app.listen(3000, '0.0.0.0');">Copy</button>
+// Full CRUD resource in 1 line
+app.crud('/api/crud/products', Product);
+
+await app.listen(3000);
+console.log('🚀 JSango running on http://localhost:3000');">Copy</button>
           </div>
-          <pre><code><span class="hl-kw">import</span> { Application } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/middleware'</span>;
-<span class="hl-kw">import</span> { defineModel, fields } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/orm'</span>;
+          <pre><code><span class="hl-kw">import</span> { createApp, model, fields } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
 
-<span class="hl-comm">// 1. Strongly typed ORM model</span>
-<span class="hl-kw">export const</span> <span class="hl-type">Product</span> = <span class="hl-fn">defineModel</span>({
-  name: <span class="hl-str">'Product'</span>,
-  table: <span class="hl-str">'products'</span>,
-  fields: {
-    id: fields.<span class="hl-fn">uuid</span>({ primaryKey: <span class="hl-kw">true</span> }),
-    name: fields.<span class="hl-fn">string</span>({ maxLength: <span class="hl-num">255</span> }),
-    price: fields.<span class="hl-fn">number</span>(),
-    inStock: fields.<span class="hl-fn">boolean</span>({ default: <span class="hl-kw">true</span> }),
-  },
+<span class="hl-comm">// 1. Strongly typed declarative ORM model</span>
+<span class="hl-kw">export const</span> <span class="hl-type">Product</span> = <span class="hl-fn">model</span>(<span class="hl-str">'Product'</span>, {
+  id: fields.<span class="hl-fn">id</span>(),
+  name: fields.<span class="hl-fn">string</span>({ maxLength: <span class="hl-num">255</span> }),
+  price: fields.<span class="hl-fn">number</span>(),
+  inStock: fields.<span class="hl-fn">boolean</span>({ defaultValue: <span class="hl-kw">true</span> }),
 });
 
 <span class="hl-comm">// 2. High performance application instance</span>
-<span class="hl-kw">const</span> app = <span class="hl-kw">new</span> <span class="hl-type">Application</span>();
+<span class="hl-kw">const</span> app = <span class="hl-fn">createApp</span>();
 
-app.<span class="hl-fn">get</span>(<span class="hl-str">'/api/products'</span>, <span class="hl-kw">async</span> (ctx) => {
-  <span class="hl-kw">const</span> products = <span class="hl-kw">await</span> <span class="hl-type">Product</span>.<span class="hl-fn">query</span>().<span class="hl-fn">where</span>(<span class="hl-str">'inStock'</span>, <span class="hl-str">'='</span>, <span class="hl-kw">true</span>).<span class="hl-fn">get</span>();
-  <span class="hl-kw">return</span> ctx.response.<span class="hl-fn">json</span>(products);
+<span class="hl-comm">// Query products and return JSON directly (automatic serialization)</span>
+app.<span class="hl-fn">get</span>(<span class="hl-str">'/api/products'</span>, <span class="hl-kw">async</span> () => {
+  <span class="hl-kw">return</span> <span class="hl-type">Product</span>.<span class="hl-fn">where</span>(<span class="hl-str">'inStock'</span>, <span class="hl-kw">true</span>).<span class="hl-fn">get</span>();
 });
 
-<span class="hl-kw">await</span> app.<span class="hl-fn">listen</span>(<span class="hl-num">3000</span>, <span class="hl-str">'0.0.0.0'</span>);
+<span class="hl-comm">// Or generate full CRUD endpoints in 1 single line</span>
+app.<span class="hl-fn">crud</span>(<span class="hl-str">'/api/crud/products'</span>, Product);
+
+<span class="hl-kw">await</span> app.<span class="hl-fn">listen</span>(<span class="hl-num">3000</span>);
 console.<span class="hl-fn">log</span>(<span class="hl-str">'🚀 JSango running on http://localhost:3000'</span>);</code></pre>
         </div>
 
