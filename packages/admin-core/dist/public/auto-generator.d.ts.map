@@ -1,0 +1,1 @@
+{"version":3,"file":"auto-generator.d.ts","sourceRoot":"","sources":["../../src/public/auto-generator.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,aAAa,EAAa,MAAM,aAAa,CAAC;AAG5D,OAAO,EAAE,aAAa,EAAE,MAAM,eAAe,CAAC;AAE9C,qBAAa,qBAAqB;IAChC;;OAEG;WACW,iBAAiB,CAAC,QAAQ,EAAE,aAAa,GAAG,aAAa;IAuDvE,OAAO,CAAC,MAAM,CAAC,qBAAqB;CAoCrC"}

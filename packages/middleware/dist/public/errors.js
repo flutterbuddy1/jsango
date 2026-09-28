@@ -1,0 +1,35 @@
+import { JsangoError } from '@jsango/core';
+export class MiddlewareError extends JsangoError {
+}
+export class MultipleNextCallsError extends MiddlewareError {
+    constructor(middlewareName) {
+        const caller = middlewareName ? ` in middleware "${middlewareName}"` : '';
+        super({
+            code: 'ERR_MIDDLEWARE_MULTIPLE_NEXT_CALLS',
+            message: `next() was called multiple times${caller}. A middleware may only invoke next() once.`,
+            statusCode: 500,
+            metadata: middlewareName ? { middleware: middlewareName } : undefined,
+        });
+    }
+}
+export class NamedMiddlewareNotFoundError extends MiddlewareError {
+    constructor(name) {
+        super({
+            code: 'ERR_NAMED_MIDDLEWARE_NOT_FOUND',
+            message: `Named middleware "${name}" is not registered.`,
+            statusCode: 500,
+            metadata: { middlewareName: name },
+        });
+    }
+}
+export class PipelineExecutionError extends MiddlewareError {
+    constructor(message, cause) {
+        super({
+            code: 'ERR_PIPELINE_EXECUTION',
+            message,
+            statusCode: 500,
+            cause,
+        });
+    }
+}
+//# sourceMappingURL=errors.js.map

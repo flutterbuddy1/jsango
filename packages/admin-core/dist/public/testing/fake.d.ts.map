@@ -1,0 +1,1 @@
+{"version":3,"file":"fake.d.ts","sourceRoot":"","sources":["../../../src/public/testing/fake.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,aAAa,EAAE,MAAM,gBAAgB,CAAC;AAC/C,OAAO,EAAE,aAAa,EAAE,MAAM,gBAAgB,CAAC;AAC/C,OAAO,KAAK,EAAE,oBAAoB,EAAE,MAAM,aAAa,CAAC;AAExD,wBAAgB,uBAAuB,CAAC,OAAO,GAAE,oBAAyB,GAAG,aAAa,CAwBzF;AAED,qBAAa,iBAAkB,SAAQ,aAAa;CAAG"}
