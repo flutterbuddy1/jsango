@@ -38,9 +38,10 @@
 
 ```bash
 # Create a new jsango project using the CLI
-npx jsango create my-app
+npx @jsango/cli create my-app
 cd my-app
 pnpm install
+pnpm dev
 ```
 
 ### 2. Application Example

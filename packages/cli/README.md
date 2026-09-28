@@ -12,16 +12,16 @@ pnpm add @jsango/cli
 
 ## Usage
 
-```typescript
+```bash
 # Scaffolding a new project
-npx jsango create my-app
+npx @jsango/cli create my-app
 
 # Running migrations
-npx jsango migrate:run
+npx @jsango/cli migrate:run
 
 # Inspecting routes & models
-npx jsango route:list
-npx jsango model:list
+npx @jsango/cli route:list
+npx @jsango/cli model:list
 ```
 
 ## Documentation

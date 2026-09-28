@@ -40,10 +40,10 @@ To quickly generate a new typed `AdminResource` and corresponding ORM model:
 
 ```bash
 # Basic usage
-npx jsango make:admin <ModelName>
+npx @jsango/cli make:admin <ModelName>
 
 # With custom navigation group and Lucide icon
-npx jsango make:admin Article --group "Blog Management" --icon "newspaper"
+npx @jsango/cli make:admin Article --group "Blog Management" --icon "newspaper"
 ```
 
 ## Programmatic / Isomorphic Component API

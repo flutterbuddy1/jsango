@@ -182,8 +182,7 @@ pnpm start
     context.output.text('Inside that directory, you can run:');
     context.output.text(`  ${colors.dim('$')} cd ${projectName}`);
     context.output.text(`  ${colors.dim('$')} pnpm install`);
-    context.output.text(`  ${colors.dim('$')} pnpm build`);
-    context.output.text(`  ${colors.dim('$')} pnpm start`);
+    context.output.text(`  ${colors.dim('$')} pnpm dev`);
     context.output.text();
 
     return ExitCode.SUCCESS;

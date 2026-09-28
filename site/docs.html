@@ -191,12 +191,13 @@
         <div class="code-box">
           <div class="code-box-header">
             <span>Terminal</span>
-            <button class="copy-code-btn copy-trigger" data-copy="npx jsango create my-backend && cd my-backend">Copy</button>
+            <button class="copy-code-btn copy-trigger" data-copy="npx @jsango/cli create my-backend && cd my-backend && pnpm install && pnpm dev">Copy</button>
           </div>
           <pre><code><span class="hl-comm"># Scaffold project with TypeScript configuration, ORM models, and Admin Panel</span>
-npx jsango create my-backend
+npx @jsango/cli create my-backend
 cd my-backend
-pnpm install</code></pre>
+pnpm install
+pnpm dev</code></pre>
         </div>
 
         <h3>2. Define Your Model & REST Route</h3>
@@ -614,31 +615,31 @@ ws.<span class="hl-fn">onConnection</span>((socket, identity) => {
             </thead>
             <tbody>
               <tr>
-                <td><code>npx jsango create &lt;name&gt;</code></td>
+                <td><code>npx @jsango/cli create &lt;name&gt;</code></td>
                 <td>Scaffold a new batteries-included JSango project.</td>
               </tr>
               <tr>
-                <td><code>npx jsango dev</code></td>
+                <td><code>npx @jsango/cli dev</code></td>
                 <td>Start local development server with hot reloading.</td>
               </tr>
               <tr>
-                <td><code>npx jsango make:model &lt;Name&gt;</code></td>
+                <td><code>npx @jsango/cli make:model &lt;Name&gt;</code></td>
                 <td>Generate a typed ORM model definition.</td>
               </tr>
               <tr>
-                <td><code>npx jsango make:admin &lt;Model&gt;</code></td>
+                <td><code>npx @jsango/cli make:admin &lt;Model&gt;</code></td>
                 <td>Generate an auto-admin resource definition.</td>
               </tr>
               <tr>
-                <td><code>npx jsango migrate</code></td>
+                <td><code>npx @jsango/cli migrate</code></td>
                 <td>Run pending database migrations.</td>
               </tr>
               <tr>
-                <td><code>npx jsango migrate:diff</code></td>
+                <td><code>npx @jsango/cli migrate:diff</code></td>
                 <td>Diff ORM model schemas against database and generate migration file.</td>
               </tr>
               <tr>
-                <td><code>npx jsango openapi:generate</code></td>
+                <td><code>npx @jsango/cli openapi:generate</code></td>
                 <td>Generate an OpenAPI 3.1 JSON / YAML specification document.</td>
               </tr>
             </tbody>

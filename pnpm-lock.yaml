@@ -543,6 +543,45 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/jsango:
+    dependencies:
+      '@jsango/admin-core':
+        specifier: workspace:*
+        version: link:../admin-core
+      '@jsango/admin-server':
+        specifier: workspace:*
+        version: link:../admin-server
+      '@jsango/admin-ui':
+        specifier: workspace:*
+        version: link:../admin-ui
+      '@jsango/auth':
+        specifier: workspace:*
+        version: link:../auth
+      '@jsango/cli':
+        specifier: workspace:*
+        version: link:../cli
+      '@jsango/core':
+        specifier: workspace:*
+        version: link:../core
+      '@jsango/database':
+        specifier: workspace:*
+        version: link:../database
+      '@jsango/http':
+        specifier: workspace:*
+        version: link:../http
+      '@jsango/middleware':
+        specifier: workspace:*
+        version: link:../middleware
+      '@jsango/migrations':
+        specifier: workspace:*
+        version: link:../migrations
+      '@jsango/orm':
+        specifier: workspace:*
+        version: link:../orm
+      '@jsango/router':
+        specifier: workspace:*
+        version: link:../router
+
   packages/middleware:
     dependencies:
       '@jsango/container':
