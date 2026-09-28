@@ -1,6 +1,6 @@
 {
   "name": "@jsango/ai",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "First-class LLM, AI Agent, and Workflow Orchestration Runtime for JSango",
   "type": "module",
   "main": "./dist/index.js",

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.8] - 2026-09-28
+
+### Fixes & Enhancements
+- **Admin UI Mounting**: `app.admin({ path: '/admin-panel', ... })` now automatically mounts the React Admin Single-Page App (SPA) HTML handler on the configured path and subpaths, connecting seamlessly to the backend `@jsango/admin-server` API.
+
+---
+
 ## [1.0.7] - 2026-09-28
 
 ### Phase 20: First-Class AI Platform & Agent Orchestration Runtime

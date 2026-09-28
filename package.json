@@ -1,6 +1,6 @@
 {
   "name": "jsango-monorepo",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "private": true,
   "description": "Production-grade, batteries-included TypeScript backend framework for modern JavaScript runtimes",
   "packageManager": "pnpm@12.5.1",

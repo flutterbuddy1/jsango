@@ -1,6 +1,6 @@
 {
   "name": "@jsango/events",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Typed event bus, handlers, middleware, and queue integration for jsango",
   "type": "module",
   "main": "./dist/index.js",

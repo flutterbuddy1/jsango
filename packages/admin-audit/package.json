@@ -1,6 +1,6 @@
 {
   "name": "@jsango/admin-audit",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Structured audit log for jsango Admin — records every create, update, delete, and action",
   "type": "module",
   "main": "./dist/index.js",
