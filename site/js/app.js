@@ -155,7 +155,55 @@ export const UserResource = createAdminResource(User, {
   export: { csv: true, excel: true },
 });`,
     },
+    ai: {
+      title: '8. AI Platform & Agent Runtime',
+      pkg: '@jsango/ai',
+      desc: 'Provider-neutral LLM runtime supporting OpenAI, Anthropic, Gemini, Ollama, autonomous reasoning agents, tool calling, RAG, and MCP.',
+      snippet: `import { agent, tool, object, string, number, createApp } from 'jsango';
+
+const refundOrder = tool({
+  name: 'refundOrder',
+  description: 'Process customer refund',
+  schema: object({ orderId: string(), amount: number() }),
+  requiresApproval: true,
+  execute: async ({ orderId, amount }) => StripeService.refund(orderId, amount),
+});
+
+export const supportAgent = agent({
+  name: 'SupportAgent',
+  model: 'openai:gpt-4o',
+  instructions: 'Help customers with orders and refunds.',
+  tools: { refundOrder },
+});
+
+const app = createApp();
+app.agent('/api/support', supportAgent);
+app.wsAgent('/ws/support', supportAgent);`,
+    },
   };
+
+  // 3.1 Dynamic npm version loader
+  async function fetchLiveVersion() {
+    try {
+      const res = await fetch('https://registry.npmjs.org/jsango/latest');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.version) {
+          const vStr = `v${data.version}`;
+          document.querySelectorAll('.jsango-version-badge').forEach((el) => {
+            el.textContent = vStr;
+          });
+          const heroPill = document.getElementById('heroVersionText');
+          if (heroPill) {
+            heroPill.textContent = `JSango ${vStr} Production Release · Batteries-Included & AI Platform`;
+          }
+        }
+      }
+    } catch {
+      // Fallback to static version if offline/network restricted
+    }
+  }
+  fetchLiveVersion();
 
   archLayers.forEach((layer) => {
     layer.addEventListener('click', () => {

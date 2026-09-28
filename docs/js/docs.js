@@ -93,6 +93,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  window.addEventListener('scroll', updateActiveSection);
-  updateActiveSection();
+  // 5. Dynamic npm version loader
+  async function fetchLiveVersion() {
+    try {
+      const res = await fetch('https://registry.npmjs.org/jsango/latest');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.version) {
+          const vStr = `v${data.version}`;
+          document.querySelectorAll('.brand-badge, .jsango-version-badge').forEach((el) => {
+            el.textContent = vStr;
+          });
+        }
+      }
+    } catch {
+      // Fallback
+    }
+  }
+  fetchLiveVersion();
 });

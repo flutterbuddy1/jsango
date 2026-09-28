@@ -42,7 +42,7 @@
         <a href="index.html" class="logo-brand">
           <img src="images/logo.png" alt="JSango Logo" class="logo-img">
           <span class="brand-name">JSango</span>
-          <span class="brand-badge">v1.0.1</span>
+          <span class="brand-badge jsango-version-badge">v1.0.7</span>
         </a>
       </div>
 
@@ -85,7 +85,7 @@
     <div class="container">
       <div class="hero-pill">
         <span class="pulse-dot"></span>
-        <span>JSango v1.0.1 Production Release · Batteries-Included</span>
+        <span id="heroVersionText">JSango <span class="jsango-version-badge">v1.0.7</span> Production Release · Batteries-Included &amp; AI Platform</span>
       </div>
 
       <h1 class="hero-title">
@@ -94,15 +94,15 @@
       </h1>
 
       <p class="hero-subtitle">
-        Stop stitching together dozens of disjointed libraries. JSango delivers a cohesive, enterprise-grade ecosystem: Declarative ORM, SegRadix Router (&gt;7.7M ops/sec), Auto-Generated React Admin Panel, 2FA Auth, Background Queues, and WebSockets.
+        Stop stitching together dozens of disjointed libraries. JSango delivers a cohesive, enterprise-grade ecosystem: Declarative ORM, SegRadix Router (&gt;7.7M ops/sec), Auto-Generated React Admin Panel, AI Agents &amp; Workflows, 2FA Auth, Background Queues, and WebSockets.
       </p>
 
       <div class="hero-actions">
         <a href="docs.html" class="btn-primary">Read Full Documentation →</a>
         <div class="quick-install">
           <span>$</span>
-          <code>npx @jsango/cli create my-app</code>
-          <button class="copy-btn copy-trigger" data-copy="npx @jsango/cli create my-app" title="Copy CLI Command">
+          <code>npm install jsango</code>
+          <button class="copy-btn copy-trigger" data-copy="npm install jsango" title="Copy Command">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
           </button>
         </div>
@@ -119,22 +119,25 @@
           </div>
           <div class="showcase-tabs">
             <button class="tab-btn active" data-tab="orm">
-              <span>🗄️</span> ORM & Models
+              <span>🗄️</span> ORM &amp; Models
+            </button>
+            <button class="tab-btn" data-tab="ai">
+              <span>🤖</span> AI Agents &amp; Tools
             </button>
             <button class="tab-btn" data-tab="router">
-              <span>⚡</span> Simple App & Routes
+              <span>⚡</span> App &amp; Routes
             </button>
             <button class="tab-btn" data-tab="admin">
-              <span>🖥️</span> Auto Admin & CRUD
+              <span>🖥️</span> Auto Admin &amp; CRUD
             </button>
             <button class="tab-btn" data-tab="ws">
               <span>🔌</span> Realtime WebSockets
             </button>
             <button class="tab-btn" data-tab="queue">
-              <span>📬</span> Queues & Events
+              <span>📬</span> Queues &amp; Events
             </button>
             <button class="tab-btn" data-tab="auth">
-              <span>🔐</span> 2FA & Security
+              <span>🔐</span> 2FA &amp; Security
             </button>
           </div>
         </div>
@@ -160,6 +163,42 @@
   .<span class="hl-fn">get</span>();
 
 <span class="hl-kw">const</span> newUser = <span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">create</span>({ name: <span class="hl-str">'Alex'</span>, email: <span class="hl-str">'alex@jsango.dev'</span> });</code></pre>
+          </div>
+
+          <!-- AI Agent Tab -->
+          <div class="code-pane" id="pane-ai">
+            <pre><code><span class="hl-kw">import</span> { agent, tool, object, string, number, createApp } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
+
+<span class="hl-comm">// 1. Define type-safe tools with automatic JSON Schema generation</span>
+<span class="hl-kw">const</span> lookupOrder = <span class="hl-fn">tool</span>({
+  name: <span class="hl-str">'lookupOrder'</span>,
+  description: <span class="hl-str">'Get order status by order ID'</span>,
+  schema: <span class="hl-fn">object</span>({ orderId: <span class="hl-fn">string</span>() }),
+  execute: <span class="hl-kw">async</span> ({ orderId }) => <span class="hl-kw">await</span> Order.<span class="hl-fn">find</span>(orderId),
+});
+
+<span class="hl-kw">const</span> refundOrder = <span class="hl-fn">tool</span>({
+  name: <span class="hl-str">'refundOrder'</span>,
+  description: <span class="hl-str">'Issue customer refund'</span>,
+  schema: <span class="hl-fn">object</span>({ orderId: <span class="hl-fn">string</span>(), amount: <span class="hl-fn">number</span>() }),
+  requiresApproval: <span class="hl-kw">true</span>, <span class="hl-comm">// Human approval gate</span>
+  execute: <span class="hl-kw">async</span> ({ orderId, amount }) => <span class="hl-kw">await</span> PaymentService.<span class="hl-fn">refund</span>(orderId, amount),
+});
+
+<span class="hl-comm">// 2. Create the Autonomous Agent</span>
+<span class="hl-kw">export const</span> supportAgent = <span class="hl-fn">agent</span>({
+  name: <span class="hl-str">'SupportAgent'</span>,
+  model: <span class="hl-str">'openai:gpt-4o'</span>,
+  instructions: <span class="hl-str">'Help customers check orders and handle refund requests.'</span>,
+  tools: { lookupOrder, refundOrder },
+});
+
+<span class="hl-comm">// 3. Expose over HTTP / SSE Streaming and WebSockets in 1 line</span>
+<span class="hl-kw">const</span> app = <span class="hl-fn">createApp</span>();
+app.<span class="hl-fn">agent</span>(<span class="hl-str">'/api/support'</span>, supportAgent);
+app.<span class="hl-fn">wsAgent</span>(<span class="hl-str">'/ws/support'</span>, supportAgent);
+
+<span class="hl-kw">await</span> app.<span class="hl-fn">listen</span>(<span class="hl-num">3000</span>);</code></pre>
           </div>
 
           <!-- Router Tab -->
@@ -288,7 +327,21 @@ events.<span class="hl-fn">on</span>(<span class="hl-str">'user.created'</span>,
       </div>
 
       <div class="features-grid">
-        <!-- Feature 1 -->
+        <!-- Feature 1: AI Agents -->
+        <div class="feature-card">
+          <div class="feature-icon-wrapper icon-purple">🤖</div>
+          <h3>First-Class AI Agents &amp; Workflows</h3>
+          <p>
+            Provider-neutral LLM agent runtime (OpenAI, Claude, Gemini, Ollama) with tool calling, human-in-the-loop approvals, RAG vector search, and MCP JSON-RPC support.
+          </p>
+          <ul class="feature-list">
+            <li><span class="check">✓</span> Autonomous reasoning loop &amp; tool dispatch</li>
+            <li><span class="check">✓</span> 1-line HTTP / SSE &amp; WebSocket agent streaming</li>
+            <li><span class="check">✓</span> Zero-cost deterministic testing fixtures</li>
+          </ul>
+        </div>
+
+        <!-- Feature 2: Admin -->
         <div class="feature-card">
           <div class="feature-icon-wrapper icon-emerald">🖥️</div>
           <h3>Auto-Generated Admin Console</h3>
@@ -297,22 +350,22 @@ events.<span class="hl-fn">on</span>(<span class="hl-str">'user.created'</span>,
           </p>
           <ul class="feature-list">
             <li><span class="check">✓</span> Zero boilerplate resource registration</li>
-            <li><span class="check">✓</span> 2FA TOTP security & active session management</li>
-            <li><span class="check">✓</span> Granular RBAC field & resource permissions</li>
+            <li><span class="check">✓</span> 2FA TOTP security &amp; active session management</li>
+            <li><span class="check">✓</span> Granular RBAC field &amp; resource permissions</li>
           </ul>
         </div>
 
-        <!-- Feature 2 -->
+        <!-- Feature 3: ORM -->
         <div class="feature-card">
           <div class="feature-icon-wrapper icon-indigo">🗄️</div>
-          <h3>Declarative ORM & Migrations</h3>
+          <h3>Declarative ORM &amp; Migrations</h3>
           <p>
             Type-safe schema definitions, AST query builders, batch eager loading to eliminate N+1 queries, and automated schema diff migrations.
           </p>
           <ul class="feature-list">
             <li><span class="check">✓</span> Strict compile-time query validation</li>
-            <li><span class="check">✓</span> Automated schema diffing & DDL compilers</li>
-            <li><span class="check">✓</span> Connection pooling & scoped transactions</li>
+            <li><span class="check">✓</span> Automated schema diffing &amp; DDL compilers</li>
+            <li><span class="check">✓</span> Connection pooling &amp; scoped transactions</li>
           </ul>
         </div>
 
@@ -443,6 +496,14 @@ events.<span class="hl-fn">on</span>(<span class="hl-str">'user.created'</span>,
             </div>
             <span class="layer-package">@jsango/admin-ui</span>
           </div>
+
+          <div class="arch-layer-item" data-layer="ai">
+            <div class="layer-info">
+              <span class="layer-num">08</span>
+              <span class="layer-name">AI Platform &amp; Agents</span>
+            </div>
+            <span class="layer-package">@jsango/ai</span>
+          </div>
         </div>
 
         <div class="arch-layer-detail">
@@ -556,6 +617,14 @@ export const runtime = createRuntimeAdapter({
       </div>
 
       <div class="packages-grid" id="packagesGrid">
+        <div class="pkg-card" data-category="services">
+          <div class="pkg-header">
+            <span class="pkg-name">@jsango/ai</span>
+            <span class="pkg-category">AI</span>
+          </div>
+          <p class="pkg-desc">Provider-neutral AI agent runtime, tool validation, multi-agent workflows, RAG, and MCP.</p>
+        </div>
+
         <div class="pkg-card" data-category="core">
           <div class="pkg-header">
             <span class="pkg-name">@jsango/core</span>
