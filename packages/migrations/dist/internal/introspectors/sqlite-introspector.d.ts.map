@@ -1,0 +1,1 @@
+{"version":3,"file":"sqlite-introspector.d.ts","sourceRoot":"","sources":["../../../src/internal/introspectors/sqlite-introspector.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,mBAAmB,EAAE,MAAM,kBAAkB,CAAC;AAC5D,OAAO,EAAE,cAAc,EAAe,MAAM,wBAAwB,CAAC;AAGrE,qBAAa,wBAAwB;IACtB,UAAU,CAAC,UAAU,EAAE,mBAAmB,GAAG,OAAO,CAAC,cAAc,CAAC;IAwCjF,OAAO,CAAC,aAAa;CAWtB"}

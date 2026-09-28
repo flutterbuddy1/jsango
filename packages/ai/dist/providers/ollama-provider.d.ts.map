@@ -1,0 +1,1 @@
+{"version":3,"file":"ollama-provider.d.ts","sourceRoot":"","sources":["../../src/providers/ollama-provider.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,cAAc,EAAE,MAAM,sBAAsB,CAAC;AAEtD,MAAM,WAAW,qBAAqB;IACpC,OAAO,CAAC,EAAE,MAAM,GAAG,SAAS,CAAC;IAC7B,YAAY,CAAC,EAAE,MAAM,GAAG,SAAS,CAAC;CACnC;AAED,qBAAa,cAAe,SAAQ,cAAc;IAChD,SAAyB,IAAI,YAAY;gBAE7B,OAAO,GAAE,qBAA0B;CAOhD"}
