@@ -89,6 +89,7 @@
       <div class="sidebar-group">
         <div class="sidebar-heading">🗄️ Database & ORM</div>
         <ul class="sidebar-links">
+          <li><a href="#database-drivers" class="sidebar-link">Database Drivers (PG, MySQL, SQLite, Mongo)</a></li>
           <li><a href="#model-definitions" class="sidebar-link">Declarative Model Schemas</a></li>
           <li><a href="#relationships" class="sidebar-link">Relations & Eager Loading</a></li>
           <li><a href="#query-builder" class="sidebar-link">AST Query Builder</a></li>
@@ -305,6 +306,132 @@ app.<span class="hl-fn">get</span>(<span class="hl-str">'/api/v1/users/:id:uuid'
   router.<span class="hl-fn">use</span>(requireAdminAuth);
   router.<span class="hl-fn">get</span>(<span class="hl-str">'/analytics'</span>, analyticsHandler);
   router.<span class="hl-fn">post</span>(<span class="hl-str">'/settings'</span>, settingsHandler);
+});</code></pre>
+        </div>
+      </section>
+
+      <hr class="doc-divider">
+
+      <!-- SECTION: Database Drivers & Configuration -->
+      <section id="database-drivers" class="doc-section">
+        <h2>Database Drivers & Multi-DB Management</h2>
+        <p>
+          JSango provides native, production-grade drivers for the most popular SQL and NoSQL database engines with zero-config in-memory fallback for rapid prototyping:
+        </p>
+
+        <div class="cli-table-wrapper" style="margin-bottom: 24px;">
+          <table class="cli-table">
+            <thead>
+              <tr>
+                <th>Driver</th>
+                <th>Identifier</th>
+                <th>Underlying Engine / Library</th>
+                <th>Features Supported</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>PostgreSQL</strong></td>
+                <td><code>postgres</code>, <code>postgresql</code>, <code>pg</code></td>
+                <td>Native <code>pg</code> Pool</td>
+                <td>Transactions, Savepoints, RETURNING, SSL, Isolation Levels</td>
+              </tr>
+              <tr>
+                <td><strong>MySQL / MariaDB</strong></td>
+                <td><code>mysql</code>, <code>mariadb</code></td>
+                <td>Native <code>mysql2/promise</code></td>
+                <td>Connection Pooling, Auto-increment IDs, SSL, Transactions</td>
+              </tr>
+              <tr>
+                <td><strong>SQLite</strong></td>
+                <td><code>sqlite</code>, <code>sqlite3</code></td>
+                <td><code>better-sqlite3</code> / <code>node:sqlite</code></td>
+                <td>Zero-config, In-Memory or File-backed, Transactions, Fast DDL</td>
+              </tr>
+              <tr>
+                <td><strong>MongoDB</strong></td>
+                <td><code>mongodb</code>, <code>mongo</code></td>
+                <td>Native <code>mongodb</code> Client</td>
+                <td>Collections, Document CRUD, Transactions, Clustering</td>
+              </tr>
+              <tr>
+                <td><strong>In-Memory</strong></td>
+                <td><code>memory</code></td>
+                <td>Built-in Pure TypeScript Engine</td>
+                <td>Default zero-config prototyping, Instant test suite execution</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Configuring Multi-Database Connections</h3>
+        <p>Configure multiple named databases in <code>jsango.config.ts</code> or directly on <code>createApp()</code>:</p>
+
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>jsango.config.ts</span>
+            <button class="copy-code-btn copy-trigger" data-copy="import { defineConfig } from 'jsango';
+
+export default defineConfig({
+  database: {
+    default: 'postgres',
+    connections: {
+      postgres: {
+        driver: 'postgres',
+        host: process.env.DB_HOST ?? 'localhost',
+        port: 5432,
+        database: 'my_production_db',
+        username: process.env.DB_USER ?? 'postgres',
+        password: process.env.DB_PASSWORD,
+        pool: { min: 2, max: 20 },
+      },
+      analytics: {
+        driver: 'mysql',
+        url: process.env.MYSQL_URL,
+      },
+      cacheDb: {
+        driver: 'sqlite',
+        filename: './data/local.db',
+      },
+      documents: {
+        driver: 'mongodb',
+        url: 'mongodb://127.0.0.1:27017',
+        database: 'analytics_docs',
+      },
+    },
+  },
+});">Copy</button>
+          </div>
+          <pre><code><span class="hl-kw">import</span> { defineConfig } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
+
+<span class="hl-kw">export default</span> <span class="hl-fn">defineConfig</span>({
+  database: {
+    default: <span class="hl-str">'postgres'</span>,
+    connections: {
+      postgres: {
+        driver: <span class="hl-str">'postgres'</span>,
+        host: process.env.DB_HOST ?? <span class="hl-str">'localhost'</span>,
+        port: <span class="hl-num">5432</span>,
+        database: <span class="hl-str">'my_production_db'</span>,
+        username: process.env.DB_USER ?? <span class="hl-str">'postgres'</span>,
+        password: process.env.DB_PASSWORD,
+        pool: { min: <span class="hl-num">2</span>, max: <span class="hl-num">20</span> },
+      },
+      analytics: {
+        driver: <span class="hl-str">'mysql'</span>,
+        url: process.env.MYSQL_URL,
+      },
+      cacheDb: {
+        driver: <span class="hl-str">'sqlite'</span>,
+        filename: <span class="hl-str">'./data/local.db'</span>,
+      },
+      documents: {
+        driver: <span class="hl-str">'mongodb'</span>,
+        url: <span class="hl-str">'mongodb://127.0.0.1:27017'</span>,
+        database: <span class="hl-str">'analytics_docs'</span>,
+      },
+    },
+  },
 });</code></pre>
         </div>
       </section>
@@ -592,6 +719,61 @@ ws.<span class="hl-fn">onConnection</span>((socket, identity) => {
     });
   });
 });</code></pre>
+        </div>
+      </section>
+
+      <hr class="doc-divider">
+
+      <!-- SECTION: OpenAPI 3.1 & Swagger Documentation -->
+      <section id="openapi-generator" class="doc-section">
+        <h2>OpenAPI 3.1 & Swagger UI Documentation</h2>
+        <p>
+          JSango automatically generates compliant OpenAPI 3.1 JSON schemas by introspecting your route signatures, input validation schemas, and ORM models, and renders an interactive, high-contrast dark-themed Swagger UI dashboard out of the box.
+        </p>
+
+        <h3>1-Line Auto Documentation</h3>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>src/index.ts</span>
+            <button class="copy-code-btn copy-trigger" data-copy="import { createApp } from 'jsango';
+import { Product } from './models/product.js';
+
+const app = createApp();
+
+// Mount CRUD routes
+app.crud('/api/products', Product);
+
+// Enable automated OpenAPI 3.1 spec and interactive Swagger UI docs
+app.openapi({
+  path: '/openapi.json',
+  title: 'E-Commerce Store API',
+  version: '2.0.0',
+  description: 'Production REST API with real-time inventory and search',
+});
+
+await app.listen(3000);
+// Interactive UI is live at: http://localhost:3000/docs
+// OpenAPI JSON schema at: http://localhost:3000/openapi.json">Copy</button>
+          </div>
+          <pre><code><span class="hl-kw">import</span> { createApp } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
+<span class="hl-kw">import</span> { Product } <span class="hl-kw">from</span> <span class="hl-str">'./models/product.js'</span>;
+
+<span class="hl-kw">const</span> app = <span class="hl-fn">createApp</span>();
+
+<span class="hl-comm">// Mount CRUD routes</span>
+app.<span class="hl-fn">crud</span>(<span class="hl-str">'/api/products'</span>, Product);
+
+<span class="hl-comm">// Enable automated OpenAPI 3.1 spec and interactive Swagger UI docs</span>
+app.<span class="hl-fn">openapi</span>({
+  path: <span class="hl-str">'/openapi.json'</span>,
+  title: <span class="hl-str">'E-Commerce Store API'</span>,
+  version: <span class="hl-str">'2.0.0'</span>,
+  description: <span class="hl-str">'Production REST API with real-time inventory and search'</span>,
+});
+
+<span class="hl-kw">await</span> app.<span class="hl-fn">listen</span>(<span class="hl-num">3000</span>);
+<span class="hl-comm">// Interactive UI is live at: http://localhost:3000/docs</span>
+<span class="hl-comm">// OpenAPI JSON schema at: http://localhost:3000/openapi.json</span></code></pre>
         </div>
       </section>
 

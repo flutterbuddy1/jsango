@@ -160,10 +160,9 @@ import { User } from "./models/user.js";
 
 const app = createApp();
 
-// Mount OpenAPI 3.1 JSON and Swagger UI
+// Mount OpenAPI 3.1 JSON and Swagger UI (High-contrast dark mode)
 app.openapi({
   path: "/openapi.json",
-  docsPath: "/docs",
   title: "My Application API",
   version: "1.0.0",
 });
@@ -175,6 +174,45 @@ app.admin({
 });
 
 await app.listen(3000);
+```
+
+### 5. Multi-Database Drivers (PostgreSQL, MySQL, SQLite, MongoDB)
+
+JSango supports PostgreSQL (`postgres`), MySQL (`mysql`), SQLite (`sqlite`), MongoDB (`mongodb`), and zero-config In-Memory (`memory`):
+
+```typescript
+// jsango.config.ts
+import { defineConfig } from "jsango";
+
+export default defineConfig({
+  database: {
+    default: "postgres",
+    connections: {
+      postgres: {
+        driver: "postgres",
+        host: "localhost",
+        port: 5432,
+        database: "production_db",
+        username: "postgres",
+        password: "secretpassword",
+        pool: { min: 2, max: 20 },
+      },
+      mysql: {
+        driver: "mysql",
+        url: "mysql://user:pass@localhost:3306/analytics",
+      },
+      sqlite: {
+        driver: "sqlite",
+        filename: "./data/local.db",
+      },
+      mongo: {
+        driver: "mongodb",
+        url: "mongodb://127.0.0.1:27017",
+        database: "document_store",
+      },
+    },
+  },
+});
 ```
 
 ---

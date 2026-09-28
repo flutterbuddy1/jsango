@@ -46,3 +46,7 @@ export { DatabaseConnection, type QueryTelemetryHook } from './connection.js';
 export { DatabaseManager, type DatabaseManagerOptions } from './manager.js';
 
 export { MemoryDatabaseDriver, MemoryDriverConnection } from '../internal/drivers/memory-driver.js';
+export { PostgresDatabaseDriver, PostgresDriverConnection } from '../internal/drivers/postgres-driver.js';
+export { MysqlDatabaseDriver, MysqlDriverConnection } from '../internal/drivers/mysql-driver.js';
+export { SqliteDatabaseDriver, SqliteDriverConnection } from '../internal/drivers/sqlite-driver.js';
+export { MongoDatabaseDriver, MongoDriverConnection } from '../internal/drivers/mongo-driver.js';

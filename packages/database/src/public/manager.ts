@@ -11,8 +11,12 @@ import type { DatabaseConfig, ConnectionConfig } from './config.js';
 import { DatabaseConfigurationError, DatabaseError } from './errors.js';
 import { DatabaseConnection, type QueryTelemetryHook } from './connection.js';
 import { ConnectionPool } from '../internal/pool.js';
-import { SqlDialect } from '../internal/dialect.js';
 import { MemoryDatabaseDriver } from '../internal/drivers/memory-driver.js';
+import { SqlDialect } from '../internal/dialect.js';
+import { PostgresDatabaseDriver } from '../internal/drivers/postgres-driver.js';
+import { MysqlDatabaseDriver } from '../internal/drivers/mysql-driver.js';
+import { SqliteDatabaseDriver } from '../internal/drivers/sqlite-driver.js';
+import { MongoDatabaseDriver } from '../internal/drivers/mongo-driver.js';
 
 export interface DatabaseManagerOptions {
   readonly telemetry?: QueryTelemetryHook | undefined;
@@ -30,8 +34,17 @@ export class DatabaseManager {
     this.config = config;
     this.telemetry = options?.telemetry;
 
-    // Register built-in memory driver by default
+    // Register built-in drivers by default
     this.registerDriver('memory', new MemoryDatabaseDriver());
+    this.registerDriver('sqlite', new SqliteDatabaseDriver());
+    this.registerDriver('sqlite3', new SqliteDatabaseDriver());
+    this.registerDriver('postgres', new PostgresDatabaseDriver());
+    this.registerDriver('postgresql', new PostgresDatabaseDriver());
+    this.registerDriver('pg', new PostgresDatabaseDriver());
+    this.registerDriver('mysql', new MysqlDatabaseDriver());
+    this.registerDriver('mariadb', new MysqlDatabaseDriver());
+    this.registerDriver('mongodb', new MongoDatabaseDriver());
+    this.registerDriver('mongo', new MongoDatabaseDriver());
   }
 
   public registerDriver(name: string, driver: IDatabaseDriver): this {

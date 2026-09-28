@@ -1,6 +1,6 @@
 {
   "name": "@jsango/observability",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Production-grade observability foundation — structured logging, metrics, tracing, health checks, and diagnostics for jsango",
   "type": "module",
   "main": "./dist/index.js",
