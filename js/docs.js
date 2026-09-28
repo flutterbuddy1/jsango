@@ -48,11 +48,47 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  const mobileSearchToggle = document.getElementById('mobileSearchToggle');
+  const docsSearchWrapper = document.getElementById('docsSearchWrapper');
+  const docsSearchCloseBtn = document.getElementById('docsSearchCloseBtn');
+
+  // Mobile Search Toggle & Close
+  function openMobileSearch() {
+    if (docsSearchWrapper) {
+      docsSearchWrapper.classList.add('mobile-active');
+      if (searchInput) {
+        setTimeout(() => searchInput.focus(), 50);
+      }
+    }
+  }
+
+  function closeMobileSearch() {
+    if (docsSearchWrapper) {
+      docsSearchWrapper.classList.remove('mobile-active');
+    }
+  }
+
+  if (mobileSearchToggle) {
+    mobileSearchToggle.addEventListener('click', openMobileSearch);
+  }
+
+  if (docsSearchCloseBtn) {
+    docsSearchCloseBtn.addEventListener('click', closeMobileSearch);
+  }
+
   // 2. Keyboard shortcut for search ('/')
   window.addEventListener('keydown', (e) => {
     if (e.key === '/' && document.activeElement !== searchInput) {
       e.preventDefault();
-      if (searchInput) searchInput.focus();
+      if (window.innerWidth <= 768) {
+        openMobileSearch();
+      } else if (searchInput) {
+        searchInput.focus();
+      }
+    }
+    if (e.key === 'Escape') {
+      closeMobileSearch();
+      closeSidebar();
     }
   });
 
@@ -60,6 +96,11 @@ document.addEventListener('DOMContentLoaded', () => {
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
       const term = e.target.value.toLowerCase().trim();
+
+      // If user is searching on mobile, ensure sidebar opens so they see matched topics
+      if (term.length > 0 && window.innerWidth <= 768 && docsSidebar && !docsSidebar.classList.contains('open')) {
+        openSidebar();
+      }
 
       sidebarLinks.forEach(link => {
         const text = link.textContent.toLowerCase();

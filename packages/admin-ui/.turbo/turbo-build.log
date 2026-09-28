@@ -1,3 +1,0 @@
-$ tsc -b && node scripts/build-bundle.mjs
-⚡ Bundling React Admin SPA with esbuild...
-✅ React Admin SPA bundle generated and embedded successfully.
