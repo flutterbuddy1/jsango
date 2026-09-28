@@ -11,17 +11,38 @@ document.addEventListener('DOMContentLoaded', () => {
   const sections = document.querySelectorAll('.doc-section');
   const activeCrumb = document.getElementById('activeCrumb');
 
-  // 1. Mobile Sidebar Toggle
+  const docsSidebarBackdrop = document.getElementById('docsSidebarBackdrop');
+
+  // 1. Mobile Sidebar Toggle & Backdrop
+  function closeSidebar() {
+    if (docsSidebar) docsSidebar.classList.remove('open');
+    if (docsSidebarBackdrop) docsSidebarBackdrop.classList.remove('active');
+  }
+
+  function openSidebar() {
+    if (docsSidebar) docsSidebar.classList.add('open');
+    if (docsSidebarBackdrop) docsSidebarBackdrop.classList.add('active');
+  }
+
   if (sidebarToggle && docsSidebar) {
     sidebarToggle.addEventListener('click', () => {
-      docsSidebar.classList.toggle('open');
+      const isOpen = docsSidebar.classList.contains('open');
+      if (isOpen) {
+        closeSidebar();
+      } else {
+        openSidebar();
+      }
     });
+
+    if (docsSidebarBackdrop) {
+      docsSidebarBackdrop.addEventListener('click', closeSidebar);
+    }
 
     // Close sidebar when clicking a link on mobile
     sidebarLinks.forEach(link => {
       link.addEventListener('click', () => {
         if (window.innerWidth <= 768) {
-          docsSidebar.classList.remove('open');
+          closeSidebar();
         }
       });
     });
