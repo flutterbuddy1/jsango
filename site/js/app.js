@@ -278,16 +278,24 @@ app.wsAgent('/ws/support', supportAgent);`,
   const copyButtons = document.querySelectorAll('.copy-trigger');
   copyButtons.forEach((btn) => {
     btn.addEventListener('click', () => {
-      const textToCopy = btn.getAttribute('data-copy');
-      if (textToCopy) {
-        navigator.clipboard
-          .writeText(textToCopy)
-          .then(() => {
-            showToast(`Copied to clipboard: ${textToCopy}`);
-          })
-          .catch(() => {
-            showToast('Failed to copy to clipboard');
-          });
+      // Buttons inside a code box copy the rendered snippet; others carry data-copy.
+      const codeBlock = btn.closest('.code-box')?.querySelector('pre');
+      const textToCopy = btn.getAttribute('data-copy') || codeBlock?.innerText.trimEnd();
+      if (!textToCopy) return;
+
+      const done = () => {
+        const label = btn.textContent.trim();
+        if (label === 'Copy') {
+          btn.textContent = 'Copied';
+          setTimeout(() => (btn.textContent = 'Copy'), 1600);
+        }
+        showToast(textToCopy.includes('\n') ? 'Snippet copied to clipboard' : `Copied: ${textToCopy}`);
+      };
+
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(textToCopy).then(done).catch(() => showToast('Failed to copy to clipboard'));
+      } else {
+        showToast('Clipboard is not available in this browser');
       }
     });
   });
