@@ -1,6 +1,6 @@
 {
   "name": "@jsango/core",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "description": "Application lifecycle, framework primitives and shared core abstractions for jsango",
   "type": "module",
   "main": "./dist/index.js",

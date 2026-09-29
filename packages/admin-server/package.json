@@ -1,6 +1,6 @@
 {
   "name": "@jsango/admin-server",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "description": "Admin HTTP API server — CRUD service layer, REST endpoints, and framework integration for jsango Admin",
   "type": "module",
   "main": "./dist/index.js",

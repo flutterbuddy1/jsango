@@ -1,6 +1,6 @@
 {
   "name": "@jsango/container",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "description": "Dependency injection and lifecycle management for jsango",
   "type": "module",
   "main": "./dist/index.js",

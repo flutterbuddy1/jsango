@@ -70,7 +70,7 @@ export class ProjectCreateCommand extends BaseCommand {
           dev: 'tsc -b && node dist/index.js',
         },
         dependencies: {
-          jsango: '^1.0.3',
+          jsango: '^1.1.0',
           dotenv: '^16.4.7',
         },
         devDependencies: {
