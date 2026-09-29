@@ -178,42 +178,11 @@ await app.listen(3000);
 
 ### 5. Multi-Database Drivers (PostgreSQL, MySQL, SQLite, MongoDB)
 
+For installation steps, generated project setup, and current driver limitations, see the [Database Setup Guide](docs/database/README.md).
+
 JSango supports PostgreSQL (`postgres`), MySQL (`mysql`), SQLite (`sqlite`), MongoDB (`mongodb`), and zero-config In-Memory (`memory`):
 
-```typescript
-// jsango.config.ts
-import { defineConfig } from "jsango";
-
-export default defineConfig({
-  database: {
-    default: "postgres",
-    connections: {
-      postgres: {
-        driver: "postgres",
-        host: "localhost",
-        port: 5432,
-        database: "production_db",
-        username: "postgres",
-        password: "secretpassword",
-        pool: { min: 2, max: 20 },
-      },
-      mysql: {
-        driver: "mysql",
-        url: "mysql://user:pass@localhost:3306/analytics",
-      },
-      sqlite: {
-        driver: "sqlite",
-        filename: "./data/local.db",
-      },
-      mongo: {
-        driver: "mongodb",
-        url: "mongodb://127.0.0.1:27017",
-        database: "document_store",
-      },
-    },
-  },
-});
-```
+Database configuration is created in application code and registered with the ORM; a `jsango.config.ts` file is not loaded automatically. See the [Database Setup Guide](docs/database/README.md) for working setup steps and supported drivers.
 
 ---
 

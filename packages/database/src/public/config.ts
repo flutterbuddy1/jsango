@@ -15,6 +15,7 @@ export interface ConnectionConfig {
   readonly host?: string | undefined;
   readonly port?: number | undefined;
   readonly database?: string | undefined;
+  readonly filename?: string | undefined;
   readonly username?: string | undefined;
   readonly password?: string | undefined;
   readonly url?: string | undefined;

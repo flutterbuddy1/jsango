@@ -6,8 +6,7 @@ import type {
   QueryOptions,
 } from '../../public/types.js';
 import type { ConnectionConfig } from '../../public/config.js';
-import { QueryError } from '../../public/errors.js';
-import { MemoryDatabaseDriver } from './memory-driver.js';
+import { ConnectionError, QueryError } from '../../public/errors.js';
 
 export interface SqliteDriverOptions {
   readonly filename?: string | undefined;
@@ -155,10 +154,9 @@ export class SqliteDatabaseDriver implements IDatabaseDriver {
       // node:sqlite not supported
     }
 
-    // 3. Robust in-memory SQL engine fallback
-    const memDriver = new MemoryDatabaseDriver();
-    const memConn = await memDriver.connect();
-    return new SqliteDriverConnection(this.config, null, memConn);
+    throw new ConnectionError(
+      "SQLite requires 'better-sqlite3' or Node.js 22+ with node:sqlite. Install better-sqlite3 with `npm install better-sqlite3`."
+    );
   }
 
   public async disconnect(): Promise<void> {

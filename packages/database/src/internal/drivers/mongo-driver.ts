@@ -6,7 +6,7 @@ import type {
   QueryOptions,
 } from '../../public/types.js';
 import type { ConnectionConfig } from '../../public/config.js';
-import { QueryError } from '../../public/errors.js';
+import { ConnectionError, QueryError } from '../../public/errors.js';
 
 export interface MongoDriverOptions {
   readonly url?: string | undefined;
@@ -131,20 +131,34 @@ export class MongoDatabaseDriver implements IDatabaseDriver {
     const uri = (this.config as any).url ?? 'mongodb://127.0.0.1:27017';
     const dbName = (this.config as any).database ?? 'jsango';
 
+    let MongoClient: any;
     try {
       const mongodb = await import('mongodb' as string);
-      const MongoClient = mongodb.default?.MongoClient ?? mongodb.MongoClient;
-      if (MongoClient) {
-        this.client = new MongoClient(uri);
-        await this.client.connect();
-        const db = this.client.db(dbName);
-        return new MongoDriverConnection(this.config, this.client, db);
-      }
-    } catch {
-      // mongodb package not installed, operates in mock fallback mode
+      MongoClient = mongodb.default?.MongoClient ?? mongodb.MongoClient;
+    } catch (err) {
+      throw new ConnectionError(
+        "MongoDB driver requires the 'mongodb' package. Install it with `npm install mongodb`.",
+        err
+      );
     }
 
-    return new MongoDriverConnection(this.config);
+    if (!MongoClient) {
+      throw new ConnectionError("MongoDB driver could not initialize the MongoClient.");
+    }
+
+    this.client = new MongoClient(uri);
+    try {
+      await this.client.connect();
+      const db = this.client.db(dbName);
+      return new MongoDriverConnection(this.config, this.client, db);
+    } catch (err) {
+      await this.client.close().catch(() => undefined);
+      this.client = null;
+      throw new ConnectionError(
+        `Failed to connect to MongoDB: ${err instanceof Error ? err.message : String(err)}`,
+        err
+      );
+    }
   }
 
   public async disconnect(): Promise<void> {

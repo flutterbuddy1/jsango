@@ -71,6 +71,7 @@ export class ProjectCreateCommand extends BaseCommand {
         },
         dependencies: {
           jsango: '^1.0.3',
+          dotenv: '^16.4.7',
         },
         devDependencies: {
           typescript: '^5.8.2',
@@ -104,9 +105,12 @@ export class ProjectCreateCommand extends BaseCommand {
     fs.writeFileSync(path.join(targetDir, 'tsconfig.json'), tsconfigContent, 'utf8');
 
     // 3. src/index.ts
-    const indexTsContent = `import { createApp } from 'jsango';
+    const indexTsContent = `import 'dotenv/config';
+import { createApp } from 'jsango';
+import { configureDatabase, db } from './database.js';
 
 export function createApplication() {
+  configureDatabase();
   const app = createApp();
 
   app.get('/', () => ({
@@ -116,6 +120,7 @@ export function createApplication() {
   }));
 
   app.get('/health', () => ({ status: 'healthy' }));
+  app.get('/health/database', async () => ({ connections: await db.health() }));
 
   return app;
 }
@@ -130,7 +135,46 @@ if (process.env.NODE_ENV !== 'test') {
 `;
     fs.writeFileSync(path.join(srcDir, 'index.ts'), indexTsContent, 'utf8');
 
-    // 4. README.md
+    // 4. src/database.ts
+    const databaseTsContent = `import { DatabaseManager, setDatabaseManager } from 'jsango';
+
+const driver = process.env.DATABASE_DRIVER || 'memory';
+
+export const db = new DatabaseManager({
+  default: 'default',
+  connections: {
+    default: {
+      driver,
+      url: process.env.DATABASE_URL || undefined,
+      host: process.env.DATABASE_HOST || undefined,
+      port: process.env.DATABASE_PORT ? Number(process.env.DATABASE_PORT) : undefined,
+      database: process.env.DATABASE_NAME || undefined,
+      username: process.env.DATABASE_USER || undefined,
+      password: process.env.DATABASE_PASSWORD || undefined,
+      filename: process.env.DATABASE_FILE || './app.sqlite',
+    },
+  },
+});
+
+export function configureDatabase(): void {
+  setDatabaseManager(db);
+}
+`;
+    fs.writeFileSync(path.join(srcDir, 'database.ts'), databaseTsContent, 'utf8');
+
+    // 5. .env.example
+    const envExample = `DATABASE_DRIVER=memory
+DATABASE_URL=
+DATABASE_HOST=127.0.0.1
+DATABASE_PORT=
+DATABASE_NAME=
+DATABASE_USER=
+DATABASE_PASSWORD=
+DATABASE_FILE=./app.sqlite
+`;
+    fs.writeFileSync(path.join(targetDir, '.env.example'), envExample, 'utf8');
+
+    // 6. README.md
     const readmeContent = `# ${projectName}
 
 A modern TypeScript backend application powered by jsango.
@@ -147,6 +191,11 @@ pnpm build
 # Start development server
 pnpm start
 \`\`\`
+
+## Database
+
+The starter uses an in-memory database by default. Copy `.env.example` to `.env`, choose a
+database driver, and follow the [database setup guide](https://github.com/flutterbuddy1/jsango/tree/main/docs/database/README.md).
 `;
     fs.writeFileSync(path.join(targetDir, 'README.md'), readmeContent, 'utf8');
 
@@ -154,7 +203,7 @@ pnpm start
       context.output.json({
         projectName,
         targetDir,
-        files: ['package.json', 'tsconfig.json', 'src/index.ts', 'README.md'],
+        files: ['package.json', 'tsconfig.json', 'src/index.ts', 'src/database.ts', '.env.example', 'README.md'],
       });
       return ExitCode.SUCCESS;
     }

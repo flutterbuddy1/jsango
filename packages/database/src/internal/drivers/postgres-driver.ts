@@ -135,8 +135,11 @@ export class PostgresDatabaseDriver implements IDatabaseDriver {
             max: cfg.pool?.max ?? 10,
           });
         }
-      } catch {
-        // 'pg' package not installed, operates in mock / fallback mode
+      } catch (err) {
+        throw new ConnectionError(
+          "PostgreSQL driver requires the 'pg' package. Install it with `npm install pg`.",
+          err
+        );
       }
     }
 
@@ -151,7 +154,7 @@ export class PostgresDatabaseDriver implements IDatabaseDriver {
       }
     }
 
-    return new PostgresDriverConnection(this.config);
+    throw new ConnectionError("PostgreSQL driver could not initialize the 'pg' connection pool.");
   }
 
   public async disconnect(): Promise<void> {

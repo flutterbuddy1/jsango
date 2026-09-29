@@ -25,6 +25,8 @@ export interface DatabaseManagerOptions {
 export class DatabaseManager {
   private readonly config: DatabaseConfig;
   private readonly drivers = new Map<string, IDatabaseDriver>();
+  private readonly driverFactories = new Map<string, (config: ConnectionConfig) => IDatabaseDriver>();
+  private readonly connectionDrivers = new Map<string, IDatabaseDriver>();
   private readonly pools = new Map<string, ConnectionPool>();
   private readonly dialects = new Map<string, SqlDialect>();
   private readonly telemetry?: QueryTelemetryHook | undefined;
@@ -35,26 +37,45 @@ export class DatabaseManager {
     this.telemetry = options?.telemetry;
 
     // Register built-in drivers by default
-    this.registerDriver('memory', new MemoryDatabaseDriver());
-    this.registerDriver('sqlite', new SqliteDatabaseDriver());
-    this.registerDriver('sqlite3', new SqliteDatabaseDriver());
-    this.registerDriver('postgres', new PostgresDatabaseDriver());
-    this.registerDriver('postgresql', new PostgresDatabaseDriver());
-    this.registerDriver('pg', new PostgresDatabaseDriver());
-    this.registerDriver('mysql', new MysqlDatabaseDriver());
-    this.registerDriver('mariadb', new MysqlDatabaseDriver());
-    this.registerDriver('mongodb', new MongoDatabaseDriver());
-    this.registerDriver('mongo', new MongoDatabaseDriver());
+    this.registerDriverFactory('memory', () => new MemoryDatabaseDriver());
+    this.registerDriverFactory('sqlite', (config) => new SqliteDatabaseDriver(config));
+    this.registerDriverFactory('sqlite3', (config) => new SqliteDatabaseDriver(config));
+    this.registerDriverFactory('postgres', (config) => new PostgresDatabaseDriver(config));
+    this.registerDriverFactory('postgresql', (config) => new PostgresDatabaseDriver(config));
+    this.registerDriverFactory('pg', (config) => new PostgresDatabaseDriver(config));
+    this.registerDriverFactory('mysql', (config) => new MysqlDatabaseDriver(config));
+    this.registerDriverFactory('mariadb', (config) => new MysqlDatabaseDriver(config));
+    this.registerDriverFactory('mongodb', (config) => new MongoDatabaseDriver(config));
+    this.registerDriverFactory('mongo', (config) => new MongoDatabaseDriver(config));
   }
 
   public registerDriver(name: string, driver: IDatabaseDriver): this {
-    this.drivers.set(name.toLowerCase(), driver);
+    const key = name.toLowerCase();
+    this.drivers.set(key, driver);
+    this.driverFactories.set(key, () => driver);
     return this;
   }
 
+  private registerDriverFactory(name: string, factory: (config: ConnectionConfig) => IDatabaseDriver): void {
+    this.driverFactories.set(name, factory);
+  }
+
   public getDriver(name: string): IDatabaseDriver {
-    const driver = this.drivers.get(name.toLowerCase());
+    const key = name.toLowerCase();
+    const driver = this.drivers.get(key);
     if (!driver) {
+      const configured = Object.entries(this.config.connections).find(
+        ([connectionName, config]) =>
+          config.driver.toLowerCase() === key && this.connectionDrivers.has(connectionName)
+      );
+      if (configured) return this.connectionDrivers.get(configured[0])!;
+      const configuredConnection = Object.entries(this.config.connections).find(
+        ([, config]) => config.driver.toLowerCase() === key
+      );
+      const factory = this.driverFactories.get(key);
+      if (configuredConnection && factory) {
+        return this.getConnectionDriver(configuredConnection[0], configuredConnection[1]);
+      }
       throw new DatabaseConfigurationError(
         `Database driver "${name}" is not registered in DatabaseManager.`
       );
@@ -75,7 +96,7 @@ export class DatabaseManager {
     const connName = name ?? this.config.default;
     const pool = this.getOrCreatePool(connName);
     const connConfig = this.getConnectionConfig(connName);
-    const driver = this.getDriver(connConfig.driver);
+    const driver = this.getConnectionDriver(connName, connConfig);
     const dialect = this.getOrCreateDialect(connConfig.driver, driver);
 
     const raw = await pool.acquire(options);
@@ -188,9 +209,12 @@ export class DatabaseManager {
     this.pools.clear();
 
     // Disconnect all drivers
-    const driverDisconnects = Array.from(this.drivers.values()).map((d) => d.disconnect());
+    const driverDisconnects = Array.from(
+      new Set([...this.drivers.values(), ...this.connectionDrivers.values()])
+    ).map((d) => d.disconnect());
     await Promise.all(driverDisconnects);
     this.drivers.clear();
+    this.connectionDrivers.clear();
   }
 
   private getOrCreatePool(name: string): ConnectionPool {
@@ -200,7 +224,7 @@ export class DatabaseManager {
     }
 
     const connConfig = this.getConnectionConfig(name);
-    const driver = this.getDriver(connConfig.driver);
+    const driver = this.getConnectionDriver(name, connConfig);
 
     const pool = new ConnectionPool(() => driver.connect(), connConfig.pool, name);
 
@@ -227,6 +251,16 @@ export class DatabaseManager {
       );
     }
     return config;
+  }
+
+  private getConnectionDriver(name: string, config: ConnectionConfig): IDatabaseDriver {
+    const existing = this.connectionDrivers.get(name);
+    if (existing) return existing;
+    const factory = this.driverFactories.get(config.driver.toLowerCase());
+    if (!factory) return this.getDriver(config.driver);
+    const driver = factory(config);
+    this.connectionDrivers.set(name, driver);
+    return driver;
   }
 
   private assertNotClosed(): void {

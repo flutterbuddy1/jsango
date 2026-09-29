@@ -140,8 +140,11 @@ export class MysqlDatabaseDriver implements IDatabaseDriver {
             connectionLimit: cfg.pool?.max ?? 10,
           });
         }
-      } catch {
-        // 'mysql2' package not installed, operates in mock / fallback mode
+      } catch (err) {
+        throw new ConnectionError(
+          "MySQL driver requires the 'mysql2' package. Install it with `npm install mysql2`.",
+          err
+        );
       }
     }
 
@@ -156,7 +159,7 @@ export class MysqlDatabaseDriver implements IDatabaseDriver {
       }
     }
 
-    return new MysqlDriverConnection(this.config);
+    throw new ConnectionError("MySQL driver could not initialize the 'mysql2' connection pool.");
   }
 
   public async disconnect(): Promise<void> {
