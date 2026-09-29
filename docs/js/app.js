@@ -128,19 +128,20 @@ app.use(async (ctx, next) => {
       title: '6. Declarative ORM & Migrations',
       pkg: '@jsango/orm & @jsango/migrations',
       desc: 'Batteries-included ORM with AST query compilation, batch eager loading (.with()), relationships, and auto-diffing migration runners.',
-      snippet: `import { defineModel, fields } from '@jsango/orm';
+      snippet: `import { defineModel, fields } from 'jsango';
 
-export const User = defineModel({
-  name: 'User',
+export const User = defineModel('User', {
+  id: fields.id(),
+  email: fields.string({ unique: true }),
+}, {
   table: 'users',
-  fields: {
-    id: fields.uuid({ primaryKey: true }),
-    email: fields.string({ unique: true }),
+  timestamps: true,
+  relations: {
+    orders: { type: 'hasMany', target: 'Order', foreignKey: 'userId' },
   },
-  relations: (rel) => ({
-    orders: rel.hasMany('Order', { foreignKey: 'userId' }),
-  })
-});`,
+});
+
+// npx jsango makemigrations && npx jsango migrate`,
     },
     admin: {
       title: '7. Auto Admin Console',

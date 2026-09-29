@@ -69,7 +69,7 @@ The CLI binary has been renamed from `django-js` to `jsango`:
 
 ```bash
 # Start development server
-jsango dev
+npm run dev
 
 # Database migrations
 jsango migrate

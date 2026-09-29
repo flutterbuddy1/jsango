@@ -7,3 +7,12 @@ export * from './registry.js';
 export * from './parser.js';
 export * from './provider.js';
 export * from './app.js';
+export * from './project-config.js';
+export {
+  loadProject,
+  loadEnvFile,
+  findConfigFile,
+  enableTypeScript,
+  ProjectLoadError,
+  type LoadedProject,
+} from '../internal/project-loader.js';

@@ -14,6 +14,7 @@ import type { EventBus } from '@jsango/events';
 import type { IWebSocketServer } from '@jsango/websocket';
 import { CliOutput } from './output.js';
 import { ProjectDiscovery } from '../internal/project.js';
+import { loadProject, type LoadedProject } from '../internal/project-loader.js';
 
 export interface CommandContextOptions {
   readonly args?: readonly (string | number | boolean)[] | undefined;
@@ -58,6 +59,8 @@ export class CommandContext {
   private _wsServer?: IWebSocketServer | undefined;
 
   private readonly cleanupHooks: (() => Promise<void> | void)[] = [];
+  private projectPromise: Promise<LoadedProject> | undefined;
+  private readonly autoLoadProject: boolean;
 
   public constructor(options: CommandContextOptions = {}) {
     this.args = Object.freeze([...(options.args ?? [])]);
@@ -91,6 +94,31 @@ export class CommandContext {
     this._queueManager = options.queueManager;
     this._eventBus = options.eventBus;
     this._wsServer = options.wsServer;
+    // Contexts created with injected services (tests, embedding) never touch the file system.
+    this.autoLoadProject =
+      options.databaseManager === undefined &&
+      options.migrationRegistry === undefined &&
+      options.application === undefined;
+  }
+
+  /**
+   * Loads the project (jsango.config.*, .env, database, models, migration files) once.
+   * Commands that need the database or migrations call this first.
+   */
+  public async loadProject(): Promise<LoadedProject | undefined> {
+    if (!this.autoLoadProject) return undefined;
+    if (!this.projectPromise) {
+      this.projectPromise = loadProject(this.projectRoot).then((project) => {
+        if (project.databaseManager && !this._databaseManager) {
+          this.setDatabaseManager(project.databaseManager, { close: project.ownsDatabaseManager });
+        }
+        if (!this._migrationRegistry) {
+          this._migrationRegistry = project.migrations.registry;
+        }
+        return project;
+      });
+    }
+    return this.projectPromise;
   }
 
   public registerCleanup(cleanup: () => Promise<void> | void): void {
@@ -132,11 +160,17 @@ export class CommandContext {
     return this._application;
   }
 
-  public setDatabaseManager(db: DatabaseManager): void {
+  /**
+   * @param options.close - close the manager when the command finishes (default true). Managers
+   *   owned by the application (passed as an instance in jsango.config) are left open.
+   */
+  public setDatabaseManager(db: DatabaseManager, options?: { close?: boolean }): void {
     this._databaseManager = db;
-    this.registerCleanup(async () => {
-      await db.close();
-    });
+    if (options?.close !== false) {
+      this.registerCleanup(async () => {
+        await db.close();
+      });
+    }
   }
 
   public async getDatabaseManager(): Promise<DatabaseManager | undefined> {
@@ -146,7 +180,8 @@ export class CommandContext {
     if (this._application?.container.has('db')) {
       return this._application.container.resolve<DatabaseManager>('db');
     }
-    return undefined;
+    await this.loadProject();
+    return this._databaseManager;
   }
 
   public getMigrationRegistry(): MigrationRegistry {

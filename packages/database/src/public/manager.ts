@@ -7,12 +7,13 @@ import type {
   QueryOptions,
   TransactionOptions,
 } from './types.js';
-import type { DatabaseConfig, ConnectionConfig } from './config.js';
+import type { DatabaseConfig, ConnectionConfig, PoolConfig } from './config.js';
+import { resolveConnectionConfig } from './config.js';
 import { DatabaseConfigurationError, DatabaseError } from './errors.js';
 import { DatabaseConnection, type QueryTelemetryHook } from './connection.js';
 import { ConnectionPool } from '../internal/pool.js';
 import { MemoryDatabaseDriver } from '../internal/drivers/memory-driver.js';
-import { SqlDialect } from '../internal/dialect.js';
+import { createDialect, type SqlDialect } from './dialect.js';
 import { PostgresDatabaseDriver } from '../internal/drivers/postgres-driver.js';
 import { MysqlDatabaseDriver } from '../internal/drivers/mysql-driver.js';
 import { SqliteDatabaseDriver } from '../internal/drivers/sqlite-driver.js';
@@ -22,8 +23,12 @@ export interface DatabaseManagerOptions {
   readonly telemetry?: QueryTelemetryHook | undefined;
 }
 
+type ResolvedConnectionConfig = ConnectionConfig & { driver: string };
+
 export class DatabaseManager {
-  private readonly config: DatabaseConfig;
+  private readonly config: DatabaseConfig & {
+    readonly connections: Record<string, ResolvedConnectionConfig>;
+  };
   private readonly drivers = new Map<string, IDatabaseDriver>();
   private readonly driverFactories = new Map<string, (config: ConnectionConfig) => IDatabaseDriver>();
   private readonly connectionDrivers = new Map<string, IDatabaseDriver>();
@@ -33,7 +38,26 @@ export class DatabaseManager {
   private closed = false;
 
   constructor(config: DatabaseConfig, options?: DatabaseManagerOptions) {
-    this.config = config;
+    if (!config || typeof config !== 'object' || !config.connections) {
+      throw new DatabaseConfigurationError(
+        'DatabaseManager requires a config of the form { default: "default", connections: { default: { driver: "sqlite", filename: "./db.sqlite3" } } }.'
+      );
+    }
+
+    const connections: Record<string, ResolvedConnectionConfig> = {};
+    for (const [name, conn] of Object.entries(config.connections)) {
+      connections[name] = resolveConnectionConfig(name, conn);
+    }
+
+    const names = Object.keys(connections);
+    const defaultName = config.default || (names.includes('default') ? 'default' : names[0]);
+    if (!defaultName || !connections[defaultName]) {
+      throw new DatabaseConfigurationError(
+        `Default database connection "${config.default}" is not defined. Configured connections: ${names.join(', ') || '(none)'}.`
+      );
+    }
+
+    this.config = { default: defaultName, connections };
     this.telemetry = options?.telemetry;
 
     // Register built-in drivers by default
@@ -93,11 +117,11 @@ export class DatabaseManager {
   ): Promise<IDatabaseConnection> {
     this.assertNotClosed();
 
-    const connName = name ?? this.config.default;
+    const connName = this.resolveConnectionName(name);
     const pool = this.getOrCreatePool(connName);
-    const connConfig = this.getConnectionConfig(connName);
+    const connConfig = this.getNamedConfig(connName);
     const driver = this.getConnectionDriver(connName, connConfig);
-    const dialect = this.getOrCreateDialect(connConfig.driver, driver);
+    const dialect = this.getOrCreateDialect(connName, driver);
 
     const raw = await pool.acquire(options);
 
@@ -154,6 +178,67 @@ export class DatabaseManager {
     });
     try {
       return await conn.transaction<T>(callback, options);
+    } finally {
+      await conn.release();
+    }
+  }
+
+  /** Name of the default connection. */
+  public get defaultConnectionName(): string {
+    return this.config.default;
+  }
+
+  /** Names of all configured connections. */
+  public get connectionNames(): readonly string[] {
+    return Object.freeze(Object.keys(this.config.connections));
+  }
+
+  /** Returns true when a connection with this name is configured. */
+  public hasConnection(name: string): boolean {
+    return name in this.config.connections;
+  }
+
+  /**
+   * Resolves a connection name, falling back to the default connection.
+   * The name 'default' always resolves to the configured default connection, so models and
+   * migrations that do not name a connection work regardless of what it is called.
+   */
+  public resolveConnectionName(name?: string): string {
+    if (!name) return this.config.default;
+    if (this.config.connections[name]) return name;
+    if (name === 'default') return this.config.default;
+    throw new DatabaseConfigurationError(
+      `Database connection "${name}" is not configured. Configured connections: ${Object.keys(this.config.connections).join(', ')}.`
+    );
+  }
+
+  /** Returns the (masked-at-log-time) configuration for a connection. */
+  public getConnectionConfig(name?: string): ConnectionConfig & { driver: string } {
+    return this.config.connections[this.resolveConnectionName(name)]!;
+  }
+
+  /** Canonical driver name for a connection: 'postgres', 'mysql', 'sqlite', 'memory', ... */
+  public getDriverName(name?: string): string {
+    const connName = this.resolveConnectionName(name);
+    return this.getConnectionDriver(connName, this.config.connections[connName]!).name;
+  }
+
+  /** SQL dialect (quoting, placeholders, RETURNING support) for a connection. */
+  public getDialect(name?: string): SqlDialect {
+    const connName = this.resolveConnectionName(name);
+    const config = this.config.connections[connName]!;
+    const driver = this.getConnectionDriver(connName, config);
+    return this.getOrCreateDialect(connName, driver);
+  }
+
+  /**
+   * Opens a connection and runs `SELECT 1`, throwing a descriptive ConnectionError on failure.
+   * Call it at application startup to fail fast on bad credentials or an unreachable server.
+   */
+  public async verify(name?: string): Promise<void> {
+    const conn = await this.connection(name);
+    try {
+      await conn.query('SELECT 1');
     } finally {
       await conn.release();
     }
@@ -223,27 +308,40 @@ export class DatabaseManager {
       return existing;
     }
 
-    const connConfig = this.getConnectionConfig(name);
+    const connConfig = this.getNamedConfig(name);
     const driver = this.getConnectionDriver(name, connConfig);
 
-    const pool = new ConnectionPool(() => driver.connect(), connConfig.pool, name);
+    const pool = new ConnectionPool(
+      () => driver.connect(),
+      this.resolvePoolConfig(connConfig, driver),
+      name
+    );
 
     this.pools.set(name, pool);
     return pool;
   }
 
-  private getOrCreateDialect(driverName: string, driver: IDatabaseDriver): SqlDialect {
-    const existing = this.dialects.get(driverName);
+  private resolvePoolConfig(config: ConnectionConfig, driver: IDatabaseDriver): PoolConfig {
+    const merged: PoolConfig = { ...(driver.poolDefaults ?? {}), ...(config.pool ?? {}) };
+    const limit = driver.maxConnections;
+    if (limit !== undefined && (merged.max === undefined || merged.max > limit)) {
+      return { ...merged, max: limit, min: Math.min(merged.min ?? 0, limit) };
+    }
+    return merged;
+  }
+
+  private getOrCreateDialect(connectionName: string, driver: IDatabaseDriver): SqlDialect {
+    const existing = this.dialects.get(connectionName);
     if (existing) {
       return existing;
     }
 
-    const dialect = new SqlDialect(driver.capabilities.placeholderType);
-    this.dialects.set(driverName, dialect);
+    const dialect = createDialect(driver.name, driver.capabilities);
+    this.dialects.set(connectionName, dialect);
     return dialect;
   }
 
-  private getConnectionConfig(name: string): ConnectionConfig {
+  private getNamedConfig(name: string): ResolvedConnectionConfig {
     const config = this.config.connections[name];
     if (!config) {
       throw new DatabaseConfigurationError(
@@ -253,11 +351,16 @@ export class DatabaseManager {
     return config;
   }
 
-  private getConnectionDriver(name: string, config: ConnectionConfig): IDatabaseDriver {
+  private getConnectionDriver(name: string, config: ResolvedConnectionConfig): IDatabaseDriver {
     const existing = this.connectionDrivers.get(name);
     if (existing) return existing;
     const factory = this.driverFactories.get(config.driver.toLowerCase());
-    if (!factory) return this.getDriver(config.driver);
+    if (!factory) {
+      if (this.drivers.has(config.driver.toLowerCase())) return this.getDriver(config.driver);
+      throw new DatabaseConfigurationError(
+        `Unknown database driver "${config.driver}" for connection "${name}". Supported drivers: postgres, mysql, mariadb, sqlite, mongodb, memory. Custom drivers must be registered with db.registerDriver().`
+      );
+    }
     const driver = factory(config);
     this.connectionDrivers.set(name, driver);
     return driver;

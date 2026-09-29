@@ -2,36 +2,29 @@ import { BaseCommand } from '../public/command.js';
 import type { CommandContext } from '../public/context.js';
 import { ExitCode } from '../public/types.js';
 import { MigrationRunner } from '@jsango/migrations';
+import { CONNECTION_OPTION, connectionOption, requireDatabase } from '../internal/db-command.js';
 
 export class MigrateStatusCommand extends BaseCommand {
   public readonly name = 'migrate:status';
   public readonly description = 'Show current migration status and pending migrations';
   public readonly usage = 'jsango migrate:status [options]';
-  public readonly options = [
-    {
-      name: 'connection',
-      short: 'c',
-      description: 'Database connection name',
-      type: 'string' as const,
-      default: 'default',
-    },
-  ];
+  public readonly options = [CONNECTION_OPTION];
 
   public async execute(context: CommandContext): Promise<number> {
-    const db = await context.getDatabaseManager();
+    const db = await requireDatabase(context);
     if (!db) {
-      context.output.error('No database configured for this application.');
       return ExitCode.DATABASE_ERROR;
     }
 
-    const connectionName = (context.options['connection'] as string) || 'default';
     const runner = new MigrationRunner({
       databaseManager: db,
       registry: context.getMigrationRegistry(),
     });
 
     try {
+      const connectionName = runner.resolveConnection(connectionOption(context));
       const status = await runner.status(connectionName);
+      const known = new Set(runner.migrationsFor(connectionName).map((m) => m.id));
 
       if (context.output.isJson) {
         context.output.json({
@@ -57,12 +50,18 @@ export class MigrateStatusCommand extends BaseCommand {
       if (status.applied.length > 0) {
         context.output.text(colors.bold('Applied Migrations:'));
         const appliedRows = status.applied.map((a) => [
-          colors.green('✓'),
+          known.has(a.id) ? colors.green('✓') : colors.red('?'),
           a.id,
           String(a.batch),
-          a.appliedAt,
+          a.appliedAt instanceof Date ? a.appliedAt.toISOString() : String(a.appliedAt),
         ]);
         context.output.table(['', 'Migration ID', 'Batch', 'Applied At'], appliedRows);
+        const missing = status.applied.filter((a) => !known.has(a.id));
+        if (missing.length > 0) {
+          context.output.warn(
+            `${missing.length} applied migration(s) have no matching file in the migrations directory (marked "?"). They cannot be rolled back.`
+          );
+        }
         context.output.text();
       }
 

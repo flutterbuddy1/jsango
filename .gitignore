@@ -40,3 +40,6 @@ post-ideas.md
 
 # Audit reports
 report.md
+
+# Temporary end-to-end test projects
+tests/.tmp-*

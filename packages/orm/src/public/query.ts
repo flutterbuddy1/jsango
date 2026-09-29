@@ -12,24 +12,30 @@ import type { SelectAst, WhereConditionNode, OrderByNode } from '../internal/ast
 import { SqlCompiler } from '../internal/compiler.js';
 import { Hydrator } from '../internal/hydration.js';
 import { EagerLoader } from '../internal/eager-loader.js';
-import { ModelNotFoundError, QueryError } from './errors.js';
+import { ModelNotFoundError } from './errors.js';
 import { defaultModelRegistry, type ModelRegistry } from './registry.js';
-import { getDatabaseManager } from './connection.js';
+import { withQueryContext } from './connection.js';
+import { serializeFieldValue } from '../internal/values.js';
+
+/** How soft-deleted rows are treated: excluded (default), included, or the only rows returned. */
+export type TrashedMode = 'exclude' | 'include' | 'only';
 
 export interface QueryBuilderOptions {
   readonly compiler?: SqlCompiler | undefined;
   readonly registry?: ModelRegistry | undefined;
   readonly context?: QueryContext | undefined;
   readonly eagerRelations?: readonly string[] | undefined;
+  readonly trashed?: TrashedMode | undefined;
 }
 
 export class QueryBuilder<TModel extends Model = Model> {
   private readonly modelClass: ModelStatic<TModel>;
   private readonly ast: SelectAst;
-  private readonly compiler: SqlCompiler;
+  private readonly explicitCompiler: SqlCompiler | undefined;
   private readonly registry: ModelRegistry;
   private readonly context?: QueryContext | undefined;
   private readonly eagerRelations: readonly string[];
+  private readonly trashed: TrashedMode;
 
   constructor(modelClass: ModelStatic<TModel>, ast?: SelectAst, options?: QueryBuilderOptions) {
     this.modelClass = modelClass;
@@ -39,9 +45,10 @@ export class QueryBuilder<TModel extends Model = Model> {
       where: [],
       orderBy: [],
     };
-    this.compiler = options?.compiler ?? new SqlCompiler();
+    this.explicitCompiler = options?.compiler;
     this.registry = options?.registry ?? defaultModelRegistry;
     this.context = options?.context;
+    this.trashed = options?.trashed ?? 'exclude';
     this.eagerRelations = options?.eagerRelations
       ? Object.freeze([...options.eagerRelations])
       : Object.freeze([]);
@@ -62,7 +69,8 @@ export class QueryBuilder<TModel extends Model = Model> {
     };
 
     return new QueryBuilder<TModel>(this.modelClass, newAst, {
-      compiler: modifiedOptions?.compiler ?? this.compiler,
+      compiler: modifiedOptions?.compiler ?? this.explicitCompiler,
+      trashed: modifiedOptions?.trashed ?? this.trashed,
       registry: modifiedOptions?.registry ?? this.registry,
       context:
         modifiedOptions && 'context' in modifiedOptions ? modifiedOptions.context : this.context,
@@ -128,14 +136,22 @@ export class QueryBuilder<TModel extends Model = Model> {
     const column = this.modelClass.metadata.fieldToColumn(columnOrConditions);
 
     if (value !== undefined) {
-      const op = String(operatorOrValue);
-      newWhere.push({
-        type: 'comparison',
-        column,
-        operator: op,
-        value,
-        boolean,
-      });
+      const op = String(operatorOrValue).trim().toUpperCase();
+      if (value === null && (op === '=' || op === 'IS')) {
+        newWhere.push({ type: 'null', column, operator: 'IS NULL', boolean });
+      } else if (value === null && (op === '!=' || op === '<>' || op === 'IS NOT')) {
+        newWhere.push({ type: 'null', column, operator: 'IS NOT NULL', boolean });
+      } else if ((op === 'IN' || op === 'NOT IN') && Array.isArray(value)) {
+        newWhere.push({ type: 'in', column, operator: op, values: [...value], boolean });
+      } else {
+        newWhere.push({
+          type: 'comparison',
+          column,
+          operator: op,
+          value,
+          boolean,
+        });
+      }
     } else {
       // 2 arguments: where(column, value)
       if (operatorOrValue === null) {
@@ -241,35 +257,53 @@ export class QueryBuilder<TModel extends Model = Model> {
     return this.clone(undefined, { context });
   }
 
+  /** Includes soft-deleted rows (models with `softDelete: true`). */
+  public withTrashed(): QueryBuilder<TModel> {
+    return this.clone(undefined, { trashed: 'include' });
+  }
+
+  /** Returns only soft-deleted rows (models with `softDelete: true`). */
+  public onlyTrashed(): QueryBuilder<TModel> {
+    return this.clone(undefined, { trashed: 'only' });
+  }
+
+  /** Implicit soft-delete condition for models with `softDelete: true`. */
+  private get softDeleteScope(): readonly WhereConditionNode[] | undefined {
+    const meta = this.modelClass.metadata;
+    if (!meta.softDelete.enabled || this.trashed === 'include') {
+      return undefined;
+    }
+    return [
+      {
+        type: 'null',
+        column: meta.fieldToColumn(meta.softDelete.deletedAt),
+        operator: this.trashed === 'only' ? 'IS NOT NULL' : 'IS NULL',
+        boolean: 'AND',
+      },
+    ];
+  }
+
+  private compilerFor(conn: QueryContext | undefined): SqlCompiler {
+    return this.explicitCompiler ?? SqlCompiler.forContext(conn ?? this.context);
+  }
+
   public toSql(): CompiledQuery {
-    return this.compiler.compileSelect(this.ast);
+    return this.compilerFor(undefined).compileSelect({ ...this.ast, scope: this.softDeleteScope });
   }
 
   private async executeWithConnection<T>(
     operation: (conn: QueryContext) => Promise<T>
   ): Promise<T> {
-    if (this.context) {
-      return operation(this.context);
-    }
-    const manager = getDatabaseManager();
-    if (!manager) {
-      throw new QueryError(
-        `No database connection provided for model '${this.modelClass.modelName}'. Call setDatabaseManager() or use .using(context).`
-      );
-    }
-    const conn = await manager.connection(this.modelClass.metadata.connection);
-    try {
-      return await operation(conn);
-    } finally {
-      if ('release' in conn && typeof conn.release === 'function') {
-        await conn.release();
-      }
-    }
+    return withQueryContext(this.context, this.modelClass.metadata.connection, operation);
   }
 
   public async get(): Promise<readonly TModel[]> {
     return this.executeWithConnection(async (conn) => {
-      const { sql, params } = this.toSql();
+      const { sql, params } = this.compilerFor(conn).compileSelect({
+        ...this.ast,
+        where: this.ast.where,
+        scope: this.softDeleteScope,
+      });
       const result = await conn.query<Record<string, unknown>>(sql, params);
 
       const models = Hydrator.hydrateModels(result.rows, this.modelClass);
@@ -307,10 +341,11 @@ export class QueryBuilder<TModel extends Model = Model> {
   public async count(column?: string): Promise<number> {
     return this.executeWithConnection(async (conn) => {
       const col = column ? this.modelClass.metadata.fieldToColumn(column) : undefined;
-      const { sql, params } = this.compiler.compileCount({
+      const { sql, params } = this.compilerFor(conn).compileCount({
         table: this.ast.table,
         column: col,
         where: this.ast.where,
+        scope: this.softDeleteScope,
       });
       const result = await conn.query<Record<string, unknown>>(sql, params);
       const firstRow = result.rows[0];
@@ -322,9 +357,10 @@ export class QueryBuilder<TModel extends Model = Model> {
 
   public async exists(): Promise<boolean> {
     return this.executeWithConnection(async (conn) => {
-      const { sql, params } = this.compiler.compileExists({
+      const { sql, params } = this.compilerFor(conn).compileExists({
         table: this.ast.table,
         where: this.ast.where,
+        scope: this.softDeleteScope,
       });
       const result = await conn.query<Record<string, unknown>>(sql, params);
       return result.rows.length > 0;
@@ -376,7 +412,7 @@ export class QueryBuilder<TModel extends Model = Model> {
       const mappedValues: Record<string, unknown> = {};
       for (const [key, val] of Object.entries(values)) {
         const col = this.modelClass.metadata.fieldToColumn(key);
-        mappedValues[col] = val;
+        mappedValues[col] = serializeFieldValue(this.modelClass.metadata, key, val);
       }
 
       if (this.modelClass.metadata.timestamps.enabled) {
@@ -388,10 +424,11 @@ export class QueryBuilder<TModel extends Model = Model> {
         }
       }
 
-      const { sql, params } = this.compiler.compileUpdate({
+      const { sql, params } = this.compilerFor(conn).compileUpdate({
         table: this.ast.table,
         values: mappedValues,
         where: this.ast.where,
+        scope: this.softDeleteScope,
       });
 
       const result = await conn.query<Record<string, unknown>>(sql, params);
@@ -410,9 +447,10 @@ export class QueryBuilder<TModel extends Model = Model> {
     }
 
     return this.executeWithConnection(async (conn) => {
-      const { sql, params } = this.compiler.compileDelete({
+      const { sql, params } = this.compilerFor(conn).compileDelete({
         table: this.ast.table,
         where: this.ast.where,
+        scope: this.softDeleteScope,
       });
 
       const result = await conn.query<Record<string, unknown>>(sql, params);

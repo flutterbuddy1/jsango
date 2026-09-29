@@ -8,7 +8,51 @@ export interface GeneratedMigration {
   readonly content: string;
 }
 
+export interface GenerateMigrationOptions {
+  readonly timestamp?: string | undefined;
+  readonly connection?: string | undefined;
+  /** Package the generated file imports from. Defaults to 'jsango'. */
+  readonly importFrom?: string | undefined;
+}
+
 export class MigrationGenerator {
+  /**
+   * Generates an empty, hand-written migration with up/down functions using the schema builder.
+   */
+  public static generateEmpty(name: string, options?: GenerateMigrationOptions): GeneratedMigration {
+    const cleanName = name.replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase();
+    const timestamp = options?.timestamp ?? MigrationGenerator.generateTimestamp();
+    const id = `${timestamp}_${cleanName}`;
+    const content = `/**
+ * Migration: ${id}
+ * Created At: ${new Date().toISOString()}
+ *
+ * Hand-written migration. Use the schema helpers for portable DDL:
+ *   ctx.createTable, ctx.dropTable, ctx.addColumn, ctx.dropColumn, ctx.renameColumn,
+ *   ctx.addIndex, ctx.addUnique, ctx.addForeignKey
+ * or ctx.sql('...') for anything else (data migrations, views, extensions).
+ */
+
+import { defineMigration } from '${options?.importFrom ?? 'jsango'}';
+
+export default defineMigration({
+  id: '${id}',
+  name: '${cleanName}',${options?.connection ? `\n  connection: '${options.connection}',` : ''}
+  async up(ctx) {
+    // await ctx.createTable('example', (t) => {
+    //   t.id();
+    //   t.string('title');
+    //   t.timestamps();
+    // });
+  },
+  async down(ctx) {
+    // await ctx.dropTable('example');
+  },
+});
+`;
+    return { id, name: cleanName, fileName: `${id}.ts`, content };
+  }
+
   public static generateTimestamp(date = new Date()): string {
     const pad = (n: number) => String(n).padStart(2, '0');
     const year = date.getUTCFullYear();
@@ -23,7 +67,7 @@ export class MigrationGenerator {
   public static generate(
     name: string,
     diff: SchemaDiff,
-    options?: { timestamp?: string; connection?: string }
+    options?: GenerateMigrationOptions
   ): GeneratedMigration {
     const cleanName = name.replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase();
     const timestamp = options?.timestamp ?? MigrationGenerator.generateTimestamp();
@@ -56,7 +100,7 @@ export class MigrationGenerator {
 
 import {
   ${sortedImports},
-} from '@jsango/migrations';
+} from '${options?.importFrom ?? 'jsango'}';
 
 export const id = '${id}';
 export const name = '${cleanName}';

@@ -1,6 +1,6 @@
 {
   "name": "@jsango/cli",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "CLI commands and project/code generation for jsango",
   "type": "module",
   "main": "./dist/index.js",
@@ -21,22 +21,23 @@
     "prepack": "pnpm run build"
   },
   "dependencies": {
-    "@jsango/runtime": "workspace:^",
-    "@jsango/core": "workspace:^",
-    "@jsango/container": "workspace:^",
-    "@jsango/config": "workspace:^",
-    "@jsango/http": "workspace:^",
-    "@jsango/router": "workspace:^",
-    "@jsango/middleware": "workspace:^",
-    "@jsango/database": "workspace:^",
-    "@jsango/orm": "workspace:^",
-    "@jsango/migrations": "workspace:^",
     "@jsango/cache": "workspace:^",
-    "@jsango/queue": "workspace:^",
+    "@jsango/config": "workspace:^",
+    "@jsango/container": "workspace:^",
+    "@jsango/core": "workspace:^",
+    "@jsango/database": "workspace:^",
     "@jsango/events": "workspace:^",
-    "@jsango/websocket": "workspace:^",
+    "@jsango/http": "workspace:^",
+    "@jsango/middleware": "workspace:^",
+    "@jsango/migrations": "workspace:^",
+    "@jsango/observability": "workspace:^",
     "@jsango/openapi": "workspace:^",
-    "@jsango/observability": "workspace:^"
+    "@jsango/orm": "workspace:^",
+    "@jsango/queue": "workspace:^",
+    "@jsango/router": "workspace:^",
+    "@jsango/runtime": "workspace:^",
+    "@jsango/websocket": "workspace:^",
+    "tsx": "^4.23.15"
   },
   "files": [
     "dist"

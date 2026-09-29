@@ -2,6 +2,7 @@ import type { ModelMetadata, ModelStatic } from '@jsango/orm';
 import { SchemaSnapshot } from '../public/schema.js';
 import type {
   ColumnDefinition,
+  ForeignKeyAction,
   ForeignKeyDefinition,
   IndexDefinition,
   TableDefinition,
@@ -118,13 +119,17 @@ export class ModelSchemaConverter {
           }
 
           if (targetTable) {
+            const fkColumn = model.fieldToColumn(rel.foreignKey);
+            const fkField = model.getField(rel.foreignKey);
+            const opts = rel.options as { onDelete?: ForeignKeyAction; onUpdate?: ForeignKeyAction };
             foreignKeys.push({
-              name: `fk_${model.table}_${rel.foreignKey}`,
-              columns: [rel.foreignKey],
+              name: `fk_${model.table}_${fkColumn}`,
+              columns: [fkColumn],
               referencedTable: targetTable,
               referencedColumns: [rel.localKey],
-              onDelete: 'CASCADE',
-              onUpdate: 'CASCADE',
+              // Nullable foreign keys default to SET NULL so deleting the parent keeps the row.
+              onDelete: opts.onDelete ?? (fkField?.nullable ? 'SET NULL' : 'CASCADE'),
+              onUpdate: opts.onUpdate ?? 'CASCADE',
             });
           }
         }

@@ -8,10 +8,17 @@ export class ModelRegistry {
 
   public register<TModel extends Model>(modelClass: ModelStatic<TModel>): void {
     const name = modelClass.modelName;
-    if (this.models.has(name)) {
-      throw new MetadataError(`Model with name '${name}' is already registered in this registry.`);
+    const existing = this.models.get(name);
+    if (existing && existing !== (modelClass as unknown as ModelStatic)) {
+      // The same model module evaluated twice (e.g. loaded by both the CLI and the app, or after
+      // a hot reload) re-registers with the same table: keep the newest definition.
+      if (existing.metadata.table !== modelClass.metadata.table) {
+        throw new MetadataError(
+          `Model with name '${name}' is already registered in this registry (table '${existing.metadata.table}'). Model names must be unique.`
+        );
+      }
     }
-    this.models.set(name, modelClass);
+    this.models.set(name, modelClass as unknown as ModelStatic);
   }
 
   public getModel<TModel extends Model = Model>(name: string): ModelStatic<TModel> | undefined {
@@ -35,7 +42,15 @@ export class ModelRegistry {
   }
 }
 
-export const defaultModelRegistry = new ModelRegistry();
+const REGISTRY_KEY = Symbol.for('jsango.orm.defaultModelRegistry');
+const registryHolder = globalThis as unknown as { [REGISTRY_KEY]?: ModelRegistry };
+
+/**
+ * Process-wide registry that `defineModel()` registers into. Stored on globalThis so the CLI and
+ * the application share it even if the package is installed more than once.
+ */
+export const defaultModelRegistry: ModelRegistry = (registryHolder[REGISTRY_KEY] ??=
+  new ModelRegistry());
 
 export function registerModel<TModel extends Model>(modelClass: ModelStatic<TModel>): void {
   defaultModelRegistry.register(modelClass);

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- wraps untyped optional peer clients (pg, mysql2, better-sqlite3, node:sqlite, mongodb) */
 import type {
   IDatabaseDriver,
   IDriverConnection,
@@ -7,6 +8,7 @@ import type {
 } from '../../public/types.js';
 import type { ConnectionConfig } from '../../public/config.js';
 import { ConnectionError, QueryError } from '../../public/errors.js';
+import { importOptional } from './shared.js';
 
 export interface MongoDriverOptions {
   readonly url?: string | undefined;
@@ -15,7 +17,8 @@ export interface MongoDriverOptions {
 
 export class MongoDriverConnection implements IDriverConnection {
   private _isClosed = false;
-  private client: any = null;
+  /** The shared MongoClient (owned by the driver). */
+  public readonly client: any = null;
   private db: any = null;
   public readonly config: ConnectionConfig | MongoDriverOptions;
 
@@ -81,11 +84,12 @@ export class MongoDriverConnection implements IDriverConnection {
       }
     }
 
-    // In-memory document store simulation for testing
-    return {
-      rows: Object.freeze([] as T[]),
-      rowCount: 0,
-    };
+    throw new QueryError(
+      this.db
+        ? 'Unsupported MongoDB command. Pass a JSON command such as {"collection":"users","action":"find","filter":{}} (actions: find, insertOne, insertMany, updateOne, deleteOne).'
+        : 'MongoDB connection has no database handle.',
+      commandOrJson
+    );
   }
 
   public async ping(): Promise<boolean> {
@@ -101,11 +105,8 @@ export class MongoDriverConnection implements IDriverConnection {
   }
 
   public async close(): Promise<void> {
-    if (this._isClosed) return;
+    // The MongoClient is shared by all connections and owns its own pool; the driver closes it.
     this._isClosed = true;
-    if (this.client && typeof this.client.close === 'function') {
-      await this.client.close();
-    }
   }
 }
 
@@ -131,28 +132,28 @@ export class MongoDatabaseDriver implements IDatabaseDriver {
     const uri = (this.config as any).url ?? 'mongodb://127.0.0.1:27017';
     const dbName = (this.config as any).database ?? 'jsango';
 
-    let MongoClient: any;
-    try {
-      const mongodb = await import('mongodb' as string);
-      MongoClient = mongodb.default?.MongoClient ?? mongodb.MongoClient;
-    } catch (err) {
+    const mongodb = await importOptional('mongodb');
+    if (!mongodb) {
       throw new ConnectionError(
-        "MongoDB driver requires the 'mongodb' package. Install it with `npm install mongodb`.",
-        err
+        "MongoDB support requires the 'mongodb' package. Install it in your project: npm install mongodb"
       );
     }
+    const MongoClient: any = mongodb.MongoClient ?? mongodb.default?.MongoClient;
 
     if (!MongoClient) {
       throw new ConnectionError("MongoDB driver could not initialize the MongoClient.");
     }
 
-    this.client = new MongoClient(uri);
     try {
-      await this.client.connect();
+      if (!this.client) {
+        const client = new MongoClient(uri);
+        await client.connect();
+        this.client = client;
+      }
       const db = this.client.db(dbName);
       return new MongoDriverConnection(this.config, this.client, db);
     } catch (err) {
-      await this.client.close().catch(() => undefined);
+      await this.client?.close().catch(() => undefined);
       this.client = null;
       throw new ConnectionError(
         `Failed to connect to MongoDB: ${err instanceof Error ? err.message : String(err)}`,

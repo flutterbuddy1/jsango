@@ -9,6 +9,15 @@ import type {
   UniqueConstraintDefinition,
 } from './types.js';
 
+function defaultsEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (a === undefined || b === undefined || a === null || b === null) return false;
+  if (a instanceof Date || b instanceof Date) {
+    return new Date(a as Date).getTime() === new Date(b as Date).getTime();
+  }
+  return typeof a === 'object' && typeof b === 'object' && JSON.stringify(a) === JSON.stringify(b);
+}
+
 export class ColumnSchema {
   public readonly name: string;
   public readonly type: ColumnType;
@@ -44,8 +53,8 @@ export class ColumnSchema {
       this.nullable === other.nullable &&
       this.primaryKey === other.primaryKey &&
       this.autoIncrement === other.autoIncrement &&
-      this.unique === other.unique &&
-      this.defaultValue === other.defaultValue &&
+      // `unique` is enforced by a named unique constraint, which the diff compares separately.
+      defaultsEqual(this.defaultValue, other.defaultValue) &&
       this.length === other.length &&
       this.precision === other.precision &&
       this.scale === other.scale

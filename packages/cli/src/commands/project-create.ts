@@ -6,6 +6,9 @@ import { ExitCode } from '../public/types.js';
 import { DestructiveOperationError, UsageError } from '../public/errors.js';
 import { ProjectDiscovery } from '../internal/project.js';
 
+/** Framework version written into generated package.json files. */
+const FRAMEWORK_VERSION = '1.2.0';
+
 export class ProjectCreateCommand extends BaseCommand {
   public readonly name = 'create';
   public readonly description = 'Create and scaffold a new jsango project';
@@ -52,62 +55,111 @@ export class ProjectCreateCommand extends BaseCommand {
       fs.mkdirSync(targetDir, { recursive: true });
     }
 
-    const srcDir = path.join(targetDir, 'src');
-    if (!fs.existsSync(srcDir)) {
-      fs.mkdirSync(srcDir, { recursive: true });
-    }
+    const files: Record<string, string> = {
+      'package.json': JSON.stringify(
+        {
+          name: projectName,
+          version: '0.1.0',
+          private: true,
+          type: 'module',
+          scripts: {
+            dev: 'tsx watch src/index.ts',
+            build: 'tsc -b',
+            start: 'node dist/index.js',
+            makemigrations: 'jsango migrate:generate',
+            migrate: 'jsango migrate',
+            'migrate:status': 'jsango migrate:status',
+            'migrate:rollback': 'jsango migrate:rollback',
+            'db:status': 'jsango db:status',
+          },
+          dependencies: {
+            jsango: `^${FRAMEWORK_VERSION}`,
+            dotenv: '^16.4.7',
+          },
+          devDependencies: {
+            typescript: '^5.8.2',
+            tsx: '^4.20.0',
+            '@types/node': '^22.0.0',
+          },
+          engines: {
+            node: '>=22.13.0',
+          },
+        },
+        null,
+        2
+      ) + '\n',
 
-    // 1. package.json
-    const packageJsonContent = JSON.stringify(
-      {
-        name: projectName,
-        version: '0.1.0',
-        private: true,
-        type: 'module',
-        scripts: {
-          build: 'tsc -b',
-          start: 'node dist/index.js',
-          dev: 'tsc -b && node dist/index.js',
+      'tsconfig.json': JSON.stringify(
+        {
+          compilerOptions: {
+            target: 'ES2022',
+            module: 'NodeNext',
+            moduleResolution: 'NodeNext',
+            strict: true,
+            esModuleInterop: true,
+            skipLibCheck: true,
+            forceConsistentCasingInFileNames: true,
+            outDir: './dist',
+            rootDir: './src',
+          },
+          include: ['src/**/*'],
         },
-        dependencies: {
-          jsango: '^1.1.1',
-          dotenv: '^16.4.7',
-        },
-        devDependencies: {
-          typescript: '^5.8.2',
-          '@types/node': '^20.0.0',
-        },
-      },
-      null,
-      2
-    );
-    fs.writeFileSync(path.join(targetDir, 'package.json'), packageJsonContent, 'utf8');
+        null,
+        2
+      ) + '\n',
 
-    // 2. tsconfig.json
-    const tsconfigContent = JSON.stringify(
-      {
-        compilerOptions: {
-          target: 'ES2022',
-          module: 'NodeNext',
-          moduleResolution: 'NodeNext',
-          strict: true,
-          esModuleInterop: true,
-          skipLibCheck: true,
-          forceConsistentCasingInFileNames: true,
-          outDir: './dist',
-          rootDir: './src',
-        },
-        include: ['src/**/*'],
-      },
-      null,
-      2
-    );
-    fs.writeFileSync(path.join(targetDir, 'tsconfig.json'), tsconfigContent, 'utf8');
+      'jsango.config.ts': `import { defineConfig } from 'jsango';
+import { db } from './src/database.js';
 
-    // 3. src/index.ts
-    const indexTsContent = `import 'dotenv/config';
+/**
+ * Used by the jsango CLI (migrate, makemigrations, db:status, ...).
+ * The CLI loads .env before this file.
+ */
+export default defineConfig({
+  database: db,
+  models: './src/models',
+  migrations: './migrations',
+});
+`,
+
+      'src/database.ts': `import { DatabaseManager, databaseConfigFromEnv, setDatabaseManager } from 'jsango';
+
+/**
+ * Reads DATABASE_URL (or DATABASE_DRIVER / DATABASE_HOST / ...) from the environment.
+ * With nothing set it uses SQLite at ./db.sqlite3. See .env.example.
+ */
+export const db = new DatabaseManager(databaseConfigFromEnv());
+
+/** Makes every model use this database. Call once at startup. */
+export function configureDatabase(): DatabaseManager {
+  setDatabaseManager(db);
+  return db;
+}
+`,
+
+      'src/models/user.ts': `import { defineModel, fields } from 'jsango';
+
+/**
+ * Example model. After changing fields run:
+ *   npm run makemigrations   # writes a migration file into ./migrations
+ *   npm run migrate          # applies it to the database
+ */
+export const User = defineModel(
+  'User',
+  {
+    id: fields.id(),
+    email: fields.string({ maxLength: 255, unique: true }),
+    name: fields.string({ maxLength: 120, nullable: true }),
+    isActive: fields.boolean({ defaultValue: true }),
+  },
+  { table: 'users', timestamps: true }
+);
+`,
+
+      'src/index.ts': `import 'dotenv/config';
 import { createApp } from 'jsango';
 import { configureDatabase, db } from './database.js';
+import { User } from './models/user.js';
 
 export function createApplication() {
   configureDatabase();
@@ -122,6 +174,9 @@ export function createApplication() {
   app.get('/health', () => ({ status: 'healthy' }));
   app.get('/health/database', async () => ({ connections: await db.health() }));
 
+  // GET/POST /users, GET/PUT/PATCH/DELETE /users/:id
+  app.crud('/users', User);
+
   return app;
 }
 
@@ -130,80 +185,99 @@ if (process.env.NODE_ENV !== 'test') {
   const port = Number(process.env.PORT) || 3000;
   const host = process.env.HOST || '127.0.0.1';
 
+  // Fail fast with a clear message if the database is unreachable or misconfigured.
+  await db.verify();
   await app.listen(port, host);
+  console.log(\`Listening on http://\${host}:\${port}\`);
+
+  const shutdown = async () => {
+    await db.close();
+    process.exit(0);
+  };
+  process.once('SIGINT', shutdown);
+  process.once('SIGTERM', shutdown);
 }
-`;
-    fs.writeFileSync(path.join(srcDir, 'index.ts'), indexTsContent, 'utf8');
+`,
 
-    // 4. src/database.ts
-    const databaseTsContent = `import { DatabaseManager, setDatabaseManager } from 'jsango';
-
-const driver = process.env.DATABASE_DRIVER || 'memory';
-
-export const db = new DatabaseManager({
-  default: 'default',
-  connections: {
-    default: {
-      driver,
-      url: process.env.DATABASE_URL || undefined,
-      host: process.env.DATABASE_HOST || undefined,
-      port: process.env.DATABASE_PORT ? Number(process.env.DATABASE_PORT) : undefined,
-      database: process.env.DATABASE_NAME || undefined,
-      username: process.env.DATABASE_USER || undefined,
-      password: process.env.DATABASE_PASSWORD || undefined,
-      filename: process.env.DATABASE_FILE || './app.sqlite',
-    },
-  },
-});
-
-export function configureDatabase(): void {
-  setDatabaseManager(db);
-}
-`;
-    fs.writeFileSync(path.join(srcDir, 'database.ts'), databaseTsContent, 'utf8');
-
-    // 5. .env.example
-    const envExample = `DATABASE_DRIVER=memory
+      '.env.example': `# ---- Database -------------------------------------------------------------
+# Option A: one URL (recommended for production)
+#   PostgreSQL: DATABASE_URL=postgres://user:password@localhost:5432/myapp
+#   MySQL:      DATABASE_URL=mysql://user:password@localhost:3306/myapp
+#   SQLite:     DATABASE_URL=sqlite:./db.sqlite3
 DATABASE_URL=
-DATABASE_HOST=127.0.0.1
+
+# Option B: individual settings (used when DATABASE_URL is empty)
+DATABASE_DRIVER=sqlite
+DATABASE_FILE=./db.sqlite3
+DATABASE_HOST=
 DATABASE_PORT=
 DATABASE_NAME=
 DATABASE_USER=
 DATABASE_PASSWORD=
-DATABASE_FILE=./app.sqlite
-`;
-    fs.writeFileSync(path.join(targetDir, '.env.example'), envExample, 'utf8');
+# true / require, no-verify (self-signed certificates), false
+DATABASE_SSL=
+DATABASE_POOL_MAX=10
 
-    // 6. README.md
-    const readmeContent = `# ${projectName}
+PORT=3000
+`,
 
-A modern TypeScript backend application powered by jsango.
+      '.gitignore': `node_modules/
+dist/
+.env
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+`,
 
-## Getting Started
+      'migrations/.gitkeep': '',
+
+      'README.md': `# ${projectName}
+
+A TypeScript backend powered by [jsango](https://github.com/flutterbuddy1/jsango).
+
+## Getting started
 
 \`\`\`bash
-# Install dependencies
-pnpm install
-
-# Build
-pnpm build
-
-# Start development server
-pnpm start
+npm install
+cp .env.example .env        # defaults to SQLite; edit for PostgreSQL / MySQL
+npm run makemigrations      # create a migration from src/models
+npm run migrate             # apply it
+npm run dev                 # http://127.0.0.1:3000
 \`\`\`
 
-## Database
+SQLite works out of the box on Node.js 22.13+. For other databases install the client:
+\`npm install pg\` (PostgreSQL) or \`npm install mysql2\` (MySQL / MariaDB).
 
-The starter uses an in-memory database by default. Copy \`.env.example\` to \`.env\`, choose a
-database driver, and follow the [database setup guide](https://github.com/flutterbuddy1/jsango/tree/main/docs/database/README.md).
-`;
-    fs.writeFileSync(path.join(targetDir, 'README.md'), readmeContent, 'utf8');
+## Database workflow
+
+1. Change or add models in \`src/models\`.
+2. \`npm run makemigrations\` – writes \`migrations/<timestamp>_<name>.ts\`. Review it.
+3. \`npm run migrate\` – applies pending migrations (\`npx jsango migrate --dry-run\` shows the SQL).
+4. Commit the migration file together with the model change.
+
+Other commands: \`npx jsango migrate:status\`, \`npx jsango migrate:rollback\`, \`npx jsango db:status\`.
+
+See the [database guide](https://github.com/flutterbuddy1/jsango/tree/main/docs/database/README.md).
+`,
+    };
+
+    for (const [relative, content] of Object.entries(files)) {
+      const filePath = path.join(targetDir, relative);
+      fs.mkdirSync(path.dirname(filePath), { recursive: true });
+      fs.writeFileSync(filePath, content, 'utf8');
+    }
+
+    // A ready-to-use .env (SQLite) so the first `npm run migrate` works without editing.
+    const envPath = path.join(targetDir, '.env');
+    if (!fs.existsSync(envPath)) {
+      fs.writeFileSync(envPath, files['.env.example']!, 'utf8');
+    }
 
     if (context.output.isJson) {
       context.output.json({
         projectName,
         targetDir,
-        files: ['package.json', 'tsconfig.json', 'src/index.ts', 'src/database.ts', '.env.example', 'README.md'],
+        files: [...Object.keys(files), '.env'],
       });
       return ExitCode.SUCCESS;
     }
@@ -211,10 +285,12 @@ database driver, and follow the [database setup guide](https://github.com/flutte
     const { colors } = context.output;
     context.output.success(`Created jsango project in ${colors.cyan(targetDir)}`);
     context.output.text();
-    context.output.text('Inside that directory, you can run:');
+    context.output.text('Next steps:');
     context.output.text(`  ${colors.dim('$')} cd ${projectName}`);
-    context.output.text(`  ${colors.dim('$')} pnpm install`);
-    context.output.text(`  ${colors.dim('$')} pnpm dev`);
+    context.output.text(`  ${colors.dim('$')} npm install`);
+    context.output.text(`  ${colors.dim('$')} npm run makemigrations`);
+    context.output.text(`  ${colors.dim('$')} npm run migrate`);
+    context.output.text(`  ${colors.dim('$')} npm run dev`);
     context.output.text();
 
     return ExitCode.SUCCESS;

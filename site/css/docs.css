@@ -325,6 +325,11 @@
   background: rgba(16, 185, 129, 0.08);
 }
 
+.callout-warn {
+  border-left: 4px solid #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+}
+
 .callout-icon {
   font-size: 1.3rem;
   flex-shrink: 0;

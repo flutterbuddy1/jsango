@@ -9,7 +9,7 @@ import type {
 } from './types.js';
 import { ConnectionError, IsolationLevelUnsupportedError, QueryError } from './errors.js';
 import { DatabaseTransaction } from './transaction.js';
-import type { SqlDialect } from '../internal/dialect.js';
+import type { SqlDialect } from './dialect.js';
 import type { ConnectionPool } from '../internal/pool.js';
 
 export interface QueryTelemetryHook {
@@ -21,9 +21,9 @@ export interface QueryTelemetryHook {
 export class DatabaseConnection implements IDatabaseConnection {
   private readonly rawConnection: IDriverConnection;
   private readonly pool: ConnectionPool;
-  private readonly dialect: SqlDialect;
+  public readonly dialect: SqlDialect;
   private readonly capabilities: DatabaseCapabilities;
-  private readonly driverName: string;
+  public readonly driverName: string;
   private readonly telemetry?: QueryTelemetryHook | undefined;
 
   private released = false;
@@ -107,12 +107,9 @@ export class DatabaseConnection implements IDatabaseConnection {
       }
     }
 
-    let beginSql = 'BEGIN';
-    if (options?.isolationLevel) {
-      beginSql = `BEGIN TRANSACTION ISOLATION LEVEL ${options.isolationLevel}`;
+    for (const statement of this.dialect.beginTransactionStatements(options)) {
+      await this.rawConnection.query(statement);
     }
-
-    await this.rawConnection.query(beginSql);
 
     const txId = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const tx = new DatabaseTransaction(txId, this.rawConnection, this.dialect, () => {

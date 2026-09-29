@@ -3,19 +3,14 @@ import type { CommandContext } from '../public/context.js';
 import { ExitCode } from '../public/types.js';
 import { MigrationRunner } from '@jsango/migrations';
 import { DestructiveOperationError } from '../public/errors.js';
+import { CONNECTION_OPTION, connectionOption, requireDatabase } from '../internal/db-command.js';
 
 export class MigrateRollbackCommand extends BaseCommand {
   public readonly name = 'migrate:rollback';
   public readonly description = 'Rollback applied database migrations';
   public readonly usage = 'jsango migrate:rollback [options]';
   public readonly options = [
-    {
-      name: 'connection',
-      short: 'c',
-      description: 'Database connection name',
-      type: 'string' as const,
-      default: 'default',
-    },
+    CONNECTION_OPTION,
     {
       name: 'steps',
       short: 's',
@@ -42,13 +37,12 @@ export class MigrateRollbackCommand extends BaseCommand {
   ];
 
   public async execute(context: CommandContext): Promise<number> {
-    const db = await context.getDatabaseManager();
+    const db = await requireDatabase(context);
     if (!db) {
-      context.output.error('No database configured for this application.');
       return ExitCode.DATABASE_ERROR;
     }
 
-    const connectionName = (context.options['connection'] as string) || 'default';
+    const connectionName = connectionOption(context);
     const steps = context.options['steps'] as number | undefined;
     const target = context.options['target'] as string | undefined;
     const allowDestructive = Boolean(context.options['yes'] || context.options['force']);

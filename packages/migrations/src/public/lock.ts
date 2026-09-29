@@ -1,5 +1,6 @@
 import type { IDatabaseConnection } from '@jsango/database';
 import { MigrationLockedError } from './errors.js';
+import { adaptIdentifierQuotes } from '../internal/quoting.js';
 
 export interface MigrationLockOptions {
   readonly acquireTimeoutMs?: number | undefined;
@@ -20,11 +21,17 @@ export class MigrationLock {
   public constructor(connection: IDatabaseConnection, options?: MigrationLockOptions) {
     this.connection = connection;
     this.acquireTimeoutMs = options?.acquireTimeoutMs ?? 10_000;
-    this.lockExpiryMs = options?.lockExpiryMs ?? 30_000;
+    // Generous expiry: a lock is only considered stale (crashed process) after 15 minutes, so
+    // long-running migrations are never taken over by a concurrent deploy.
+    this.lockExpiryMs = options?.lockExpiryMs ?? 15 * 60_000;
     this.retryIntervalMs = options?.retryIntervalMs ?? 200;
     this.ownerId =
       options?.ownerId ??
       `pid_${process.pid}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  }
+
+  private sql(sql: string): string {
+    return adaptIdentifierQuotes(this.connection, sql);
   }
 
   public get currentOwnerId(): string {
@@ -36,14 +43,14 @@ export class MigrationLock {
   }
 
   public async ensureTable(): Promise<void> {
-    await this.connection.query(`
+    await this.connection.query(this.sql(`
       CREATE TABLE IF NOT EXISTS "${MigrationLock.TABLE_NAME}" (
         "id" VARCHAR(64) PRIMARY KEY,
         "is_locked" INTEGER NOT NULL,
         "owner_id" VARCHAR(255) NOT NULL,
         "acquired_at" VARCHAR(64) NOT NULL
       )
-    `);
+    `));
   }
 
   public async acquire(): Promise<void> {
@@ -73,11 +80,11 @@ export class MigrationLock {
 
     try {
       await this.connection.query(
-        `
+        this.sql(`
         UPDATE "${MigrationLock.TABLE_NAME}"
         SET "is_locked" = 0, "owner_id" = '', "acquired_at" = ''
         WHERE "id" = ? AND "owner_id" = ?
-      `,
+      `),
         ['lock', this.ownerId]
       );
     } finally {
@@ -100,11 +107,11 @@ export class MigrationLock {
 
     // Check existing lock row
     const result = await this.connection.query<Record<string, unknown>>(
-      `
+      this.sql(`
       SELECT "is_locked", "owner_id", "acquired_at"
       FROM "${MigrationLock.TABLE_NAME}"
       WHERE "id" = ?
-    `,
+    `),
       ['lock']
     );
 
@@ -112,10 +119,10 @@ export class MigrationLock {
       // First time initialize row
       try {
         await this.connection.query(
-          `
+          this.sql(`
           INSERT INTO "${MigrationLock.TABLE_NAME}" ("id", "is_locked", "owner_id", "acquired_at")
           VALUES (?, ?, ?, ?)
-        `,
+        `),
           ['lock', 1, this.ownerId, nowIso]
         );
         return true;
@@ -142,11 +149,11 @@ export class MigrationLock {
     if (!isLocked || isStale) {
       // Update lock row
       const updateResult = await this.connection.query(
-        `
+        this.sql(`
         UPDATE "${MigrationLock.TABLE_NAME}"
         SET "is_locked" = 1, "owner_id" = ?, "acquired_at" = ?
         WHERE "id" = ? AND ("is_locked" = 0 OR "acquired_at" = ?)
-      `,
+      `),
         [this.ownerId, nowIso, 'lock', acquiredAtStr]
       );
 

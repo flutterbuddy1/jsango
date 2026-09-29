@@ -21,6 +21,7 @@ import { MigrateStatusCommand } from '../commands/migrate-status.js';
 import { MigrateRollbackCommand } from '../commands/migrate-rollback.js';
 import { MigrateGenerateCommand } from '../commands/migrate-generate.js';
 import { MigrateCheckCommand } from '../commands/migrate-check.js';
+import { MigrateResetCommand } from '../commands/migrate-reset.js';
 import { ProjectCreateCommand } from '../commands/project-create.js';
 import { CacheClearCommand } from '../commands/cache-clear.js';
 import { QueueWorkCommand } from '../commands/queue-work.js';
@@ -72,6 +73,7 @@ export class CliApplication {
     registry.register(new MigrateRollbackCommand());
     registry.register(new MigrateGenerateCommand());
     registry.register(new MigrateCheckCommand());
+    registry.register(new MigrateResetCommand());
 
     // Register scaffolding commands
     registry.register(new ProjectCreateCommand());

@@ -258,7 +258,7 @@ export class MemoryDriverConnection implements IDriverConnection {
       }
       const table = this.tables.get(tableName)!;
 
-      const rowsStr = insertMatch[3]!;
+      const rowsStr = insertMatch[3]!.replace(/\s+RETURNING\s+.+$/i, '');
       const rowMatches = rowsStr.match(/\([^)]+\)/g) ?? [];
       let paramIdx = 0;
       let lastId: number | undefined;
@@ -286,8 +286,9 @@ export class MemoryDriverConnection implements IDriverConnection {
           }
         }
 
-        if (newRow['id'] === undefined) {
-          const nextId = table.length + 1;
+        if (newRow['id'] === undefined || newRow['id'] === null) {
+          const nextId =
+            table.reduce((max, r) => (typeof r['id'] === 'number' && r['id'] > max ? r['id'] : max), 0) + 1;
           newRow['id'] = nextId;
           lastId = nextId;
         } else if (typeof newRow['id'] === 'number') {

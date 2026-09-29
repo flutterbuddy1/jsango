@@ -40,7 +40,7 @@
         <a href="index.html" class="logo-brand docs-logo">
           <img src="images/logo.png" alt="JSango Logo" class="logo-img">
           <span class="logo-text">JSango</span>
-          <span class="brand-badge jsango-version-badge">v1.0.9</span>
+          <span class="brand-badge jsango-version-badge">v1.2.0</span>
         </a>
       </div>
 
@@ -98,13 +98,18 @@
       </div>
 
       <div class="sidebar-group">
-        <div class="sidebar-heading">🗄️ Database & ORM</div>
+        <div class="sidebar-heading">🗄️ Database &amp; ORM</div>
         <ul class="sidebar-links">
-          <li><a href="#database-drivers" class="sidebar-link">Database Drivers (PG, MySQL, SQLite, Mongo)</a></li>
-          <li><a href="#model-definitions" class="sidebar-link">Declarative Model Schemas</a></li>
-          <li><a href="#relationships" class="sidebar-link">Relations & Eager Loading</a></li>
-          <li><a href="#query-builder" class="sidebar-link">AST Query Builder & Pagination</a></li>
-          <li><a href="#migrations-engine" class="sidebar-link">Automated Migrations</a></li>
+          <li><a href="#database-drivers" class="sidebar-link">Connecting a Database</a></li>
+          <li><a href="#db-env" class="sidebar-link">Environment Variables (.env)</a></li>
+          <li><a href="#model-definitions" class="sidebar-link">Defining Models &amp; Fields</a></li>
+          <li><a href="#relationships" class="sidebar-link">Relations &amp; Eager Loading</a></li>
+          <li><a href="#query-builder" class="sidebar-link">Querying &amp; Pagination</a></li>
+          <li><a href="#transactions" class="sidebar-link">Transactions &amp; Soft Deletes</a></li>
+          <li><a href="#migrations-engine" class="sidebar-link">Migrations (makemigrations / migrate)</a></li>
+          <li><a href="#migrations-handwritten" class="sidebar-link">Hand-written Migrations</a></li>
+          <li><a href="#migrations-production" class="sidebar-link">Production &amp; CI</a></li>
+          <li><a href="#db-troubleshooting" class="sidebar-link">Troubleshooting</a></li>
         </ul>
       </div>
 
@@ -211,97 +216,108 @@
       <!-- SECTION: 5-Minute Quickstart -->
       <section id="quickstart" class="doc-section">
         <h2>5-Minute Quickstart</h2>
-        <p>You can scaffold and launch a fully functional JSango application in three simple steps.</p>
+        <p>Create a project, generate the database tables from the example model, and start the server.</p>
 
         <h3>1. Create a New Project</h3>
         <div class="code-box">
           <div class="code-box-header">
             <span>Terminal</span>
-            <button class="copy-code-btn copy-trigger" data-copy="npx jsango new my-backend && cd my-backend && pnpm install && pnpm dev">Copy</button>
-          </div>
-          <pre><code><span class="hl-comm"># Scaffold project with TypeScript configuration, ORM models, and Admin Panel</span>
-npx jsango new my-backend
+            <button class="copy-code-btn copy-trigger" data-copy="npx jsango new my-backend
 cd my-backend
-pnpm install
-pnpm dev</code></pre>
+npm install">Copy</button>
+          </div>
+          <pre><code>npx jsango new my-backend
+cd my-backend
+npm install</code></pre>
         </div>
 
-        <h3>2. Define Your Model & REST Route</h3>
-        <p>Open <code>src/index.ts</code> to define your declarative model, HTTP routes, and admin panel with zero boilerplate:</p>
+        <p>The project uses <strong>SQLite</strong> (<code>./db.sqlite3</code>) out of the box on Node.js 22.13+, so no database server is needed. To use PostgreSQL or MySQL, set <code>DATABASE_URL</code> in <code>.env</code> (see <a href="#database-drivers">Connecting a Database</a>).</p>
+
+        <h3>2. Define a Model</h3>
         <div class="code-box">
           <div class="code-box-header">
-            <span>src/index.ts</span>
-            <button class="copy-code-btn copy-trigger" data-copy="import { createApp, model, fields } from 'jsango';
+            <span>src/models/product.ts</span>
+            <button class="copy-code-btn copy-trigger" data-copy="import { defineModel, fields } from &#x27;jsango&#x27;;
 
-// 1. Strongly typed declarative ORM model
-export const Product = model('Product', {
-  id: fields.id(),
-  name: fields.string({ maxLength: 255 }),
-  price: fields.number(),
-  inStock: fields.boolean({ defaultValue: true }),
-});
-
-// 2. High performance application instance
-const app = createApp();
-
-// Query products and return JSON directly (automatic serialization)
-app.get('/api/products', async () => {
-  return Product.where('inStock', true).get();
-});
-
-// Full CRUD resource in 1 single line
-app.crud('/api/crud/products', Product);
-
-// Mount Auto-Generated React Admin Panel
-app.admin({
-  prefix: '/admin',
-  title: 'Store Admin',
-  resources: [Product],
-});
-
-await app.listen(3000);
-console.log('🚀 JSango running on http://localhost:3000');">Copy</button>
+export const Product = defineModel(
+  &#x27;Product&#x27;,
+  {
+    id: fields.id(),
+    name: fields.string({ maxLength: 255 }),
+    price: fields.decimal({ precision: 10, scale: 2 }),
+    inStock: fields.boolean({ defaultValue: true }),
+  },
+  { table: &#x27;products&#x27;, timestamps: true }
+);">Copy</button>
           </div>
-          <pre><code><span class="hl-kw">import</span> { createApp, model, fields } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
+          <pre><code><span class="hl-kw">import</span> { defineModel, fields } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
 
-<span class="hl-comm">// 1. Strongly typed declarative ORM model</span>
-<span class="hl-kw">export const</span> <span class="hl-type">Product</span> = <span class="hl-fn">model</span>(<span class="hl-str">'Product'</span>, {
-  id: fields.<span class="hl-fn">id</span>(),
-  name: fields.<span class="hl-fn">string</span>({ maxLength: <span class="hl-num">255</span> }),
-  price: fields.<span class="hl-fn">number</span>(),
-  inStock: fields.<span class="hl-fn">boolean</span>({ defaultValue: <span class="hl-kw">true</span> }),
-});
-
-<span class="hl-comm">// 2. High performance application instance</span>
-<span class="hl-kw">const</span> app = <span class="hl-fn">createApp</span>();
-
-<span class="hl-comm">// Query products and return JSON directly (automatic serialization)</span>
-app.<span class="hl-fn">get</span>(<span class="hl-str">'/api/products'</span>, <span class="hl-kw">async</span> () => {
-  <span class="hl-kw">return</span> <span class="hl-type">Product</span>.<span class="hl-fn">where</span>(<span class="hl-str">'inStock'</span>, <span class="hl-kw">true</span>).<span class="hl-fn">get</span>();
-});
-
-<span class="hl-comm">// Full CRUD resource in 1 single line</span>
-app.<span class="hl-fn">crud</span>(<span class="hl-str">'/api/crud/products'</span>, Product);
-
-<span class="hl-comm">// Mount Auto-Generated React Admin Panel</span>
-app.<span class="hl-fn">admin</span>({
-  prefix: <span class="hl-str">'/admin'</span>,
-  title: <span class="hl-str">'Store Admin'</span>,
-  resources: [Product],
-});
-
-<span class="hl-kw">await</span> app.<span class="hl-fn">listen</span>(<span class="hl-num">3000</span>);
-console.<span class="hl-fn">log</span>(<span class="hl-str">'🚀 JSango running on http://localhost:3000'</span>);</code></pre>
+<span class="hl-kw">export</span> <span class="hl-kw">const</span> <span class="hl-type">Product</span> = <span class="hl-fn">defineModel</span>(
+  <span class="hl-str">'Product'</span>,
+  {
+    id: fields.<span class="hl-fn">id</span>(),
+    name: fields.<span class="hl-fn">string</span>({ maxLength: <span class="hl-num">255</span> }),
+    price: fields.<span class="hl-fn">decimal</span>({ precision: <span class="hl-num">10</span>, scale: <span class="hl-num">2</span> }),
+    inStock: fields.<span class="hl-fn">boolean</span>({ defaultValue: <span class="hl-kw">true</span> }),
+  },
+  { table: <span class="hl-str">'products'</span>, timestamps: <span class="hl-kw">true</span> }
+);</code></pre>
         </div>
 
-        <h3>3. Start Development Server</h3>
+
+        <h3>3. Create the Tables</h3>
         <div class="code-box">
           <div class="code-box-header">
             <span>Terminal</span>
-            <button class="copy-code-btn copy-trigger" data-copy="pnpm dev">Copy</button>
+            <button class="copy-code-btn copy-trigger" data-copy="npx jsango makemigrations   # writes migrations/&lt;timestamp&gt;_create_products.ts
+npx jsango migrate          # creates the tables">Copy</button>
           </div>
-          <pre><code>pnpm dev</code></pre>
+          <pre><code>npx jsango makemigrations   <span class="hl-comm"># writes migrations/&lt;timestamp&gt;_create_products.ts</span>
+npx jsango migrate          <span class="hl-comm"># creates the tables</span></code></pre>
         </div>
+
+
+        <h3>4. Use It in Routes</h3>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>src/index.ts</span>
+            <button class="copy-code-btn copy-trigger" data-copy="import { createApp } from &#x27;jsango&#x27;;
+import { configureDatabase, db } from &#x27;./database.js&#x27;;
+import { Product } from &#x27;./models/product.js&#x27;;
+
+configureDatabase();                 // all models use the configured database
+const app = createApp();
+
+app.get(&#x27;/api/products&#x27;, () =&gt; Product.where(&#x27;inStock&#x27;, true).orderBy(&#x27;name&#x27;).get());
+app.crud(&#x27;/api/crud/products&#x27;, Product);   // full REST CRUD in one line
+
+await db.verify();                   // fail fast if the database is unreachable
+await app.listen(3000);">Copy</button>
+          </div>
+          <pre><code><span class="hl-kw">import</span> { createApp } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
+<span class="hl-kw">import</span> { configureDatabase, db } <span class="hl-kw">from</span> <span class="hl-str">'./database.js'</span>;
+<span class="hl-kw">import</span> { <span class="hl-type">Product</span> } <span class="hl-kw">from</span> <span class="hl-str">'./models/product.js'</span>;
+
+<span class="hl-fn">configureDatabase</span>();                 <span class="hl-comm">// all models use the configured database</span>
+<span class="hl-kw">const</span> app = <span class="hl-fn">createApp</span>();
+
+app.<span class="hl-fn">get</span>(<span class="hl-str">'/api/products'</span>, () =&gt; <span class="hl-type">Product</span>.<span class="hl-fn">where</span>(<span class="hl-str">'inStock'</span>, <span class="hl-kw">true</span>).<span class="hl-fn">orderBy</span>(<span class="hl-str">'name'</span>).<span class="hl-fn">get</span>());
+app.<span class="hl-fn">crud</span>(<span class="hl-str">'/api/crud/products'</span>, <span class="hl-type">Product</span>);   <span class="hl-comm">// full REST CRUD in one line</span>
+
+<span class="hl-kw">await</span> db.<span class="hl-fn">verify</span>();                   <span class="hl-comm">// fail fast if the database is unreachable</span>
+<span class="hl-kw">await</span> app.<span class="hl-fn">listen</span>(<span class="hl-num">3000</span>);</code></pre>
+        </div>
+
+
+        <h3>5. Start the Development Server</h3>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>Terminal</span>
+            <button class="copy-code-btn copy-trigger" data-copy="npm run dev">Copy</button>
+          </div>
+          <pre><code>npm run dev</code></pre>
+        </div>
+
       </section>
 
       <hr class="doc-divider">
@@ -316,16 +332,18 @@ console.<span class="hl-fn">log</span>(<span class="hl-str">'🚀 JSango running
             <span>Directory Layout</span>
             <button class="copy-code-btn copy-trigger" data-copy="my-backend/
 ├── src/
-│   ├── models/            # Declarative ORM models & relations
+│   ├── models/            # defineModel() models (source of truth for the schema)
 │   ├── routes/            # HTTP Route handlers & route groups
 │   ├── middleware/        # Authentication, CORS & rate limit guards
 │   ├── agents/            # Autonomous AI agents & custom tools
 │   ├── workflows/         # Multi-agent orchestration workflows
 │   ├── jobs/              # Background queue workers
 │   ├── events/            # Strongly typed domain events
+│   ├── database.ts        # DatabaseManager from DATABASE_URL
+│   ├── database.ts        # DatabaseManager from DATABASE_URL
 │   └── index.ts           # App bootstrap & server initialization
-├── migrations/            # Version-controlled database migrations
-├── jsango.config.ts       # Framework & multi-database configuration
+├── migrations/            # Generated + hand-written migration files (commit them)
+├── jsango.config.ts       # Where the CLI finds the database, models, migrations
 ├── .env                   # Environment variables
 ├── tsconfig.json          # Strict TypeScript configuration
 └── package.json">Copy</button>
@@ -353,64 +371,53 @@ console.<span class="hl-fn">log</span>(<span class="hl-str">'🚀 JSango running
       <!-- SECTION: Configuration -->
       <section id="configuration" class="doc-section">
         <h2>Configuration &amp; Environment</h2>
-        <p>Configuration is centralized and strongly typed via <code>jsango.config.ts</code>:</p>
-
+        <p>Runtime settings come from environment variables (<code>.env</code> is loaded by <code>dotenv</code> in the app and automatically by the CLI). <code>jsango.config.ts</code> tells the <strong>CLI</strong> where your database, models and migrations are:</p>
         <div class="code-box">
           <div class="code-box-header">
             <span>jsango.config.ts</span>
-            <button class="copy-code-btn copy-trigger" data-copy="export default {
-  port: process.env.PORT || 3000,
-  host: process.env.HOST || '0.0.0.0',
-  database: {
-    default: 'postgres',
-    connections: {
-      postgres: {
-        driver: 'postgres',
-        host: process.env.DB_HOST || 'localhost',
-        port: 5432,
-        database: process.env.DB_NAME || 'jsango_app',
-        username: process.env.DB_USER || 'postgres',
-        password: process.env.DB_PASSWORD,
-        pool: { min: 2, max: 20 },
-      },
-    },
-  },
-  cors: {
-    origins: ['http://localhost:5173', 'https://app.example.com'],
-    credentials: true,
-  },
-  auth: {
-    jwtSecret: process.env.JWT_SECRET || 'super-secret-key-change-in-prod',
-    sessionDuration: '7d',
-  },
-};">Copy</button>
+            <button class="copy-code-btn copy-trigger" data-copy="import { defineConfig } from &#x27;jsango&#x27;;
+import { db } from &#x27;./src/database.js&#x27;;
+
+export default defineConfig({
+  database: db,               // a DatabaseManager, or { default, connections } config object
+  models: &#x27;./src/models&#x27;,     // files/folders with defineModel() calls
+  migrations: &#x27;./migrations&#x27;, // migration files directory
+});">Copy</button>
           </div>
-          <pre><code><span class="hl-kw">export default</span> {
-  port: process.env.PORT || <span class="hl-num">3000</span>,
-  host: process.env.HOST || <span class="hl-str">'0.0.0.0'</span>,
-  database: {
-    default: <span class="hl-str">'postgres'</span>,
-    connections: {
-      postgres: {
-        driver: <span class="hl-str">'postgres'</span>,
-        host: process.env.DB_HOST || <span class="hl-str">'localhost'</span>,
-        port: <span class="hl-num">5432</span>,
-        database: process.env.DB_NAME || <span class="hl-str">'jsango_app'</span>,
-        username: process.env.DB_USER || <span class="hl-str">'postgres'</span>,
-        password: process.env.DB_PASSWORD,
-        pool: { min: <span class="hl-num">2</span>, max: <span class="hl-num">20</span> },
-      },
-    },
-  },
-  cors: {
-    origins: [<span class="hl-str">'http://localhost:5173'</span>, <span class="hl-str">'https://app.example.com'</span>],
-    credentials: <span class="hl-kw">true</span>,
-  },
-  auth: {
-    jwtSecret: process.env.JWT_SECRET || <span class="hl-str">'super-secret-key-change-in-prod'</span>,
-    sessionDuration: <span class="hl-str">'7d'</span>,
-  },
-};</code></pre>
+          <pre><code><span class="hl-kw">import</span> { defineConfig } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
+<span class="hl-kw">import</span> { db } <span class="hl-kw">from</span> <span class="hl-str">'./src/database.js'</span>;
+
+<span class="hl-kw">export</span> <span class="hl-kw">default</span> <span class="hl-fn">defineConfig</span>({
+  database: db,               <span class="hl-comm">// a DatabaseManager, or { default, connections } config object</span>
+  models: <span class="hl-str">'./src/models'</span>,     <span class="hl-comm">// files/folders with defineModel() calls</span>
+  migrations: <span class="hl-str">'./migrations'</span>, <span class="hl-comm">// migration files directory</span>
+});</code></pre>
+        </div>
+
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>.env</span>
+            <button class="copy-code-btn copy-trigger" data-copy="DATABASE_URL=postgres://app:secret@localhost:5432/myapp
+PORT=3000
+JWT_SECRET=change-me">Copy</button>
+          </div>
+          <pre><code>DATABASE_URL=postgres://app:secret@localhost:5432/myapp
+PORT=<span class="hl-num">3000</span>
+JWT_SECRET=change-me</code></pre>
+        </div>
+
+        <div class="cli-table-wrapper" style="margin-bottom: 24px;">
+          <table class="cli-table">
+            <thead>
+              <tr><th>Key</th><th>Default</th><th>Purpose</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>database</code></td><td>from <code>DATABASE_URL</code> / <code>DATABASE_*</code></td><td>Database used by <code>migrate</code>, <code>db:status</code>, …</td></tr>
+              <tr><td><code>models</code></td><td><code>./src/models</code></td><td>Where models are imported from (recursive)</td></tr>
+              <tr><td><code>migrations</code></td><td><code>./migrations</code></td><td>Migration files directory</td></tr>
+              <tr><td><code>envFile</code></td><td><code>.env</code></td><td>Env file loaded first (existing variables win)</td></tr>
+            </tbody>
+          </table>
         </div>
       </section>
 
@@ -645,247 +652,476 @@ app.<span class="hl-fn">post</span>(<span class="hl-str">'/api/products'</span>,
 
       <!-- SECTION: Database Drivers & Configuration -->
       <section id="database-drivers" class="doc-section">
-        <h2>Database Drivers & Multi-DB Management</h2>
-        <p>
-          JSango provides native, production-grade drivers for the most popular SQL and NoSQL database engines with zero-config in-memory fallback for rapid prototyping:
-        </p>
-
+        <h2>Connecting a Database</h2>
+        <p>JSango talks to PostgreSQL, MySQL/MariaDB and SQLite through one <code>DatabaseManager</code>. Models, query builder and migrations generate the right SQL for each database automatically (quoting, placeholders, types, <code>RETURNING</code>).</p>
         <div class="cli-table-wrapper" style="margin-bottom: 24px;">
           <table class="cli-table">
             <thead>
-              <tr>
-                <th>Driver</th>
-                <th>Identifier</th>
-                <th>Underlying Engine / Library</th>
-                <th>Features Supported</th>
-              </tr>
+              <tr><th>Database</th><th>driver</th><th>Install in your app</th><th>URL example</th></tr>
             </thead>
             <tbody>
-              <tr>
-                <td><strong>PostgreSQL</strong></td>
-                <td><code>postgres</code>, <code>postgresql</code>, <code>pg</code></td>
-                <td>Native <code>pg</code> Pool</td>
-                <td>Transactions, Savepoints, RETURNING, SSL, Isolation Levels</td>
-              </tr>
-              <tr>
-                <td><strong>MySQL / MariaDB</strong></td>
-                <td><code>mysql</code>, <code>mariadb</code></td>
-                <td>Native <code>mysql2/promise</code></td>
-                <td>Connection Pooling, Auto-increment IDs, SSL, Transactions</td>
-              </tr>
-              <tr>
-                <td><strong>SQLite</strong></td>
-                <td><code>sqlite</code>, <code>sqlite3</code></td>
-                <td><code>better-sqlite3</code> / <code>node:sqlite</code></td>
-                <td>Zero-config, In-Memory or File-backed, Transactions, Fast DDL</td>
-              </tr>
-              <tr>
-                <td><strong>MongoDB</strong></td>
-                <td><code>mongodb</code>, <code>mongo</code></td>
-                <td>Native <code>mongodb</code> Client</td>
-                <td>Collections, Document CRUD, Transactions, Clustering</td>
-              </tr>
-              <tr>
-                <td><strong>In-Memory</strong></td>
-                <td><code>memory</code></td>
-                <td>Built-in Pure TypeScript Engine</td>
-                <td>Default zero-config prototyping, Instant test suite execution</td>
-              </tr>
+              <tr><td><strong>PostgreSQL 12+</strong></td><td><code>postgres</code> (<code>pg</code>, <code>postgresql</code>)</td><td><code>npm install pg</code></td><td><code>postgres://user:pass@host:5432/db</code></td></tr>
+              <tr><td><strong>MySQL 8+ / MariaDB</strong></td><td><code>mysql</code> (<code>mariadb</code>)</td><td><code>npm install mysql2</code></td><td><code>mysql://user:pass@host:3306/db</code></td></tr>
+              <tr><td><strong>SQLite</strong></td><td><code>sqlite</code></td><td>nothing on Node 22.13+ (else <code>better-sqlite3</code>)</td><td><code>sqlite:./db.sqlite3</code></td></tr>
+              <tr><td><strong>MongoDB</strong></td><td><code>mongodb</code></td><td><code>npm install mongodb</code></td><td><code>mongodb://host:27017</code> (raw commands only)</td></tr>
+              <tr><td><strong>In-memory</strong></td><td><code>memory</code></td><td>—</td><td>tests only</td></tr>
             </tbody>
           </table>
         </div>
 
-        <h3>Configuring Multi-Database Connections</h3>
-        <p>Configure multiple named databases in <code>jsango.config.ts</code> or directly on <code>createApp()</code>:</p>
+        <h3 id="db-env">Configure with Environment Variables</h3>
+        <p><code>databaseConfigFromEnv()</code> reads <code>DATABASE_URL</code> (preferred) or the individual <code>DATABASE_*</code> variables. This is what <code>jsango new</code> generates:</p>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>src/database.ts</span>
+            <button class="copy-code-btn copy-trigger" data-copy="import { DatabaseManager, databaseConfigFromEnv, setDatabaseManager } from &#x27;jsango&#x27;;
+
+export const db = new DatabaseManager(databaseConfigFromEnv());
+
+export function configureDatabase() {
+  setDatabaseManager(db); // every model now uses this database
+  return db;
+}">Copy</button>
+          </div>
+          <pre><code><span class="hl-kw">import</span> { <span class="hl-type">DatabaseManager</span>, databaseConfigFromEnv, setDatabaseManager } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
+
+<span class="hl-kw">export</span> <span class="hl-kw">const</span> db = <span class="hl-kw">new</span> <span class="hl-fn">DatabaseManager</span>(<span class="hl-fn">databaseConfigFromEnv</span>());
+
+<span class="hl-kw">export</span> <span class="hl-kw">function</span> <span class="hl-fn">configureDatabase</span>() {
+  <span class="hl-fn">setDatabaseManager</span>(db); <span class="hl-comm">// every model now uses this database</span>
+  <span class="hl-kw">return</span> db;
+}</code></pre>
+        </div>
 
         <div class="code-box">
           <div class="code-box-header">
-            <span>jsango.config.ts</span>
-            <button class="copy-code-btn copy-trigger" data-copy="export default {
-  database: {
-    default: 'postgres',
-    connections: {
-      postgres: {
-        driver: 'postgres',
-        host: process.env.DB_HOST ?? 'localhost',
-        port: 5432,
-        database: 'my_production_db',
-        username: process.env.DB_USER ?? 'postgres',
-        password: process.env.DB_PASSWORD,
-        pool: { min: 2, max: 20 },
-      },
-      analytics: {
-        driver: 'mysql',
-        url: process.env.MYSQL_URL,
-      },
-      cacheDb: {
-        driver: 'sqlite',
-        filename: './data/local.db',
-      },
-      documents: {
-        driver: 'mongodb',
-        url: 'mongodb://127.0.0.1:27017',
-        database: 'analytics_docs',
-      },
-    },
-  },
-};">Copy</button>
+            <span>.env</span>
+            <button class="copy-code-btn copy-trigger" data-copy="# Option A — one URL (wins if set)
+DATABASE_URL=postgres://app:secret@localhost:5432/myapp
+
+# Option B — individual settings
+DATABASE_DRIVER=mysql
+DATABASE_HOST=127.0.0.1
+DATABASE_PORT=3306
+DATABASE_NAME=myapp
+DATABASE_USER=app
+DATABASE_PASSWORD=secret
+DATABASE_SSL=true          # true/require, no-verify, false
+DATABASE_POOL_MAX=10
+DATABASE_FILE=./db.sqlite3 # SQLite only">Copy</button>
           </div>
-          <pre><code><span class="hl-kw">export default</span> {
-  database: {
-    default: <span class="hl-str">'postgres'</span>,
-    connections: {
-      postgres: {
-        driver: <span class="hl-str">'postgres'</span>,
-        host: process.env.DB_HOST ?? <span class="hl-str">'localhost'</span>,
-        port: <span class="hl-num">5432</span>,
-        database: <span class="hl-str">'my_production_db'</span>,
-        username: process.env.DB_USER ?? <span class="hl-str">'postgres'</span>,
-        password: process.env.DB_PASSWORD,
-        pool: { min: <span class="hl-num">2</span>, max: <span class="hl-num">20</span> },
-      },
-      analytics: {
-        driver: <span class="hl-str">'mysql'</span>,
-        url: process.env.MYSQL_URL,
-      },
-      cacheDb: {
-        driver: <span class="hl-str">'sqlite'</span>,
-        filename: <span class="hl-str">'./data/local.db'</span>,
-      },
-      documents: {
-        driver: <span class="hl-str">'mongodb'</span>,
-        url: <span class="hl-str">'mongodb://127.0.0.1:27017'</span>,
-        database: <span class="hl-str">'analytics_docs'</span>,
-      },
-    },
-  },
-};</code></pre>
+          <pre><code><span class="hl-comm"># Option A — one URL (wins if set)</span>
+DATABASE_URL=postgres://app:secret@localhost:5432/myapp
+
+<span class="hl-comm"># Option B — individual settings</span>
+DATABASE_DRIVER=mysql
+DATABASE_HOST=<span class="hl-num">127.0</span>.<span class="hl-num">0.1</span>
+DATABASE_PORT=<span class="hl-num">3306</span>
+DATABASE_NAME=myapp
+DATABASE_USER=app
+DATABASE_PASSWORD=secret
+DATABASE_SSL=true          <span class="hl-comm"># true/require, no-verify, false</span>
+DATABASE_POOL_MAX=<span class="hl-num">10</span>
+DATABASE_FILE=./db.sqlite3 <span class="hl-comm"># SQLite only</span></code></pre>
         </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-icon">💡</div>
+          <div class="callout-body"><strong>Special characters in passwords</strong> must be URL-encoded inside <code>DATABASE_URL</code> (<code>p@ss</code> → <code>p%40ss</code>), or use the separate <code>DATABASE_PASSWORD</code> variable.</div>
+        </div>
+
+        <h3 id="db-multiple">Multiple Connections &amp; Options</h3>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>src/database.ts</span>
+            <button class="copy-code-btn copy-trigger" data-copy="export const db = new DatabaseManager({
+  default: &#x27;primary&#x27;,
+  connections: {
+    primary: {
+      driver: &#x27;postgres&#x27;,
+      host: process.env.DB_HOST,
+      database: &#x27;myapp&#x27;,
+      username: &#x27;app&#x27;,
+      password: process.env.DB_PASSWORD,
+      ssl: true,
+      pool: { max: 20, connectionTimeoutMs: 10_000 },
+    },
+    analytics: { url: process.env.ANALYTICS_URL }, // driver inferred from the URL
+    local: { driver: &#x27;sqlite&#x27;, filename: &#x27;./data/local.sqlite3&#x27; },
+  },
+});
+
+// models: defineModel(&#x27;Event&#x27;, {...}, { connection: &#x27;analytics&#x27; })">Copy</button>
+          </div>
+          <pre><code><span class="hl-kw">export</span> <span class="hl-kw">const</span> db = <span class="hl-kw">new</span> <span class="hl-fn">DatabaseManager</span>({
+  <span class="hl-kw">default</span>: <span class="hl-str">'primary'</span>,
+  connections: {
+    primary: {
+      driver: <span class="hl-str">'postgres'</span>,
+      host: process.env.<span class="hl-type">DB_HOST</span>,
+      database: <span class="hl-str">'myapp'</span>,
+      username: <span class="hl-str">'app'</span>,
+      password: process.env.<span class="hl-type">DB_PASSWORD</span>,
+      ssl: <span class="hl-kw">true</span>,
+      pool: { max: <span class="hl-num">20</span>, connectionTimeoutMs: <span class="hl-num">10_000</span> },
+    },
+    analytics: { url: process.env.<span class="hl-type">ANALYTICS_URL</span> }, <span class="hl-comm">// driver inferred from the URL</span>
+    local: { driver: <span class="hl-str">'sqlite'</span>, filename: <span class="hl-str">'./data/local.sqlite3'</span> },
+  },
+});
+
+<span class="hl-comm">// models: defineModel('Event', {...}, { connection: 'analytics' })</span></code></pre>
+        </div>
+
+        <p>Models without a <code>connection</code> option use the default connection; the name <code>'default'</code> always resolves to it.</p>
+
+        <h3 id="db-verify">Verify, Health Checks &amp; Raw SQL</h3>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>src/index.ts</span>
+            <button class="copy-code-btn copy-trigger" data-copy="await db.verify();                 // throws a descriptive error if it can&#x27;t connect
+await app.listen(3000);
+process.once(&#x27;SIGTERM&#x27;, async () =&gt; { await db.close(); process.exit(0); });
+
+// raw SQL: always write ? placeholders (converted to $1, $2 for PostgreSQL)
+const { rows } = await db.query(&#x27;SELECT id, email FROM users WHERE created_at &gt; ?&#x27;, [since]);
+await db.transaction(async (tx) =&gt; {
+  await tx.query(&#x27;UPDATE accounts SET balance = balance - ? WHERE id = ?&#x27;, [100, from]);
+  await tx.query(&#x27;UPDATE accounts SET balance = balance + ? WHERE id = ?&#x27;, [100, to]);
+});">Copy</button>
+          </div>
+          <pre><code><span class="hl-kw">await</span> db.<span class="hl-fn">verify</span>();                 <span class="hl-comm">// throws a descriptive error if it can't connect</span>
+<span class="hl-kw">await</span> app.<span class="hl-fn">listen</span>(<span class="hl-num">3000</span>);
+process.<span class="hl-fn">once</span>(<span class="hl-str">'SIGTERM'</span>, <span class="hl-kw">async</span> () =&gt; { <span class="hl-kw">await</span> db.<span class="hl-fn">close</span>(); process.<span class="hl-fn">exit</span>(<span class="hl-num">0</span>); });
+
+<span class="hl-comm">// raw SQL: always write ? placeholders (converted to $1, $2 for PostgreSQL)</span>
+<span class="hl-kw">const</span> { rows } = <span class="hl-kw">await</span> db.<span class="hl-fn">query</span>(<span class="hl-str">'SELECT id, email FROM users WHERE created_at &gt; ?'</span>, [since]);
+<span class="hl-kw">await</span> db.<span class="hl-fn">transaction</span>(<span class="hl-kw">async</span> (tx) =&gt; {
+  <span class="hl-kw">await</span> tx.<span class="hl-fn">query</span>(<span class="hl-str">'UPDATE accounts SET balance = balance - ? WHERE id = ?'</span>, [<span class="hl-num">100</span>, <span class="hl-kw">from</span>]);
+  <span class="hl-kw">await</span> tx.<span class="hl-fn">query</span>(<span class="hl-str">'UPDATE accounts SET balance = balance + ? WHERE id = ?'</span>, [<span class="hl-num">100</span>, to]);
+});</code></pre>
+        </div>
+
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>Terminal</span>
+            <button class="copy-code-btn copy-trigger" data-copy="npx jsango db:status
+# Connection  Driver    Target                     Status      Latency
+# default     postgres  app@localhost:5432/myapp   ✓ HEALTHY   4ms">Copy</button>
+          </div>
+          <pre><code>npx jsango db:status
+<span class="hl-comm"># Connection  Driver    Target                     Status      Latency</span>
+<span class="hl-comm"># default     postgres  app@localhost:5432/myapp   ✓ HEALTHY   4ms</span></code></pre>
+        </div>
+
+        <p>Connection failures name the target (never the password) and include a hint, e.g. <code>Failed to connect to PostgreSQL at app@127.0.0.1:5432/myapp: connect ECONNREFUSED … Hint: Is the database running and listening on this host/port?</code></p>
       </section>
 
       <hr class="doc-divider">
 
       <!-- SECTION: Declarative Model Schemas -->
       <section id="model-definitions" class="doc-section">
-        <h2>Declarative ORM & Relationships</h2>
-        <p>
-          JSango’s ORM combines compile-time type inference with an Abstract Syntax Tree (AST) query engine, connection pooling, and batch eager loading to completely eliminate N+1 queries.
-        </p>
-
-        <h3>Defining Models & Relations</h3>
+        <h2>Defining Models</h2>
+        <p>Models are the <strong>source of truth</strong> for your schema: migrations are generated from them. Put them in <code>src/models/</code>.</p>
         <div class="code-box">
           <div class="code-box-header">
             <span>src/models/user.ts</span>
-            <button class="copy-code-btn copy-trigger" data-copy="import { defineModel, fields } from '@jsango/orm';
+            <button class="copy-code-btn copy-trigger" data-copy="import { defineModel, fields } from &#x27;jsango&#x27;;
 
-export const User = defineModel({
-  name: 'User',
-  table: 'users',
-  fields: {
-    id: fields.uuid({ primaryKey: true }),
-    email: fields.string({ unique: true, maxLength: 255 }),
-    fullName: fields.string(),
-    role: fields.enum(['admin', 'editor', 'viewer']),
-    isActive: fields.boolean({ default: true }),
+export const User = defineModel(
+  &#x27;User&#x27;,
+  {
+    id: fields.id(),                                        // auto-increment primary key
+    email: fields.string({ maxLength: 255, unique: true }),
+    name: fields.string({ maxLength: 120, nullable: true }),
+    role: fields.string({ maxLength: 20, defaultValue: &#x27;member&#x27;, indexed: true }),
+    isActive: fields.boolean({ defaultValue: true }),
+    settings: fields.json({ nullable: true }),
   },
-  relations: (rel) => ({
-    orders: rel.hasMany('Order', { foreignKey: 'userId' }),
-    profile: rel.hasOne('Profile', { foreignKey: 'userId' }),
-  }),
-});">Copy</button>
+  {
+    table: &#x27;users&#x27;,     // default: lower-cased name + &quot;s&quot;
+    timestamps: true,   // createdAt / updatedAt, maintained automatically
+    softDelete: false,  // true: delete() sets deletedAt instead of removing the row
+    relations: {
+      posts: { type: &#x27;hasMany&#x27;, target: &#x27;Post&#x27;, foreignKey: &#x27;userId&#x27; },
+    },
+  }
+);">Copy</button>
           </div>
-          <pre><code><span class="hl-kw">import</span> { defineModel, fields } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/orm'</span>;
+          <pre><code><span class="hl-kw">import</span> { defineModel, fields } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
 
-<span class="hl-kw">export const</span> <span class="hl-type">User</span> = <span class="hl-fn">defineModel</span>({
-  name: <span class="hl-str">'User'</span>,
-  table: <span class="hl-str">'users'</span>,
-  fields: {
-    id: fields.<span class="hl-fn">uuid</span>({ primaryKey: <span class="hl-kw">true</span> }),
-    email: fields.<span class="hl-fn">string</span>({ unique: <span class="hl-kw">true</span>, maxLength: <span class="hl-num">255</span> }),
-    fullName: fields.<span class="hl-fn">string</span>(),
-    role: fields.<span class="hl-fn">enum</span>([<span class="hl-str">'admin'</span>, <span class="hl-str">'editor'</span>, <span class="hl-str">'viewer'</span>]),
-    isActive: fields.<span class="hl-fn">boolean</span>({ default: <span class="hl-kw">true</span> }),
+<span class="hl-kw">export</span> <span class="hl-kw">const</span> <span class="hl-type">User</span> = <span class="hl-fn">defineModel</span>(
+  <span class="hl-str">'User'</span>,
+  {
+    id: fields.<span class="hl-fn">id</span>(),                                        <span class="hl-comm">// auto-increment primary key</span>
+    email: fields.<span class="hl-fn">string</span>({ maxLength: <span class="hl-num">255</span>, unique: <span class="hl-kw">true</span> }),
+    name: fields.<span class="hl-fn">string</span>({ maxLength: <span class="hl-num">120</span>, nullable: <span class="hl-kw">true</span> }),
+    role: fields.<span class="hl-fn">string</span>({ maxLength: <span class="hl-num">20</span>, defaultValue: <span class="hl-str">'member'</span>, indexed: <span class="hl-kw">true</span> }),
+    isActive: fields.<span class="hl-fn">boolean</span>({ defaultValue: <span class="hl-kw">true</span> }),
+    settings: fields.<span class="hl-fn">json</span>({ nullable: <span class="hl-kw">true</span> }),
   },
-  relations: (rel) => ({
-    orders: rel.<span class="hl-fn">hasMany</span>(<span class="hl-str">'Order'</span>, { foreignKey: <span class="hl-str">'userId'</span> }),
-    profile: rel.<span class="hl-fn">hasOne</span>(<span class="hl-str">'Profile'</span>, { foreignKey: <span class="hl-str">'userId'</span> }),
-  }),
-});</code></pre>
+  {
+    table: <span class="hl-str">'users'</span>,     <span class="hl-comm">// default: lower-cased name + "s"</span>
+    timestamps: <span class="hl-kw">true</span>,   <span class="hl-comm">// createdAt / updatedAt, maintained automatically</span>
+    softDelete: <span class="hl-kw">false</span>,  <span class="hl-comm">// true: delete() sets deletedAt instead of removing the row</span>
+    relations: {
+      posts: { type: <span class="hl-str">'hasMany'</span>, target: <span class="hl-str">'Post'</span>, foreignKey: <span class="hl-str">'userId'</span> },
+    },
+  }
+);</code></pre>
         </div>
 
-        <h3 id="relationships">Batch Eager Loading (No N+1)</h3>
-        <p>Load related models efficiently with <code>.with()</code>:</p>
+        <div class="callout callout-warn">
+          <div class="callout-icon">⚠️</div>
+          <div class="callout-body">Fields are <strong>NOT NULL by default</strong>. Add <code>nullable: true</code> for optional columns.</div>
+        </div>
+
+        <h3 id="model-fields">Field Types</h3>
+        <div class="cli-table-wrapper" style="margin-bottom: 24px;">
+          <table class="cli-table">
+            <thead>
+              <tr><th>Field</th><th>PostgreSQL</th><th>MySQL</th><th>SQLite</th><th>JS value</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>fields.id()</code></td><td>SERIAL PRIMARY KEY</td><td>INT AUTO_INCREMENT</td><td>INTEGER PK AUTOINCREMENT</td><td>number</td></tr>
+              <tr><td><code>fields.string({ maxLength })</code></td><td>VARCHAR(n)</td><td>VARCHAR(n)</td><td>VARCHAR(n)</td><td>string</td></tr>
+              <tr><td><code>fields.text()</code></td><td>TEXT</td><td>LONGTEXT</td><td>TEXT</td><td>string</td></tr>
+              <tr><td><code>fields.integer()</code> / <code>bigint()</code></td><td>INTEGER / BIGINT</td><td>INT / BIGINT</td><td>INTEGER / BIGINT</td><td>number / bigint</td></tr>
+              <tr><td><code>fields.float()</code> / <code>decimal({ precision, scale })</code></td><td>DOUBLE PRECISION / NUMERIC</td><td>DOUBLE / DECIMAL</td><td>REAL / NUMERIC</td><td>number</td></tr>
+              <tr><td><code>fields.boolean()</code></td><td>BOOLEAN</td><td>TINYINT(1)</td><td>INTEGER (0/1)</td><td>boolean</td></tr>
+              <tr><td><code>fields.dateTime()</code> / <code>date()</code> / <code>time()</code></td><td>TIMESTAMPTZ / DATE / TIME</td><td>DATETIME(3) (UTC)</td><td>ISO text</td><td>Date</td></tr>
+              <tr><td><code>fields.json()</code></td><td>JSONB</td><td>JSON</td><td>TEXT</td><td>object / array</td></tr>
+              <tr><td><code>fields.uuid()</code> / <code>binary()</code></td><td>UUID / BYTEA</td><td>CHAR(36) / LONGBLOB</td><td>VARCHAR(36) / BLOB</td><td>string / Uint8Array</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="cli-table-wrapper" style="margin-bottom: 24px;">
+          <table class="cli-table">
+            <thead>
+              <tr><th>Field option</th><th>Effect</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>nullable: true</code></td><td>Allow NULL (default NOT NULL)</td></tr>
+              <tr><td><code>unique: true</code></td><td>Unique constraint <code>uq_&lt;table&gt;_&lt;column&gt;</code></td></tr>
+              <tr><td><code>indexed: true</code></td><td>Index <code>idx_&lt;table&gt;_&lt;column&gt;</code></td></tr>
+              <tr><td><code>defaultValue: x</code></td><td>Default for new rows (a function is evaluated per insert)</td></tr>
+              <tr><td><code>maxLength</code>, <code>precision</code>, <code>scale</code></td><td>Column size</td></tr>
+              <tr><td><code>columnName</code></td><td>Column name when it differs from the property</td></tr>
+              <tr><td><code>primaryKey</code>, <code>autoIncrement</code></td><td>Custom keys, e.g. <code>fields.uuid({ primaryKey: true, defaultValue: () =&gt; crypto.randomUUID() })</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 id="relationships">Relations &amp; Eager Loading (No N+1)</h3>
         <div class="code-box">
           <div class="code-box-header">
-            <span>Querying with Relations</span>
-            <button class="copy-code-btn copy-trigger" data-copy="const activeUsers = await User.query()
-  .where('isActive', '=', true)
-  .with('orders', (q) => q.where('status', '=', 'paid'))
-  .orderBy('createdAt', 'desc')
-  .limit(20);
+            <span>src/models/post.ts</span>
+            <button class="copy-code-btn copy-trigger" data-copy="export const Post = defineModel(
+  &#x27;Post&#x27;,
+  {
+    id: fields.id(),
+    title: fields.string(),
+    userId: fields.integer(),   // foreign key column
+  },
+  {
+    table: &#x27;posts&#x27;,
+    relations: {
+      // posts.userId -&gt; users.id; the migration creates a FOREIGN KEY (ON DELETE CASCADE)
+      author: { type: &#x27;belongsTo&#x27;, target: &#x27;User&#x27;, foreignKey: &#x27;userId&#x27; },
+    },
+  }
+);
 
-// Automatically loaded in single batch query
-for (const user of activeUsers) {
-  console.log(user.fullName, user.orders.length);
-}">Copy</button>
+const posts = await Post.query().with(&#x27;author&#x27;).orderBy(&#x27;id&#x27;, &#x27;DESC&#x27;).limit(10).get();
+posts[0].author.email; // all authors loaded with ONE extra query">Copy</button>
           </div>
-          <pre><code><span class="hl-kw">const</span> activeUsers = <span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">query</span>()
-  .<span class="hl-fn">where</span>(<span class="hl-str">'isActive'</span>, <span class="hl-str">'='</span>, <span class="hl-kw">true</span>)
-  .<span class="hl-fn">with</span>(<span class="hl-str">'orders'</span>, (q) => q.<span class="hl-fn">where</span>(<span class="hl-str">'status'</span>, <span class="hl-str">'='</span>, <span class="hl-str">'paid'</span>))
-  .<span class="hl-fn">orderBy</span>(<span class="hl-str">'createdAt'</span>, <span class="hl-str">'desc'</span>)
-  .<span class="hl-fn">limit</span>(<span class="hl-num">20</span>);
+          <pre><code><span class="hl-kw">export</span> <span class="hl-kw">const</span> <span class="hl-type">Post</span> = <span class="hl-fn">defineModel</span>(
+  <span class="hl-str">'Post'</span>,
+  {
+    id: fields.<span class="hl-fn">id</span>(),
+    title: fields.<span class="hl-fn">string</span>(),
+    userId: fields.<span class="hl-fn">integer</span>(),   <span class="hl-comm">// foreign key column</span>
+  },
+  {
+    table: <span class="hl-str">'posts'</span>,
+    relations: {
+      <span class="hl-comm">// posts.userId -&gt; users.id; the migration creates a FOREIGN KEY (ON DELETE CASCADE)</span>
+      author: { type: <span class="hl-str">'belongsTo'</span>, target: <span class="hl-str">'User'</span>, foreignKey: <span class="hl-str">'userId'</span> },
+    },
+  }
+);
 
-<span class="hl-kw">for</span> (<span class="hl-kw">const</span> user <span class="hl-kw">of</span> activeUsers) {
-  console.<span class="hl-fn">log</span>(user.fullName, user.orders.length);
-}</code></pre>
+<span class="hl-kw">const</span> posts = <span class="hl-kw">await</span> <span class="hl-type">Post</span>.<span class="hl-fn">query</span>().<span class="hl-fn">with</span>(<span class="hl-str">'author'</span>).<span class="hl-fn">orderBy</span>(<span class="hl-str">'id'</span>, <span class="hl-str">'DESC'</span>).<span class="hl-fn">limit</span>(<span class="hl-num">10</span>).<span class="hl-fn">get</span>();
+posts[<span class="hl-num">0</span>].author.email; <span class="hl-comm">// all authors loaded with ONE extra query</span></code></pre>
         </div>
+
+        <div class="cli-table-wrapper" style="margin-bottom: 24px;">
+          <table class="cli-table">
+            <thead>
+              <tr><th>Type</th><th>Meaning</th><th>foreignKey is on</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>belongsTo</code></td><td>this row points to one parent</td><td>this model</td></tr>
+              <tr><td><code>hasOne</code> / <code>hasMany</code></td><td>children point to this row</td><td>target model</td></tr>
+              <tr><td><code>manyToMany</code></td><td>via a pivot model (<code>through</code>, <code>pivotForeignKey</code>, <code>pivotTargetKey</code>)</td><td>pivot model</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p><code>target</code> may be the model name (<code>'User'</code>) or <code>() =&gt; User</code>. Nullable foreign keys default to <code>ON DELETE SET NULL</code>; override with <code>options: { onDelete: 'RESTRICT' }</code>.</p>
       </section>
 
       <hr class="doc-divider">
 
       <!-- SECTION: AST Query Builder & Pagination -->
       <section id="query-builder" class="doc-section">
-        <h2>AST Query Builder &amp; Pagination</h2>
-        <p>The query builder provides expressive, type-safe data access with chaining and built-in pagination:</p>
+        <h2>Querying, Pagination &amp; Transactions</h2>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>CRUD</span>
+            <button class="copy-code-btn copy-trigger" data-copy="// Create
+const user = await User.create({ email: &#x27;a@example.com&#x27;, name: &#x27;Ada&#x27; });
+user.id;        // assigned by the database
+await Post.bulkCreate([{ title: &#x27;One&#x27;, userId: user.id }, { title: &#x27;Two&#x27;, userId: user.id }]);
+
+// Read
+await User.find(1);                                  // or null
+await User.findOrFail(1);                            // throws ModelNotFoundError
+await User.where(&#x27;email&#x27;, &#x27;a@example.com&#x27;).first();
+await User.where({ role: &#x27;admin&#x27;, isActive: true }).get();
+
+// Update
+user.name = &#x27;Ada Lovelace&#x27;;
+await user.save();                                   // only changed columns are written
+await User.where(&#x27;isActive&#x27;, false).update({ role: &#x27;inactive&#x27; });
+
+// Delete
+await user.delete();
+await User.where(&#x27;role&#x27;, &#x27;spam&#x27;).delete();">Copy</button>
+          </div>
+          <pre><code><span class="hl-comm">// Create</span>
+<span class="hl-kw">const</span> user = <span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">create</span>({ email: <span class="hl-str">'a@example.com'</span>, name: <span class="hl-str">'Ada'</span> });
+user.id;        <span class="hl-comm">// assigned by the database</span>
+<span class="hl-kw">await</span> <span class="hl-type">Post</span>.<span class="hl-fn">bulkCreate</span>([{ title: <span class="hl-str">'One'</span>, userId: user.id }, { title: <span class="hl-str">'Two'</span>, userId: user.id }]);
+
+<span class="hl-comm">// Read</span>
+<span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">find</span>(<span class="hl-num">1</span>);                                  <span class="hl-comm">// or null</span>
+<span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">findOrFail</span>(<span class="hl-num">1</span>);                            <span class="hl-comm">// throws ModelNotFoundError</span>
+<span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">where</span>(<span class="hl-str">'email'</span>, <span class="hl-str">'a@example.com'</span>).<span class="hl-fn">first</span>();
+<span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">where</span>({ role: <span class="hl-str">'admin'</span>, isActive: <span class="hl-kw">true</span> }).<span class="hl-fn">get</span>();
+
+<span class="hl-comm">// Update</span>
+user.name = <span class="hl-str">'Ada Lovelace'</span>;
+<span class="hl-kw">await</span> user.<span class="hl-fn">save</span>();                                   <span class="hl-comm">// only changed columns are written</span>
+<span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">where</span>(<span class="hl-str">'isActive'</span>, <span class="hl-kw">false</span>).<span class="hl-fn">update</span>({ role: <span class="hl-str">'inactive'</span> });
+
+<span class="hl-comm">// Delete</span>
+<span class="hl-kw">await</span> user.<span class="hl-fn">delete</span>();
+<span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">where</span>(<span class="hl-str">'role'</span>, <span class="hl-str">'spam'</span>).<span class="hl-fn">delete</span>();</code></pre>
+        </div>
 
         <div class="code-box">
           <div class="code-box-header">
-            <span>Query Methods</span>
-            <button class="copy-code-btn copy-trigger" data-copy="// 1. Complex filters & sorting
-const results = await Product.query()
-  .where('price', '>=', 50)
-  .whereIn('category', ['electronics', 'computers'])
-  .orderBy('price', 'asc')
+            <span>Filters, sorting &amp; pagination</span>
+            <button class="copy-code-btn copy-trigger" data-copy="const users = await User.query()
+  .where(&#x27;createdAt&#x27;, &#x27;&gt;=&#x27;, since)
+  .whereIn(&#x27;role&#x27;, [&#x27;admin&#x27;, &#x27;editor&#x27;])
+  .whereNotNull(&#x27;name&#x27;)
+  .orWhere(&#x27;email&#x27;, &#x27;ILIKE&#x27;, &#x27;%@example.com&#x27;)
+  .orderBy(&#x27;createdAt&#x27;, &#x27;DESC&#x27;)
+  .limit(20)
+  .offset(40)
   .get();
 
-// 2. Built-in pagination with total count and page metadata
-const page = await Product.query()
-  .where('inStock', '=', true)
-  .paginate({ page: 1, limit: 15 });
+await User.count();
+await User.where(&#x27;isActive&#x27;, true).exists();
 
-console.log(page.data, page.total, page.totalPages);
+const page = await User.query().orderBy(&#x27;id&#x27;).paginate({ page: 2, pageSize: 25 });
+// page.items, page.total, page.page, page.pageSize, page.totalPages
 
-// 3. Aggregate functions
-const totalRevenue = await Order.query().sum('totalAmount');
-const avgPrice = await Product.query().avg('price');">Copy</button>
+for await (const u of User.query().cursor(500)) {
+  // stream a large table in batches of 500
+}">Copy</button>
           </div>
-          <pre><code><span class="hl-comm">// 1. Complex filters & sorting</span>
-<span class="hl-kw">const</span> results = <span class="hl-kw">await</span> <span class="hl-type">Product</span>.<span class="hl-fn">query</span>()
-  .<span class="hl-fn">where</span>(<span class="hl-str">'price'</span>, <span class="hl-str">'>='</span>, <span class="hl-num">50</span>)
-  .<span class="hl-fn">whereIn</span>(<span class="hl-str">'category'</span>, [<span class="hl-str">'electronics'</span>, <span class="hl-str">'computers'</span>])
-  .<span class="hl-fn">orderBy</span>(<span class="hl-str">'price'</span>, <span class="hl-str">'asc'</span>)
+          <pre><code><span class="hl-kw">const</span> users = <span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">query</span>()
+  .<span class="hl-fn">where</span>(<span class="hl-str">'createdAt'</span>, <span class="hl-str">'&gt;='</span>, since)
+  .<span class="hl-fn">whereIn</span>(<span class="hl-str">'role'</span>, [<span class="hl-str">'admin'</span>, <span class="hl-str">'editor'</span>])
+  .<span class="hl-fn">whereNotNull</span>(<span class="hl-str">'name'</span>)
+  .<span class="hl-fn">orWhere</span>(<span class="hl-str">'email'</span>, <span class="hl-str">'ILIKE'</span>, <span class="hl-str">'%@example.com'</span>)
+  .<span class="hl-fn">orderBy</span>(<span class="hl-str">'createdAt'</span>, <span class="hl-str">'DESC'</span>)
+  .<span class="hl-fn">limit</span>(<span class="hl-num">20</span>)
+  .<span class="hl-fn">offset</span>(<span class="hl-num">40</span>)
   .<span class="hl-fn">get</span>();
 
-<span class="hl-comm">// 2. Built-in pagination with total count and page metadata</span>
-<span class="hl-kw">const</span> page = <span class="hl-kw">await</span> <span class="hl-type">Product</span>.<span class="hl-fn">query</span>()
-  .<span class="hl-fn">where</span>(<span class="hl-str">'inStock'</span>, <span class="hl-str">'='</span>, <span class="hl-kw">true</span>)
-  .<span class="hl-fn">paginate</span>({ page: <span class="hl-num">1</span>, limit: <span class="hl-num">15</span> });
+<span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">count</span>();
+<span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">where</span>(<span class="hl-str">'isActive'</span>, <span class="hl-kw">true</span>).<span class="hl-fn">exists</span>();
 
-console.<span class="hl-fn">log</span>(page.data, page.total, page.totalPages);
+<span class="hl-kw">const</span> page = <span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">query</span>().<span class="hl-fn">orderBy</span>(<span class="hl-str">'id'</span>).<span class="hl-fn">paginate</span>({ page: <span class="hl-num">2</span>, pageSize: <span class="hl-num">25</span> });
+<span class="hl-comm">// page.items, page.total, page.page, page.pageSize, page.totalPages</span>
 
-<span class="hl-comm">// 3. Aggregate functions</span>
-<span class="hl-kw">const</span> totalRevenue = <span class="hl-kw">await</span> <span class="hl-type">Order</span>.<span class="hl-fn">query</span>().<span class="hl-fn">sum</span>(<span class="hl-str">'totalAmount'</span>);
-<span class="hl-kw">const</span> avgPrice = <span class="hl-kw">await</span> <span class="hl-type">Product</span>.<span class="hl-fn">query</span>().<span class="hl-fn">avg</span>(<span class="hl-str">'price'</span>);</code></pre>
+<span class="hl-kw">for</span> <span class="hl-kw">await</span> (<span class="hl-kw">const</span> u <span class="hl-kw">of</span> <span class="hl-type">User</span>.<span class="hl-fn">query</span>().<span class="hl-fn">cursor</span>(<span class="hl-num">500</span>)) {
+  <span class="hl-comm">// stream a large table in batches of 500</span>
+}</code></pre>
+        </div>
+
+        <p>Operators: <code>=</code> <code>!=</code> <code>&gt;</code> <code>&gt;=</code> <code>&lt;</code> <code>&lt;=</code> <code>LIKE</code> <code>NOT LIKE</code> <code>ILIKE</code> <code>IN</code> <code>NOT IN</code>; <code>where('x', null)</code> becomes <code>IS NULL</code>. Anything else is rejected, so user input can't inject SQL through the operator. Keys that aren't declared fields are ignored on insert/update.</p>
+
+        <h3 id="soft-deletes">Soft Deletes</h3>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>Soft deletes</span>
+            <button class="copy-code-btn copy-trigger" data-copy="// model option: softDelete: true
+await post.delete();                  // sets deletedAt
+await Post.query().get();             // excludes soft-deleted rows
+await Post.withTrashed().get();       // includes them
+await Post.onlyTrashed().get();       // only them
+await post.delete({ force: true });   // real DELETE">Copy</button>
+          </div>
+          <pre><code><span class="hl-comm">// model option: softDelete: true</span>
+<span class="hl-kw">await</span> post.<span class="hl-fn">delete</span>();                  <span class="hl-comm">// sets deletedAt</span>
+<span class="hl-kw">await</span> <span class="hl-type">Post</span>.<span class="hl-fn">query</span>().<span class="hl-fn">get</span>();             <span class="hl-comm">// excludes soft-deleted rows</span>
+<span class="hl-kw">await</span> <span class="hl-type">Post</span>.<span class="hl-fn">withTrashed</span>().<span class="hl-fn">get</span>();       <span class="hl-comm">// includes them</span>
+<span class="hl-kw">await</span> <span class="hl-type">Post</span>.<span class="hl-fn">onlyTrashed</span>().<span class="hl-fn">get</span>();       <span class="hl-comm">// only them</span>
+<span class="hl-kw">await</span> post.<span class="hl-fn">delete</span>({ force: <span class="hl-kw">true</span> });   <span class="hl-comm">// real DELETE</span></code></pre>
+        </div>
+
+
+        <h3 id="transactions">Transactions</h3>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>Transactions</span>
+            <button class="copy-code-btn copy-trigger" data-copy="import { transaction } from &#x27;jsango&#x27;;
+
+await transaction(async () =&gt; {
+  const user = await User.create({ email });
+  await Profile.create({ userId: user.id });   // automatically in the same transaction
+  if (!ok) throw new Error(&#x27;abort&#x27;);            // any error rolls everything back
+});
+
+await transaction(async () =&gt; { /* ... */ }, { isolationLevel: &#x27;SERIALIZABLE&#x27; });
+
+// explicit alternative
+await db.transaction(async (tx) =&gt; {
+  await User.create({ email }, { connection: tx });
+  await User.query().using(tx).where(&#x27;id&#x27;, 1).update({ name: &#x27;x&#x27; });
+});">Copy</button>
+          </div>
+          <pre><code><span class="hl-kw">import</span> { transaction } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
+
+<span class="hl-kw">await</span> <span class="hl-fn">transaction</span>(<span class="hl-kw">async</span> () =&gt; {
+  <span class="hl-kw">const</span> user = <span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">create</span>({ email });
+  <span class="hl-kw">await</span> <span class="hl-type">Profile</span>.<span class="hl-fn">create</span>({ userId: user.id });   <span class="hl-comm">// automatically in the same transaction</span>
+  <span class="hl-kw">if</span> (!ok) <span class="hl-kw">throw</span> <span class="hl-kw">new</span> <span class="hl-fn">Error</span>(<span class="hl-str">'abort'</span>);            <span class="hl-comm">// any error rolls everything back</span>
+});
+
+<span class="hl-kw">await</span> <span class="hl-fn">transaction</span>(<span class="hl-kw">async</span> () =&gt; { /* ... */ }, { isolationLevel: <span class="hl-str">'SERIALIZABLE'</span> });
+
+<span class="hl-comm">// explicit alternative</span>
+<span class="hl-kw">await</span> db.<span class="hl-fn">transaction</span>(<span class="hl-kw">async</span> (tx) =&gt; {
+  <span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">create</span>({ email }, { connection: tx });
+  <span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">query</span>().<span class="hl-fn">using</span>(tx).<span class="hl-fn">where</span>(<span class="hl-str">'id'</span>, <span class="hl-num">1</span>).<span class="hl-fn">update</span>({ name: <span class="hl-str">'x'</span> });
+});</code></pre>
         </div>
       </section>
 
@@ -893,31 +1129,188 @@ console.<span class="hl-fn">log</span>(page.data, page.total, page.totalPages);
 
       <!-- SECTION: Automated Migrations -->
       <section id="migrations-engine" class="doc-section">
-        <h2>Automated Database Migrations</h2>
-        <p>
-          JSango includes a migration engine that can auto-diff your TypeScript ORM models against live database tables and generate versioned migration scripts:
-        </p>
+        <h2>Migrations</h2>
+        <p>Migrations turn changes in your models into versioned, reviewable changes to the real database — the same workflow as Django:</p>
+        <ol>
+          <li><strong><code>npx jsango makemigrations</code></strong> replays your existing migration files to know what the database <em>should</em> look like (no database connection needed), compares it with your models and writes a new file with just the difference.</li>
+          <li><strong><code>npx jsango migrate</code></strong> runs pending files in order and records each in the <code>jsango_migrations</code> table so it never runs twice.</li>
+        </ol>
 
+        <h3 id="migrations-workflow">Everyday Workflow</h3>
         <div class="code-box">
           <div class="code-box-header">
             <span>Terminal</span>
-            <button class="copy-code-btn copy-trigger" data-copy="# Generate migration by comparing TypeScript models with database
-npx jsango migrate:diff --name=add_user_roles
+            <button class="copy-code-btn copy-trigger" data-copy="# 1. change a model, e.g. add  age: fields.integer({ nullable: true })  to User
 
-# Apply all pending migrations
-npx jsango migrate
+npx jsango makemigrations          # or: npx jsango migrate:generate add_age_to_users
+#  ✔ Created migration migrations/20260930101500_add_age_to_users.ts
+#    [+] Add column users.age (integer)
 
-# Rollback last migration batch
-npx jsango migrate:rollback">Copy</button>
+npx jsango migrate --dry-run       # optional: print the exact SQL
+npx jsango migrate                 # apply
+npx jsango migrate:status          # applied / pending
+npx jsango migrate:rollback        # undo the last batch (--steps 1 for one migration)">Copy</button>
           </div>
-          <pre><code><span class="hl-comm"># Generate migration by comparing TypeScript models with database</span>
-npx jsango migrate:diff --name=add_user_roles
+          <pre><code><span class="hl-comm"># 1. change a model, e.g. add  age: fields.integer({ nullable: true })  to User</span>
 
-<span class="hl-comm"># Apply all pending migrations</span>
-npx jsango migrate
+npx jsango makemigrations          <span class="hl-comm"># or: npx jsango migrate:generate add_age_to_users</span>
+<span class="hl-comm">#  ✔ Created migration migrations/20260930101500_add_age_to_users.ts</span>
+<span class="hl-comm">#    [+] Add column users.age (integer)</span>
 
-<span class="hl-comm"># Rollback last migration batch</span>
-npx jsango migrate:rollback</code></pre>
+npx jsango migrate --dry-run       <span class="hl-comm"># optional: print the exact SQL</span>
+npx jsango migrate                 <span class="hl-comm"># apply</span>
+npx jsango migrate:status          <span class="hl-comm"># applied / pending</span>
+npx jsango migrate:rollback        <span class="hl-comm"># undo the last batch (--steps 1 for one migration)</span></code></pre>
+        </div>
+
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>migrations/20260930101500_add_age_to_users.ts (generated)</span>
+            <button class="copy-code-btn copy-trigger" data-copy="import { AddColumnOperation, Migration } from &#x27;jsango&#x27;;
+
+export const id = &#x27;20260930101500_add_age_to_users&#x27;;
+export const name = &#x27;add_age_to_users&#x27;;
+
+export default new Migration({
+  id,
+  name,
+  operations: [
+    new AddColumnOperation(&#x27;users&#x27;, { &quot;name&quot;: &quot;age&quot;, &quot;type&quot;: &quot;integer&quot;, &quot;nullable&quot;: true }),
+  ],
+});">Copy</button>
+          </div>
+          <pre><code><span class="hl-kw">import</span> { <span class="hl-type">AddColumnOperation</span>, <span class="hl-type">Migration</span> } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
+
+<span class="hl-kw">export</span> <span class="hl-kw">const</span> id = <span class="hl-str">'20260930101500_add_age_to_users'</span>;
+<span class="hl-kw">export</span> <span class="hl-kw">const</span> name = <span class="hl-str">'add_age_to_users'</span>;
+
+<span class="hl-kw">export</span> <span class="hl-kw">default</span> <span class="hl-kw">new</span> <span class="hl-fn">Migration</span>({
+  id,
+  name,
+  operations: [
+    <span class="hl-kw">new</span> <span class="hl-fn">AddColumnOperation</span>(<span class="hl-str">'users'</span>, { <span class="hl-str">"name"</span>: <span class="hl-str">"age"</span>, <span class="hl-str">"type"</span>: <span class="hl-str">"integer"</span>, <span class="hl-str">"nullable"</span>: <span class="hl-kw">true</span> }),
+  ],
+});</code></pre>
+        </div>
+
+        <p>Generated migrations are reversible automatically. Review the file and commit it <strong>together with the model change</strong>.</p>
+        <div class="callout callout-warn">
+          <div class="callout-icon">⚠️</div>
+          <div class="callout-body"><strong>Destructive changes</strong> (dropping a table/column, changing a type, shrinking a column) are marked <code>[destructive]</code>, and <code>migrate</code> refuses them until you confirm with <code>--yes</code>. <strong>Renames</strong> look like "drop + add" to the generator and would lose data — write them by hand with <code>ctx.renameColumn()</code>. Adding a NOT NULL column without a default to a table with rows fails on every database; the generator warns you.</div>
+        </div>
+
+
+        <h3 id="migrations-handwritten">Hand-written Migrations</h3>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>Terminal</span>
+            <button class="copy-code-btn copy-trigger" data-copy="npx jsango makemigrations rename_user_name --empty">Copy</button>
+          </div>
+          <pre><code>npx jsango makemigrations rename_user_name --empty</code></pre>
+        </div>
+
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>migrations/20260930120000_rename_user_name.ts</span>
+            <button class="copy-code-btn copy-trigger" data-copy="import { defineMigration } from &#x27;jsango&#x27;;
+
+export default defineMigration({
+  id: &#x27;20260930120000_rename_user_name&#x27;,
+  async up(ctx) {
+    await ctx.renameColumn(&#x27;users&#x27;, &#x27;name&#x27;, &#x27;fullName&#x27;);
+
+    await ctx.createTable(&#x27;audit_logs&#x27;, (t) =&gt; {
+      t.id();
+      t.integer(&#x27;userId&#x27;).references(&#x27;users&#x27;);   // FK -&gt; users.id ON DELETE CASCADE
+      t.string(&#x27;action&#x27;, 50).index();
+      t.json(&#x27;payload&#x27;).nullable();
+      t.timestamps();
+    });
+
+    await ctx.sql(&quot;UPDATE users SET role = &#x27;member&#x27; WHERE role IS NULL&quot;); // data migration
+  },
+  async down(ctx) {
+    await ctx.dropTable(&#x27;audit_logs&#x27;);
+    await ctx.renameColumn(&#x27;users&#x27;, &#x27;fullName&#x27;, &#x27;name&#x27;);
+  },
+});">Copy</button>
+          </div>
+          <pre><code><span class="hl-kw">import</span> { defineMigration } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
+
+<span class="hl-kw">export</span> <span class="hl-kw">default</span> <span class="hl-fn">defineMigration</span>({
+  id: <span class="hl-str">'20260930120000_rename_user_name'</span>,
+  <span class="hl-kw">async</span> <span class="hl-fn">up</span>(ctx) {
+    <span class="hl-kw">await</span> ctx.<span class="hl-fn">renameColumn</span>(<span class="hl-str">'users'</span>, <span class="hl-str">'name'</span>, <span class="hl-str">'fullName'</span>);
+
+    <span class="hl-kw">await</span> ctx.<span class="hl-fn">createTable</span>(<span class="hl-str">'audit_logs'</span>, (t) =&gt; {
+      t.<span class="hl-fn">id</span>();
+      t.<span class="hl-fn">integer</span>(<span class="hl-str">'userId'</span>).<span class="hl-fn">references</span>(<span class="hl-str">'users'</span>);   <span class="hl-comm">// FK -&gt; users.id ON DELETE CASCADE</span>
+      t.<span class="hl-fn">string</span>(<span class="hl-str">'action'</span>, <span class="hl-num">50</span>).<span class="hl-fn">index</span>();
+      t.<span class="hl-fn">json</span>(<span class="hl-str">'payload'</span>).<span class="hl-fn">nullable</span>();
+      t.<span class="hl-fn">timestamps</span>();
+    });
+
+    <span class="hl-kw">await</span> ctx.<span class="hl-fn">sql</span>(<span class="hl-str">"UPDATE users SET role = 'member' WHERE role IS NULL"</span>); <span class="hl-comm">// data migration</span>
+  },
+  <span class="hl-kw">async</span> <span class="hl-fn">down</span>(ctx) {
+    <span class="hl-kw">await</span> ctx.<span class="hl-fn">dropTable</span>(<span class="hl-str">'audit_logs'</span>);
+    <span class="hl-kw">await</span> ctx.<span class="hl-fn">renameColumn</span>(<span class="hl-str">'users'</span>, <span class="hl-str">'fullName'</span>, <span class="hl-str">'name'</span>);
+  },
+});</code></pre>
+        </div>
+
+        <p>Helpers: <code>createTable</code>, <code>dropTable</code>, <code>renameTable</code>, <code>addColumn</code>, <code>dropColumn</code>, <code>alterColumn</code>, <code>renameColumn</code>, <code>addIndex</code>, <code>dropIndex</code>, <code>addUnique</code>, <code>dropUnique</code>, <code>addForeignKey</code>, <code>dropForeignKey</code>, <code>sql</code>. Prefer the helpers for schema changes — <code>makemigrations</code> can see them; <code>ctx.sql()</code> is invisible to it.</p>
+
+        <h3 id="migrations-databases">How Each Database Runs Migrations</h3>
+        <div class="cli-table-wrapper" style="margin-bottom: 24px;">
+          <table class="cli-table">
+            <thead>
+              <tr><th></th><th>PostgreSQL</th><th>SQLite</th><th>MySQL / MariaDB</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Each migration in a transaction</td><td>✅</td><td>✅</td><td>❌ (DDL auto-commits)</td></tr>
+              <tr><td>Failure mid-migration</td><td>fully rolled back</td><td>fully rolled back</td><td>earlier statements stay applied</td></tr>
+              <tr><td>ALTER COLUMN, add/drop FK</td><td>native</td><td>automatic table rebuild (data kept)</td><td>native</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>A migration lock prevents two deploys from migrating at the same time.</p>
+
+        <h3 id="migrations-production">Production &amp; CI</h3>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>Release step</span>
+            <button class="copy-code-btn copy-trigger" data-copy="npm ci
+npx jsango migrate:check --skip-db   # CI: fail if a model change has no migration
+npx jsango migrate                   # apply pending migrations (locked)
+npm start">Copy</button>
+          </div>
+          <pre><code>npm ci
+npx jsango migrate:check --skip-db   <span class="hl-comm"># CI: fail if a model change has no migration</span>
+npx jsango migrate                   <span class="hl-comm"># apply pending migrations (locked)</span>
+npm start</code></pre>
+        </div>
+
+        <p>Deploy the <code>migrations/</code> folder and <code>jsango.config.ts</code> with the app. TypeScript migrations run without a build step. Full guide: <a href="https://github.com/flutterbuddy1/jsango/tree/main/docs/database/README.md">docs/database/README.md</a>.</p>
+
+        <h3 id="db-troubleshooting">Troubleshooting</h3>
+        <div class="cli-table-wrapper" style="margin-bottom: 24px;">
+          <table class="cli-table">
+            <thead>
+              <tr><th>Message</th><th>Fix</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>No database is configured for this project</code></td><td>Add <code>jsango.config.ts</code> or set <code>DATABASE_URL</code> in <code>.env</code>.</td></tr>
+              <tr><td><code>PostgreSQL support requires the &#x27;pg&#x27; package</code></td><td><code>npm install pg</code> (or <code>mysql2</code>, <code>better-sqlite3</code>, <code>mongodb</code>).</td></tr>
+              <tr><td><code>ECONNREFUSED</code></td><td>The database server is not running or the host/port is wrong.</td></tr>
+              <tr><td><code>password authentication failed</code></td><td>Wrong credentials; URL-encode special characters in <code>DATABASE_URL</code>.</td></tr>
+              <tr><td><code>database &quot;x&quot; does not exist</code></td><td>Create it first: <code>CREATE DATABASE x;</code></td></tr>
+              <tr><td><code>no such table</code> / <code>relation &quot;users&quot; does not exist</code></td><td>Run <code>npx jsango makemigrations</code> then <code>npx jsango migrate</code>.</td></tr>
+              <tr><td><code>Migration run contains destructive changes</code></td><td>Review with <code>migrate --dry-run</code>, then <code>migrate --yes</code>.</td></tr>
+              <tr><td><code>Could not acquire migration lock</code></td><td>Another migrate is running; the lock of a crashed run expires after 15 minutes.</td></tr>
+            </tbody>
+          </table>
         </div>
       </section>
 
@@ -1626,7 +2019,7 @@ app.<span class="hl-fn">openapi</span>({
       <!-- SECTION: CLI Commands Reference -->
       <section id="cli-reference" class="doc-section">
         <h2>CLI Commands Reference</h2>
-        <p>The JSango CLI provides fast code generation, migration execution, and developer tooling:</p>
+        <p>Run <code>npx jsango help</code> for the full list and <code>npx jsango &lt;command&gt; --help</code> for options. Every command accepts <code>--json</code>.</p>
 
         <div class="cli-table-wrapper">
           <table class="cli-table">
@@ -1638,44 +2031,64 @@ app.<span class="hl-fn">openapi</span>({
             </thead>
             <tbody>
               <tr>
-                <td><code>npx jsango new &lt;project-name&gt;</code></td>
-                <td>Scaffold a new batteries-included JSango project with TypeScript &amp; Admin Panel.</td>
+                <td><code>npx jsango new &lt;name&gt;</code></td>
+                <td>Scaffold a project (SQLite configured, example model, migrations folder).</td>
               </tr>
               <tr>
-                <td><code>npx jsango dev</code></td>
-                <td>Start local development server with fast hot reloading.</td>
-              </tr>
-              <tr>
-                <td><code>npx jsango make:model &lt;Name&gt;</code></td>
-                <td>Generate a typed ORM model definition with declarative fields.</td>
-              </tr>
-              <tr>
-                <td><code>npx jsango make:agent &lt;Name&gt;</code></td>
-                <td>Generate an autonomous AI agent with tool scaffolding and prompt templates.</td>
-              </tr>
-              <tr>
-                <td><code>npx jsango make:admin &lt;Model&gt;</code></td>
-                <td>Generate an auto-admin resource definition with custom filters and search.</td>
+                <td><code>npx jsango makemigrations [name]</code></td>
+                <td>Create a migration from model changes (<code>migrate:generate</code>). <code>--dry-run</code>, <code>--empty</code>.</td>
               </tr>
               <tr>
                 <td><code>npx jsango migrate</code></td>
-                <td>Run pending database migrations.</td>
+                <td>Apply pending migrations. <code>--dry-run</code> prints SQL, <code>--yes</code> confirms destructive changes, <code>--target &lt;id&gt;</code>.</td>
               </tr>
               <tr>
-                <td><code>npx jsango migrate:diff</code></td>
-                <td>Diff ORM model schemas against database and generate migration file.</td>
+                <td><code>npx jsango migrate:status</code></td>
+                <td>Show applied and pending migrations.</td>
               </tr>
               <tr>
                 <td><code>npx jsango migrate:rollback</code></td>
-                <td>Roll back the most recent database migration batch.</td>
+                <td>Undo the last batch; <code>--steps N</code> or <code>--target &lt;id&gt;</code>.</td>
+              </tr>
+              <tr>
+                <td><code>npx jsango migrate:check</code></td>
+                <td>Fail when models have unmigrated changes or migrations are pending (CI). <code>--skip-db</code>.</td>
+              </tr>
+              <tr>
+                <td><code>npx jsango migrate:reset --yes</code></td>
+                <td>Roll back all migrations; <code>--fresh</code> re-applies them. Refused in production.</td>
+              </tr>
+              <tr>
+                <td><code>npx jsango db:status</code></td>
+                <td>Test every configured database connection.</td>
+              </tr>
+              <tr>
+                <td><code>npx jsango model:list / model:show &lt;Name&gt;</code></td>
+                <td>Inspect registered ORM models.</td>
+              </tr>
+              <tr>
+                <td><code>npx jsango route:list</code></td>
+                <td>List HTTP routes.</td>
+              </tr>
+              <tr>
+                <td><code>npx jsango make:admin &lt;Model&gt;</code></td>
+                <td>Generate an admin resource.</td>
+              </tr>
+              <tr>
+                <td><code>npx jsango make:agent &lt;Name&gt;</code></td>
+                <td>Generate an AI agent and tool.</td>
               </tr>
               <tr>
                 <td><code>npx jsango openapi:generate</code></td>
-                <td>Generate an OpenAPI 3.1 JSON / YAML specification document.</td>
+                <td>Generate an OpenAPI 3.1 document.</td>
+              </tr>
+              <tr>
+                <td><code>npx jsango queue:work</code></td>
+                <td>Run a background job worker.</td>
               </tr>
               <tr>
                 <td><code>npx jsango doctor</code></td>
-                <td>Verify environment setup, database connections, and runtime dependencies.</td>
+                <td>Check environment, database and migrations.</td>
               </tr>
             </tbody>
           </table>
@@ -1703,97 +2116,97 @@ app.<span class="hl-fn">openapi</span>({
             <tbody>
               <tr>
                 <td><code>jsango</code></td>
-                <td><span class="badge badge-success">v1.0.9</span></td>
+                <td><span class="badge badge-success">v1.2.0</span></td>
                 <td>Primary batteries-included meta-package (<code>createApp</code>, <code>model</code>, <code>agent</code>, <code>tool</code>).</td>
               </tr>
               <tr>
                 <td><code>@jsango/ai</code></td>
-                <td><span class="badge badge-success">v1.0.9</span></td>
+                <td><span class="badge badge-success">v1.2.0</span></td>
                 <td>AI Platform: Autonomous Agents, Multi-Agent Workflows, RAG Vector Search, MCP Protocol.</td>
               </tr>
               <tr>
                 <td><code>@jsango/orm</code></td>
-                <td><span class="badge badge-success">v1.0.9</span></td>
+                <td><span class="badge badge-success">v1.2.0</span></td>
                 <td>Declarative ORM, Relations, Eager Loading (No N+1), AST Query Builder.</td>
               </tr>
               <tr>
                 <td><code>@jsango/database</code></td>
-                <td><span class="badge badge-success">v1.0.9</span></td>
+                <td><span class="badge badge-success">v1.2.0</span></td>
                 <td>Database Drivers: PostgreSQL, MySQL/MariaDB, SQLite, MongoDB, In-Memory Engine.</td>
               </tr>
               <tr>
                 <td><code>@jsango/router</code></td>
-                <td><span class="badge badge-success">v1.0.9</span></td>
+                <td><span class="badge badge-success">v1.2.0</span></td>
                 <td>Ultra-fast SegRadix Trie Router (&gt;7.7M ops/sec) with inline parameter validators.</td>
               </tr>
               <tr>
                 <td><code>@jsango/http</code></td>
-                <td><span class="badge badge-success">v1.0.9</span></td>
+                <td><span class="badge badge-success">v1.2.0</span></td>
                 <td>Typed HTTP Request, Response, RequestContext, Cookies, and HTTP Status Codes.</td>
               </tr>
               <tr>
                 <td><code>@jsango/admin-server</code></td>
-                <td><span class="badge badge-success">v1.0.9</span></td>
+                <td><span class="badge badge-success">v1.2.0</span></td>
                 <td>Backend server &amp; REST endpoints powering the dynamic Admin Console.</td>
               </tr>
               <tr>
                 <td><code>@jsango/admin-ui</code></td>
-                <td><span class="badge badge-success">v1.0.9</span></td>
+                <td><span class="badge badge-success">v1.2.0</span></td>
                 <td>React Single-Page Application (SPA) dashboard for database records &amp; system diagnostics.</td>
               </tr>
               <tr>
                 <td><code>@jsango/admin-core</code></td>
-                <td><span class="badge badge-success">v1.0.9</span></td>
+                <td><span class="badge badge-success">v1.2.0</span></td>
                 <td>Resource registry, faceted filters, search rules, and CSV/JSON export definitions.</td>
               </tr>
               <tr>
                 <td><code>@jsango/auth</code></td>
-                <td><span class="badge badge-success">v1.0.9</span></td>
+                <td><span class="badge badge-success">v1.2.0</span></td>
                 <td>RFC 6238 TOTP 2FA, Scrypt Password Hashing, JWT Tokens, Multi-device Sessions.</td>
               </tr>
               <tr>
                 <td><code>@jsango/queue</code></td>
-                <td><span class="badge badge-success">v1.0.9</span></td>
+                <td><span class="badge badge-success">v1.2.0</span></td>
                 <td>Background job worker loops, automatic exponential retries, dead-letter storage.</td>
               </tr>
               <tr>
                 <td><code>@jsango/cache</code></td>
-                <td><span class="badge badge-success">v1.0.9</span></td>
+                <td><span class="badge badge-success">v1.2.0</span></td>
                 <td>High-speed caching layer supporting memory and Redis drivers with TTL &amp; tags.</td>
               </tr>
               <tr>
                 <td><code>@jsango/events</code></td>
-                <td><span class="badge badge-success">v1.0.9</span></td>
+                <td><span class="badge badge-success">v1.2.0</span></td>
                 <td>Strongly typed in-memory and distributed Pub/Sub event bus.</td>
               </tr>
               <tr>
                 <td><code>@jsango/websocket</code></td>
-                <td><span class="badge badge-success">v1.0.9</span></td>
+                <td><span class="badge badge-success">v1.2.0</span></td>
                 <td>Realtime WebSockets with room grouping, client broadcasting, and heartbeat pings.</td>
               </tr>
               <tr>
                 <td><code>@jsango/validation</code></td>
-                <td><span class="badge badge-success">v1.0.9</span></td>
+                <td><span class="badge badge-success">v1.2.0</span></td>
                 <td>Compiled schema validators (<code>string</code>, <code>number</code>, <code>object</code>, <code>array</code>).</td>
               </tr>
               <tr>
                 <td><code>@jsango/migrations</code></td>
-                <td><span class="badge badge-success">v1.0.9</span></td>
+                <td><span class="badge badge-success">v1.2.0</span></td>
                 <td>Automated schema diffing, batch migration runner, and rollback engine.</td>
               </tr>
               <tr>
                 <td><code>@jsango/openapi</code></td>
-                <td><span class="badge badge-success">v1.0.9</span></td>
+                <td><span class="badge badge-success">v1.2.0</span></td>
                 <td>OpenAPI 3.1 specification generation and dark-themed Swagger UI dashboard.</td>
               </tr>
               <tr>
                 <td><code>@jsango/observability</code></td>
-                <td><span class="badge badge-success">v1.0.9</span></td>
+                <td><span class="badge badge-success">v1.2.0</span></td>
                 <td>Structured logging, Prometheus metric exposition, and distributed tracing hooks.</td>
               </tr>
               <tr>
                 <td><code>@jsango/cli</code></td>
-                <td><span class="badge badge-success">v1.0.9</span></td>
+                <td><span class="badge badge-success">v1.2.0</span></td>
                 <td>Command-line interface for scaffolding, model generation, migrations, and diagnostics.</td>
               </tr>
             </tbody>
@@ -1828,11 +2241,11 @@ app.<span class="hl-fn">openapi</span>({
         <li><a href="#crud-generation" class="toc-link">1-Line CRUD Generation</a></li>
         <li><a href="#middleware-pipeline" class="toc-link">Middleware Pipeline</a></li>
         <li><a href="#validation" class="toc-link">Schema Validation</a></li>
-        <li><a href="#database-drivers" class="toc-link">Database Drivers</a></li>
-        <li><a href="#model-definitions" class="toc-link">Declarative ORM</a></li>
-        <li><a href="#relationships" class="toc-link">Batch Eager Loading</a></li>
-        <li><a href="#query-builder" class="toc-link">Query Builder &amp; Pagination</a></li>
-        <li><a href="#migrations-engine" class="toc-link">Automated Migrations</a></li>
+        <li><a href="#database-drivers" class="toc-link">Connecting a Database</a></li>
+        <li><a href="#model-definitions" class="toc-link">Defining Models</a></li>
+        <li><a href="#relationships" class="toc-link">Relations</a></li>
+        <li><a href="#query-builder" class="toc-link">Querying &amp; Transactions</a></li>
+        <li><a href="#migrations-engine" class="toc-link">Migrations</a></li>
         <li><a href="#admin-overview" class="toc-link">React Admin Console</a></li>
         <li><a href="#admin-credentials" class="toc-link">Admin Credentials</a></li>
         <li><a href="#ai-agents" class="toc-link">AI Agents &amp; Tools</a></li>

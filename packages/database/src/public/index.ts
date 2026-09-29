@@ -36,8 +36,21 @@ export {
   maskConnectionString,
   maskConnectionConfig,
   parseConnectionUrl,
+  parseSqliteFilename,
+  driverFromUrl,
+  resolveConnectionConfig,
+  databaseConfigFromEnv,
   loadDatabaseConfig,
 } from './config.js';
+
+export {
+  SqlDialect,
+  createDialect,
+  normalizeDialectName,
+  type DialectName,
+  type PlaceholderType,
+  type SqlDialectOptions,
+} from './dialect.js';
 
 export { DatabaseTransaction, type TransactionState } from './transaction.js';
 
@@ -46,7 +59,22 @@ export { DatabaseConnection, type QueryTelemetryHook } from './connection.js';
 export { DatabaseManager, type DatabaseManagerOptions } from './manager.js';
 
 export { MemoryDatabaseDriver, MemoryDriverConnection } from '../internal/drivers/memory-driver.js';
-export { PostgresDatabaseDriver, PostgresDriverConnection } from '../internal/drivers/postgres-driver.js';
-export { MysqlDatabaseDriver, MysqlDriverConnection } from '../internal/drivers/mysql-driver.js';
-export { SqliteDatabaseDriver, SqliteDriverConnection } from '../internal/drivers/sqlite-driver.js';
+export {
+  PostgresDatabaseDriver,
+  PostgresDriverConnection,
+  type PostgresDriverOptions,
+  type PostgresDriverDependencies,
+} from '../internal/drivers/postgres-driver.js';
+export {
+  MysqlDatabaseDriver,
+  MysqlDriverConnection,
+  type MysqlDriverOptions,
+  type MysqlDriverDependencies,
+} from '../internal/drivers/mysql-driver.js';
+export {
+  SqliteDatabaseDriver,
+  SqliteDriverConnection,
+  type SqliteDriverOptions,
+  type SqliteDriverDependencies,
+} from '../internal/drivers/sqlite-driver.js';
 export { MongoDatabaseDriver, MongoDriverConnection } from '../internal/drivers/mongo-driver.js';

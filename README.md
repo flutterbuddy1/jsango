@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.1.1-green.svg" alt="Version: 1.1.1" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.2.0-green.svg" alt="Version: 1.2.0" /></a>
   <a href="tsconfig.base.json"><img src="https://img.shields.io/badge/TypeScript-Strict%205.8-blue.svg" alt="TypeScript: Strict" /></a>
   <a href="https://flutterbuddy1.github.io/jsango/"><img src="https://img.shields.io/badge/Docs-Landing%20Page-6366f1.svg" alt="Documentation Site" /></a>
 </p>
@@ -176,13 +176,38 @@ app.admin({
 await app.listen(3000);
 ```
 
-### 5. Multi-Database Drivers (PostgreSQL, MySQL, SQLite, MongoDB)
+### 5. Database, Models & Migrations (PostgreSQL, MySQL, SQLite)
 
-For installation steps, generated project setup, and current driver limitations, see the [Database Setup Guide](docs/database/README.md).
+Connect with one environment variable, describe tables as models, and let jsango write the migrations. The workflow is the same as Django's `makemigrations` / `migrate`:
 
-JSango supports PostgreSQL (`postgres`), MySQL (`mysql`), SQLite (`sqlite`), MongoDB (`mongodb`), and zero-config In-Memory (`memory`):
+```bash
+# .env
+DATABASE_URL=postgres://app:secret@localhost:5432/myapp   # or mysql://…, sqlite:./db.sqlite3
+```
 
-Database configuration is created in application code and registered with the ORM; a `jsango.config.ts` file is not loaded automatically. See the [Database Setup Guide](docs/database/README.md) for working setup steps and supported drivers.
+```typescript
+// src/models/post.ts
+import { defineModel, fields } from "jsango";
+
+export const Post = defineModel("Post", {
+  id: fields.id(),
+  title: fields.string({ maxLength: 200 }),
+  userId: fields.integer(),
+  publishedAt: fields.dateTime({ nullable: true }),
+}, {
+  table: "posts",
+  timestamps: true,
+  relations: { author: { type: "belongsTo", target: "User", foreignKey: "userId" } },
+});
+```
+
+```bash
+npx jsango makemigrations   # writes migrations/<timestamp>_create_posts.ts from your models
+npx jsango migrate          # applies it (--dry-run prints the SQL)
+npx jsango db:status        # checks the connection
+```
+
+`jsango new` sets all of this up (`jsango.config.ts`, `src/database.ts`, an example model, SQLite by default). The **[Database Guide](docs/database/README.md)** covers connecting, field types, queries, transactions, hand-written migrations, production deploys and troubleshooting.
 
 ---
 
@@ -236,11 +261,12 @@ await app.listen(3000);
 
 | Command | Description |
 |---|---|
-| `jsango new <name>` | Scaffold a fresh, production-ready JSango application |
-| `jsango dev` | Start development server with TypeScript compilation |
-| `jsango build` | Compile application for production |
-| `jsango start` | Run production build |
-| `jsango migrate` | Run pending database migrations |
+| `jsango new <name>` | Scaffold a new application (database, example model and migrations included) |
+| `jsango makemigrations` | Generate a migration from model changes (`migrate:generate`) |
+| `jsango migrate` | Apply pending migrations (`--dry-run` shows the SQL) |
+| `jsango migrate:status` / `migrate:rollback` | Show migration state / undo the last batch |
+| `jsango migrate:check` | Fail CI when a model change has no migration or migrations are pending |
+| `jsango db:status` | Test the configured database connections |
 | `jsango routes` | List all registered HTTP and WebSocket routes |
 | `jsango make:agent <name>` | Generate an AI Agent template |
 | `jsango ai:doctor` | Verify configured AI providers and API keys |

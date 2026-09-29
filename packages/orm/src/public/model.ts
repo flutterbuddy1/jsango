@@ -13,7 +13,27 @@ import { SqlCompiler } from '../internal/compiler.js';
 import { Hydrator } from '../internal/hydration.js';
 import { ModelNotFoundError, QueryError } from './errors.js';
 import { defaultModelRegistry } from './registry.js';
-import { getDatabaseManager } from './connection.js';
+import { withQueryContext } from './connection.js';
+import { serializeFieldValue } from '../internal/values.js';
+
+/**
+ * Only declared fields (plus timestamp / soft-delete columns) are written to the database, so
+ * extra keys in user input (e.g. a request body) never become invalid column names in SQL.
+ * Models without declared fields keep the permissive behaviour.
+ */
+function isPersistedAttribute(meta: ModelMetadata, key: string): boolean {
+  if (meta.fields.size === 0) return true;
+  if (meta.hasField(key)) return true;
+  if (meta.timestamps.enabled && (key === meta.timestamps.createdAt || key === meta.timestamps.updatedAt)) {
+    return true;
+  }
+  return meta.softDelete.enabled && key === meta.softDelete.deletedAt;
+}
+
+export interface ModelWriteOptions {
+  /** Run on this connection or transaction instead of the default/ambient one. */
+  readonly connection?: QueryContext | undefined;
+}
 
 export class Model {
   public static readonly metadata: ModelMetadata;
@@ -107,30 +127,26 @@ export class Model {
     explicit: QueryContext | undefined,
     fn: (conn: QueryContext) => Promise<T>
   ): Promise<T> {
-    if (explicit) {
-      return fn(explicit);
-    }
     const meta = (this.constructor as typeof Model).metadata;
-    const manager = getDatabaseManager();
-    if (!manager) {
-      throw new QueryError(
-        `No database connection provided for model '${meta.name}'. Pass connection via options or configure via setDatabaseManager().`
-      );
-    }
-    const conn = await manager.connection(meta.connection);
-    try {
-      return await fn(conn);
-    } finally {
-      if ('release' in conn && typeof conn.release === 'function') {
-        await conn.release();
+    return withQueryContext(explicit, meta.connection, fn);
+  }
+
+  /** Merges a row returned by the database (RETURNING) into the model's attributes. */
+  private absorbReturnedRow(row: Record<string, unknown> | undefined): void {
+    if (!row) return;
+    const meta = (this.constructor as typeof Model).metadata;
+    const hydrated = Hydrator.hydrateRow(row, meta);
+    for (const [key, val] of Object.entries(hydrated)) {
+      if (val !== undefined) {
+        this._attributes[key] = val;
       }
     }
   }
 
-  public async save(options?: { connection?: QueryContext }): Promise<this> {
+  public async save(options?: ModelWriteOptions): Promise<this> {
     return this.executeWithConnection(options?.connection, async (conn) => {
       const meta = (this.constructor as typeof Model).metadata;
-      const compiler = new SqlCompiler();
+      const compiler = SqlCompiler.forContext(conn);
 
       if (this._isNew) {
         // 1. Apply defaults for any missing fields
@@ -159,26 +175,39 @@ export class Model {
         const rowValues: unknown[] = [];
 
         for (const [fieldName, val] of Object.entries(this._attributes)) {
-          if (val !== undefined) {
+          if (val !== undefined && isPersistedAttribute(meta, fieldName)) {
             cols.push(meta.fieldToColumn(fieldName));
-            rowValues.push(val);
+            rowValues.push(serializeFieldValue(meta, fieldName, val));
           }
+        }
+
+        if (cols.length === 0) {
+          throw new QueryError(
+            `Cannot insert '${meta.name}' without any values. Set at least one field before saving.`
+          );
         }
 
         const { sql, params } = compiler.compileInsert({
           table: meta.table,
           columns: cols,
           rows: [rowValues],
+          returning: ['*'],
         });
 
         const result = await conn.query<Record<string, unknown>>(sql, params);
 
-        // Assign auto-generated primary key if returned
+        // Prefer the row returned by RETURNING (includes DB defaults and generated keys);
+        // fall back to the driver's last insert id (MySQL).
         const pkMeta = meta.getField(meta.primaryKey);
-        if (pkMeta?.autoIncrement && result.lastInsertId !== undefined) {
+        const pkColumn = meta.fieldToColumn(meta.primaryKey);
+        if (result.rows.length > 0 && result.rows[0]![pkColumn] !== undefined) {
+          this.absorbReturnedRow(result.rows[0]);
+        } else if (
+          pkMeta?.autoIncrement &&
+          result.lastInsertId !== undefined &&
+          this._attributes[meta.primaryKey] === undefined
+        ) {
           this._attributes[meta.primaryKey] = result.lastInsertId;
-        } else if (result.rows.length > 0 && result.rows[0]![meta.primaryKey] !== undefined) {
-          this._attributes[meta.primaryKey] = result.rows[0]![meta.primaryKey];
         }
 
         this._originalAttributes = { ...this._attributes };
@@ -198,7 +227,12 @@ export class Model {
       const dirty = this.getDirty();
       const updateValues: Record<string, unknown> = {};
       for (const [fieldName, val] of Object.entries(dirty)) {
-        updateValues[meta.fieldToColumn(fieldName)] = val;
+        if (!isPersistedAttribute(meta, fieldName)) continue;
+        updateValues[meta.fieldToColumn(fieldName)] = serializeFieldValue(meta, fieldName, val);
+      }
+      if (Object.keys(updateValues).length === 0) {
+        this._originalAttributes = { ...this._attributes };
+        return this;
       }
 
       const pkCol = meta.fieldToColumn(meta.primaryKey);
@@ -224,7 +258,7 @@ export class Model {
     });
   }
 
-  public async delete(options?: { connection?: QueryContext; force?: boolean }): Promise<void> {
+  public async delete(options?: ModelWriteOptions & { force?: boolean }): Promise<void> {
     return this.executeWithConnection(options?.connection, async (conn) => {
       const meta = (this.constructor as typeof Model).metadata;
       const pkCol = meta.fieldToColumn(meta.primaryKey);
@@ -236,11 +270,11 @@ export class Model {
 
       if (meta.softDelete.enabled && !options?.force) {
         this._attributes[meta.softDelete.deletedAt] = new Date();
-        await this.save(options);
+        await this.save({ connection: conn });
         return;
       }
 
-      const compiler = new SqlCompiler();
+      const compiler = SqlCompiler.forContext(conn);
       const { sql, params } = compiler.compileDelete({
         table: meta.table,
         where: [
@@ -258,7 +292,7 @@ export class Model {
     });
   }
 
-  public async refresh(options?: { connection?: QueryContext }): Promise<this> {
+  public async refresh(options?: ModelWriteOptions): Promise<this> {
     return this.executeWithConnection(options?.connection, async (conn) => {
       const meta = (this.constructor as typeof Model).metadata;
       const pkVal = this.primaryKey;
@@ -268,7 +302,7 @@ export class Model {
       }
 
       const modelClass = this.constructor as unknown as ModelStatic;
-      const fresh = await modelClass.query().using(conn).find(pkVal);
+      const fresh = await modelClass.query().withTrashed().using(conn).find(pkVal);
 
       if (!fresh) {
         throw new ModelNotFoundError(meta.name, pkVal);
@@ -365,9 +399,15 @@ export interface DefinedModelStatic<
     options: import('./types.js').PaginationOptions
   ): Promise<import('./types.js').PaginationResult<ModelInstance<TFields, TRelations>>>;
   with(...relations: readonly string[]): QueryBuilder<ModelInstance<TFields, TRelations>>;
-  create(attributes: InferCreationAttributes<TFields>): Promise<ModelInstance<TFields, TRelations>>;
+  withTrashed(): QueryBuilder<ModelInstance<TFields, TRelations>>;
+  onlyTrashed(): QueryBuilder<ModelInstance<TFields, TRelations>>;
+  create(
+    attributes: InferCreationAttributes<TFields>,
+    options?: ModelWriteOptions
+  ): Promise<ModelInstance<TFields, TRelations>>;
   bulkCreate(
-    records: readonly InferCreationAttributes<TFields>[]
+    records: readonly InferCreationAttributes<TFields>[],
+    options?: ModelWriteOptions
   ): Promise<readonly ModelInstance<TFields, TRelations>[]>;
 }
 
@@ -485,73 +525,96 @@ export function defineModel<
       return this.query().with(...relations);
     }
 
-    public static async create(attributes: Record<string, unknown>): Promise<Model> {
+    public static withTrashed(): QueryBuilder<Model> {
+      return this.query().withTrashed();
+    }
+
+    public static onlyTrashed(): QueryBuilder<Model> {
+      return this.query().onlyTrashed();
+    }
+
+    public static async create(
+      attributes: Record<string, unknown>,
+      options?: ModelWriteOptions
+    ): Promise<Model> {
       const instance = new this(attributes, true);
-      await instance.save();
+      await instance.save(options);
       return instance;
     }
 
     public static async bulkCreate(
-      records: readonly Record<string, unknown>[]
+      records: readonly Record<string, unknown>[],
+      options?: ModelWriteOptions
     ): Promise<readonly Model[]> {
       if (records.length === 0) {
         return Object.freeze([]);
       }
 
-      const compiler = new SqlCompiler();
-      const manager = getDatabaseManager();
-      if (!manager) {
-        throw new QueryError(
-          `No database connection provided for model '${this.modelName}'. Call setDatabaseManager().`
-        );
-      }
-      const conn = await manager.connection(this.metadata.connection);
-      try {
-        // Normalize columns
-        const first = records[0]!;
-        const cols = Object.keys(first).map((key) => this.metadata.fieldToColumn(key));
-        const rows: unknown[][] = [];
+      const meta = this.metadata;
+      return withQueryContext(options?.connection, meta.connection, async (conn) => {
+        const compiler = SqlCompiler.forContext(conn);
+        const now = new Date();
 
-        for (const rec of records) {
-          const rowVals: unknown[] = [];
-          for (const key of Object.keys(first)) {
-            let val = rec[key];
-            const fieldMeta = this.metadata.getField(key);
-            if (val === undefined && fieldMeta?.defaultValue !== undefined) {
-              val =
+        // Apply defaults and timestamps, then use the union of keys so every row has every column.
+        const prepared = records.map((rec) => {
+          const row: Record<string, unknown> = { ...rec };
+          for (const [fieldName, fieldMeta] of meta.fields.entries()) {
+            if (row[fieldName] === undefined && fieldMeta.defaultValue !== undefined) {
+              row[fieldName] =
                 typeof fieldMeta.defaultValue === 'function'
                   ? (fieldMeta.defaultValue as () => unknown)()
                   : fieldMeta.defaultValue;
             }
-            rowVals.push(val ?? null);
           }
-          rows.push(rowVals);
-        }
+          if (meta.timestamps.enabled) {
+            row[meta.timestamps.createdAt] ??= now;
+            row[meta.timestamps.updatedAt] ??= now;
+          }
+          return row;
+        });
+
+        const keys = [...new Set(prepared.flatMap((row) => Object.keys(row)))].filter(
+          (key) => isPersistedAttribute(meta, key) && prepared.some((row) => row[key] !== undefined)
+        );
+        const cols = keys.map((key) => meta.fieldToColumn(key));
+        const rows = prepared.map((row) =>
+          keys.map((key) => serializeFieldValue(meta, key, row[key] ?? null))
+        );
 
         const { sql, params } = compiler.compileInsert({
-          table: this.metadata.table,
+          table: meta.table,
           columns: cols,
           rows,
+          returning: ['*'],
         });
 
         const result = await conn.query<Record<string, unknown>>(sql, params);
 
         // If returned rows exist, hydrate them. Otherwise instantiate with input records.
-        if (result.rows.length > 0) {
-          return Hydrator.hydrateModels(result.rows, this as unknown as ModelStatic);
+        if (result.rows.length === prepared.length) {
+          return Object.freeze(
+            Hydrator.hydrateModels(result.rows, this as unknown as ModelStatic) as Model[]
+          );
         }
 
-        return Object.freeze(records.map((r) => new this(r, false)));
-      } finally {
-        if ('release' in conn && typeof conn.release === 'function') {
-          await conn.release();
-        }
-      }
+        return Object.freeze(prepared.map((r) => new this(r, false)));
+      });
     }
   }
 
-  // Define properties on prototype for all fields
-  for (const fieldName of Object.keys(options.fields)) {
+  // Define properties on prototype for all fields, plus the implicit timestamp / soft-delete
+  // columns so `user.createdAt` works without declaring the field.
+  const implicitFields: string[] = [];
+  if (metadata.timestamps.enabled) {
+    implicitFields.push(metadata.timestamps.createdAt, metadata.timestamps.updatedAt);
+  }
+  if (metadata.softDelete.enabled) {
+    implicitFields.push(metadata.softDelete.deletedAt);
+  }
+  for (const fieldName of [
+    ...Object.keys(options.fields),
+    ...implicitFields.filter((f) => !(f in options.fields)),
+  ]) {
     Object.defineProperty(DefinedModel.prototype, fieldName, {
       get() {
         return this._attributes[fieldName];

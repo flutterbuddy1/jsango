@@ -10,6 +10,13 @@ export * from './lock.js';
 export * from './introspector.js';
 export * from './drift.js';
 export * from './runner.js';
+export * from './state.js';
+export * from './loader.js';
 export { ModelSchemaConverter } from '../internal/converter.js';
-export { SqlMigrationCompiler, type MigrationDialect } from '../internal/compiler.js';
+export {
+  SqlMigrationCompiler,
+  SqliteRebuildRequired,
+  toMigrationDialect,
+  type MigrationDialect,
+} from '../internal/compiler.js';
 export { MigrationStorage } from '../internal/storage.js';

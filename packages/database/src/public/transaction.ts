@@ -5,14 +5,14 @@ import type {
   QueryOptions,
 } from './types.js';
 import { TransactionClosedError, TransactionError } from './errors.js';
-import type { SqlDialect } from '../internal/dialect.js';
+import type { SqlDialect } from './dialect.js';
 
 export type TransactionState = 'active' | 'committed' | 'rolledBack';
 
 export class DatabaseTransaction implements IDatabaseTransaction {
   public readonly id: string;
   private readonly rawConnection: IDriverConnection;
-  private readonly dialect: SqlDialect;
+  public readonly dialect: SqlDialect;
   private state: TransactionState = 'active';
   private readonly onCompleted?: (() => void) | undefined;
 

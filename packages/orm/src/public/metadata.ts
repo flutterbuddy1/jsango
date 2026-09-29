@@ -142,7 +142,11 @@ export class RelationMetadata {
     if (typeof resolved === 'string' && registryLookup) {
       const found = registryLookup(resolved);
       if (found) {
-        RelationMetadata.targetCache.set(this, found);
+        // Only cache real model classes: callers such as the schema converter may resolve to
+        // lightweight stand-ins that must not leak into query-time relation loading.
+        if (typeof found === 'function' && 'metadata' in found) {
+          RelationMetadata.targetCache.set(this, found);
+        }
         return found;
       }
     }
@@ -173,7 +177,9 @@ export class RelationMetadata {
     if (typeof resolved === 'string' && registryLookup) {
       const found = registryLookup(resolved);
       if (found) {
-        RelationMetadata.throughCache.set(this, found);
+        if (typeof found === 'function' && 'metadata' in found) {
+          RelationMetadata.throughCache.set(this, found);
+        }
         return found;
       }
     }

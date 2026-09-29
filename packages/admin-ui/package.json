@@ -1,6 +1,6 @@
 {
   "name": "@jsango/admin-ui",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Enterprise-grade frontend Admin UI foundation for jsango",
   "type": "module",
   "main": "./dist/index.js",

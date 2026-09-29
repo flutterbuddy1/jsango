@@ -109,8 +109,12 @@ export class SchemaDiffEngine {
       }
     }
 
-    // Sort operations deterministically
+    // Sort operations deterministically; referenced tables are created before dependants so
+    // inline foreign keys resolve on PostgreSQL and MySQL.
     createTables.sort((a, b) => a.table.name.localeCompare(b.table.name));
+    const orderedCreates = SchemaDiffEngine.orderByDependencies(createTables);
+    createTables.length = 0;
+    createTables.push(...orderedCreates);
     addColumns.sort(
       (a, b) => a.tableName.localeCompare(b.tableName) || a.column.name.localeCompare(b.column.name)
     );
@@ -161,6 +165,33 @@ export class SchemaDiffEngine {
     ];
 
     return new SchemaDiff(orderedOperations);
+  }
+
+  /**
+   * Topologically sorts CREATE TABLE operations by foreign key dependencies. Cycles (and
+   * self-references) keep their alphabetical order.
+   */
+  private static orderByDependencies(ops: readonly CreateTableOperation[]): CreateTableOperation[] {
+    const byName = new Map(ops.map((op) => [op.table.name, op]));
+    const visited = new Set<string>();
+    const visiting = new Set<string>();
+    const result: CreateTableOperation[] = [];
+
+    const visit = (op: CreateTableOperation): void => {
+      const name = op.table.name;
+      if (visited.has(name) || visiting.has(name)) return;
+      visiting.add(name);
+      for (const fk of op.table.foreignKeys ?? []) {
+        const dep = byName.get(fk.referencedTable);
+        if (dep && fk.referencedTable !== name) visit(dep);
+      }
+      visiting.delete(name);
+      visited.add(name);
+      result.push(op);
+    };
+
+    for (const op of ops) visit(op);
+    return result;
   }
 
   private static diffTable(

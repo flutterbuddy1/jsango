@@ -1,22 +1,30 @@
 import type { IDatabaseConnection, IDatabaseTransaction } from '@jsango/database';
 import type { MigrationRecord } from '../public/types.js';
 import type { Migration } from '../public/migration.js';
+import { adaptIdentifierQuotes } from './quoting.js';
 
 export type DatabaseExecutor = IDatabaseConnection | IDatabaseTransaction;
 
 export class MigrationStorage {
   public static readonly TABLE_NAME = 'jsango_migrations';
 
+  private static sql(connection: DatabaseExecutor, sql: string): string {
+    return adaptIdentifierQuotes(connection, sql);
+  }
+
   public static async ensureTable(connection: DatabaseExecutor): Promise<void> {
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS "${MigrationStorage.TABLE_NAME}" (
-        "id" VARCHAR(255) PRIMARY KEY,
-        "name" VARCHAR(255) NOT NULL,
-        "applied_at" VARCHAR(64) NOT NULL,
-        "batch" INTEGER NOT NULL,
-        "checksum" VARCHAR(64)
+    await connection.query(
+      MigrationStorage.sql(
+        connection,
+        `CREATE TABLE IF NOT EXISTS "${MigrationStorage.TABLE_NAME}" (
+          "id" VARCHAR(255) PRIMARY KEY,
+          "name" VARCHAR(255) NOT NULL,
+          "applied_at" VARCHAR(64) NOT NULL,
+          "batch" INTEGER NOT NULL,
+          "checksum" VARCHAR(64)
+        )`
       )
-    `);
+    );
   }
 
   public static async getAppliedMigrations(
@@ -24,11 +32,14 @@ export class MigrationStorage {
   ): Promise<readonly MigrationRecord[]> {
     await MigrationStorage.ensureTable(connection);
 
-    const result = await connection.query<Record<string, unknown>>(`
-      SELECT "id", "name", "applied_at", "batch", "checksum"
-      FROM "${MigrationStorage.TABLE_NAME}"
-      ORDER BY "id" ASC
-    `);
+    const result = await connection.query<Record<string, unknown>>(
+      MigrationStorage.sql(
+        connection,
+        `SELECT "id", "name", "applied_at", "batch", "checksum"
+         FROM "${MigrationStorage.TABLE_NAME}"
+         ORDER BY "id" ASC`
+      )
+    );
 
     const records: MigrationRecord[] = result.rows.map((row) => ({
       id: String(row['id']),
@@ -49,29 +60,32 @@ export class MigrationStorage {
   ): Promise<void> {
     const now = new Date().toISOString();
     await connection.query(
-      `
-      INSERT INTO "${MigrationStorage.TABLE_NAME}" ("id", "name", "applied_at", "batch", "checksum")
-      VALUES (?, ?, ?, ?, ?)
-    `,
+      MigrationStorage.sql(
+        connection,
+        `INSERT INTO "${MigrationStorage.TABLE_NAME}" ("id", "name", "applied_at", "batch", "checksum")
+         VALUES (?, ?, ?, ?, ?)`
+      ),
       [migration.id, migration.name, now, batch, checksum ?? null]
     );
   }
 
   public static async removeMigration(connection: DatabaseExecutor, id: string): Promise<void> {
     await connection.query(
-      `
-      DELETE FROM "${MigrationStorage.TABLE_NAME}" WHERE "id" = ?
-    `,
+      MigrationStorage.sql(connection, `DELETE FROM "${MigrationStorage.TABLE_NAME}" WHERE "id" = ?`),
       [id]
     );
   }
 
   public static async getMaxBatch(connection: DatabaseExecutor): Promise<number> {
     await MigrationStorage.ensureTable(connection);
-    const result = await connection.query<Record<string, unknown>>(`
-      SELECT MAX("batch") as "max_batch" FROM "${MigrationStorage.TABLE_NAME}"
-    `);
-    const val = result.rows[0]?.['max_batch'] ?? result.rows[0]?.['MAX("BATCH")'];
+    const result = await connection.query<Record<string, unknown>>(
+      MigrationStorage.sql(
+        connection,
+        `SELECT MAX("batch") AS "max_batch" FROM "${MigrationStorage.TABLE_NAME}"`
+      )
+    );
+    const row = result.rows[0] ?? {};
+    const val = row['max_batch'] ?? Object.values(row)[0];
     return val !== null && val !== undefined ? Number(val) : 0;
   }
 }

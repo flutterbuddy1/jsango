@@ -2,6 +2,20 @@ import type { ModelMetadata } from '../public/metadata.js';
 import type { Model } from '../public/model.js';
 import type { ModelStatic } from '../public/types.js';
 
+/** Timestamp and soft-delete columns are datetimes even when not declared as fields. */
+function implicitType(metadata: ModelMetadata, fieldName: string): 'dateTime' | undefined {
+  if (
+    metadata.timestamps.enabled &&
+    (fieldName === metadata.timestamps.createdAt || fieldName === metadata.timestamps.updatedAt)
+  ) {
+    return 'dateTime';
+  }
+  if (metadata.softDelete.enabled && fieldName === metadata.softDelete.deletedAt) {
+    return 'dateTime';
+  }
+  return undefined;
+}
+
 export class Hydrator {
   public static hydrateRow(
     rawRow: Record<string, unknown>,
@@ -12,13 +26,14 @@ export class Hydrator {
     for (const [colName, val] of Object.entries(rawRow)) {
       const fieldName = metadata.columnToField(colName);
       const fieldMeta = metadata.getField(fieldName);
+      const type = fieldMeta?.type ?? implicitType(metadata, fieldName);
 
-      if (!fieldMeta || val === null || val === undefined) {
+      if (!type || val === null || val === undefined) {
         attributes[fieldName] = val ?? null;
         continue;
       }
 
-      switch (fieldMeta.type) {
+      switch (type) {
         case 'dateTime':
         case 'date':
         case 'time':

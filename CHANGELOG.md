@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] - 2026-09-30
+
+### Database, ORM & Migrations: working end to end on PostgreSQL, MySQL and SQLite
+
+#### Fixed
+- **`npx jsango new` / `npx jsango` failed with "jsango is not recognized" in 1.1.0.** The 1.1.0 packages were published without their `dist/` build output because the CLI build failed on an unescaped template literal. Every package now builds in `prepack`, so an unbuilt package can no longer be published.
+- **The CLI never connected to your database.** `migrate`, `migrate:status`, `migrate:rollback`, `migrate:check` and `db:status` always reported "No database configured" because nothing loaded the project. The CLI now loads `jsango.config.ts` (or `DATABASE_URL`), `.env`, your models and your migration files.
+- **`migrate:generate` generated `DROP TABLE` instead of `CREATE TABLE`.** The schema diff arguments were swapped. It now diffs your models against the schema reconstructed from existing migrations, like Django's `makemigrations`, and needs no database connection.
+- **Migrations always compiled SQL for the in-memory dialect.** The dialect is now detected from the connection (PostgreSQL / MySQL / SQLite).
+- **`CREATE TABLE` ignored unique constraints, indexes and foreign keys.** They are now emitted, and tables are created in foreign-key dependency order.
+- **MySQL:** identifiers were quoted with `"` (a string literal in MySQL), so every query failed. Backticks are now used everywhere. MySQL-specific types (`DATETIME(3)`, `TINYINT(1)`, `JSON`, `AUTO_INCREMENT`), `START TRANSACTION`, `DROP INDEX … ON`, `DROP FOREIGN KEY` and UTC date handling were added.
+- **PostgreSQL:** `Model.create()` returned no `id` (no `RETURNING`). JSON arrays were sent as Postgres array literals. `ALTER COLUMN` now handles type, nullability and default changes.
+- **SQLite:** `INSERT … RETURNING` lost its rows. `Date`, `boolean` and JSON values were rejected by the drivers. With a pooled `:memory:` database, each pooled connection was a separate, empty database. `ALTER COLUMN` and adding or dropping foreign keys now use a safe, automatic table rebuild that preserves data.
+- **The Postgres and MySQL drivers silently returned empty results when the client package was missing.** They now fail with an install hint. Connection errors now include the target (never the password) and an actionable hint.
+- Models looked for a connection literally named `default`. The name `'default'` now resolves to the configured default connection.
+- Soft-deleted rows were returned by normal queries. `orWhere()` could bypass the soft-delete scope. A soft `delete()` deadlocked on single-connection pools.
+- `createdAt` / `updatedAt` / `deletedAt` were not readable as model properties and were not converted to `Date`.
+- A relation target resolved during migration generation was cached as a stub, which broke `.with()` later in the same process.
+- `where()` accepted arbitrary operator strings, which were interpolated into SQL.
+- OFFSET without LIMIT produced invalid SQL on MySQL and SQLite.
+
+#### Added
+- `jsango.config.ts` with `defineConfig({ database, models, migrations })`. TypeScript config, model and migration files are loaded through `tsx`, so no build step is needed.
+- `databaseConfigFromEnv()`: configure a database from `DATABASE_URL` or `DATABASE_DRIVER` / `DATABASE_HOST` / … / `DATABASE_SSL` / `DATABASE_POOL_MAX`.
+- Connections defined by `url` alone. The driver is inferred from `postgres://`, `mysql://`, `sqlite:` and similar schemes.
+- `db.verify()`, `db.getDialect()`, `db.getDriverName()`, `db.resolveConnectionName()`, and a multi-connection `db:status`.
+- CLI: `makemigrations` alias, `migrate --dry-run` (prints SQL), `migrate:generate --empty` / `--dry-run`, `migrate:check` for CI (unmigrated model changes and pending migrations), and `migrate:reset --yes [--fresh]`.
+- Hand-written migrations with a schema builder: `defineMigration({ up(ctx) { await ctx.createTable('users', t => { t.id(); t.string('email').unique(); t.timestamps(); }) } })`, plus `renameColumn`, `addIndex`, `addForeignKey` and more.
+- Migration safety: destructive operations require `--yes`, `NOT NULL` columns without a default trigger a warning, the migration lock has a 15-minute stale timeout, per-migration transactions on PostgreSQL/SQLite, and clear partial-failure reporting on MySQL.
+- ORM: `transaction(async () => …)` with automatic propagation to all model calls, `withTrashed()` / `onlyTrashed()`, `create()` / `bulkCreate()` accept `{ connection }`, and unknown attributes are ignored on insert/update.
+- `jsango new` now generates a working database setup: SQLite by default, `jsango.config.ts`, `src/database.ts`, an example `User` model, a `migrations/` folder, `.env` and npm scripts (`makemigrations`, `migrate`, `db:status`).
+- Documentation: a complete [database guide](docs/database/README.md), and rewritten web docs sections for connecting, models, querying, transactions, migrations, production use and troubleshooting. The old pages described APIs that did not exist, such as `migrate:diff`, `fields.enum` and `.sum()`.
+
+#### Tests
+- End-to-end CLI workflow on a real SQLite project (config → makemigrations → migrate → CRUD / relations / JSON / soft deletes / transactions → model change → rebuild migration → rollback → check).
+- The same migration and ORM scenario on PostgreSQL (pg-mem, plus real servers through `JSANGO_TEST_POSTGRES_URL` / `JSANGO_TEST_MYSQL_URL`).
+- A check that the `jsango new` template type-checks and migrates.
+
+---
+
 ## [1.0.9] - 2026-09-28
 
 ### Enhancements & Simplification

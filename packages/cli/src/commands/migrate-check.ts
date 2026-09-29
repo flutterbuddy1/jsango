@@ -1,82 +1,101 @@
 import { BaseCommand } from '../public/command.js';
 import type { CommandContext } from '../public/context.js';
 import { ExitCode } from '../public/types.js';
-import { DriftDetector } from '@jsango/migrations';
+import {
+  MigrationRunner,
+  ModelSchemaConverter,
+  SchemaDiffEngine,
+  SchemaState,
+} from '@jsango/migrations';
+import { CONNECTION_OPTION, connectionOption } from '../internal/db-command.js';
 
+/**
+ * CI guard: fails when models have changes that no migration captures, or (when a database is
+ * configured) when migrations are pending.
+ */
 export class MigrateCheckCommand extends BaseCommand {
   public readonly name = 'migrate:check';
   public readonly description =
-    'Detect schema drift between ORM models and database schema without modifying the database';
+    'Fail if models have unmigrated changes or migrations are pending (for CI / deploy checks)';
   public readonly usage = 'jsango migrate:check [options]';
   public readonly options = [
+    CONNECTION_OPTION,
     {
-      name: 'connection',
-      short: 'c',
-      description: 'Database connection name',
-      type: 'string' as const,
-      default: 'default',
+      name: 'skip-db',
+      description: 'Only compare models with migration files; do not connect to the database',
+      type: 'boolean' as const,
     },
   ];
 
   public async execute(context: CommandContext): Promise<number> {
-    const db = await context.getDatabaseManager();
-    if (!db) {
-      context.output.error('No database configured for this application.');
-      return ExitCode.DATABASE_ERROR;
-    }
+    await context.loadProject();
+    const { colors } = context.output;
+    const db = context.options['skip-db'] ? undefined : await context.getDatabaseManager();
+    const requested = connectionOption(context);
 
-    const connectionName = (context.options['connection'] as string) || 'default';
-    const models = context.getModelRegistry().getAllModels();
+    const resolve = (name: string | undefined): string => {
+      if (db) {
+        try {
+          return db.resolveConnectionName(name);
+        } catch {
+          return name ?? 'default';
+        }
+      }
+      return !name || name === 'default' ? 'default' : name;
+    };
+    const connection = resolve(requested);
+
+    const models = context
+      .getModelRegistry()
+      .getAllModels()
+      .filter((m) => resolve(m.metadata.connection) === connection);
+    const migrations = context
+      .getMigrationRegistry()
+      .getAllMigrations()
+      .filter((m) => resolve(m.connection) === connection);
+
+    const problems: string[] = [];
 
     try {
-      const conn = await db.connection(connectionName);
-      let driftResult;
-
-      try {
-        const detector = new DriftDetector('memory');
-        driftResult = await detector.detectDrift(
-          conn,
-          models.map((m) => m.metadata)
+      const state = await SchemaState.fromMigrations(migrations);
+      const diff = SchemaDiffEngine.diff(
+        ModelSchemaConverter.convert(models.map((m) => m.metadata)),
+        state.toSnapshot()
+      );
+      if (diff.hasChanges) {
+        problems.push(
+          `${diff.operations.length} model change(s) are not in any migration (${[...new Set(diff.operations.map((o) => o.type))].join(', ')}). Run "jsango migrate:generate".`
         );
-      } finally {
-        if ('release' in conn && typeof conn.release === 'function') {
-          await conn.release();
+      }
+
+      let pending: string[] = [];
+      if (db) {
+        const runner = new MigrationRunner({ databaseManager: db, registry: context.getMigrationRegistry() });
+        const status = await runner.status(connection);
+        pending = status.pending.map((m) => m.id);
+        if (pending.length > 0) {
+          problems.push(`${pending.length} migration(s) are not applied: ${pending.join(', ')}. Run "jsango migrate".`);
         }
       }
 
       if (context.output.isJson) {
-        context.output.json({
-          connection: connectionName,
-          hasDrift: driftResult.hasDrift,
-          differences: driftResult.differences,
-        });
-        return driftResult.hasDrift ? ExitCode.MIGRATION_ERROR : ExitCode.SUCCESS;
+        context.output.json({ connection, ok: problems.length === 0, problems, pending });
+        return problems.length === 0 ? ExitCode.SUCCESS : ExitCode.MIGRATION_ERROR;
       }
 
-      const { colors } = context.output;
-      if (!driftResult.hasDrift) {
+      if (problems.length === 0) {
         context.output.success(
-          `No schema drift detected on connection [${connectionName}]. Schema is synchronized.`
+          `[${connection}] Models, migration files${db ? ' and database' : ''} are in sync.`
         );
         return ExitCode.SUCCESS;
       }
 
-      context.output.error(
-        `Schema drift detected! Found ${driftResult.differences.length} difference(s) on [${connectionName}]:`
-      );
-      for (const diff of driftResult.differences) {
-        context.output.text(`  ${colors.red('✖')} ${diff}`);
+      for (const problem of problems) {
+        context.output.text(`  ${colors.red('✖')} ${problem}`);
       }
-      context.output.text();
-      context.output.text(
-        `Run ${colors.cyan('jsango migrate:generate')} or ${colors.cyan('jsango migrate')} to synchronize.`
-      );
-
       return ExitCode.MIGRATION_ERROR;
     } catch (err) {
-      context.output.error(
-        `Failed to check schema drift: ${err instanceof Error ? err.message : String(err)}`
-      );
+      context.output.error(`Migration check failed: ${err instanceof Error ? err.message : String(err)}`);
       return ExitCode.MIGRATION_ERROR;
     }
   }

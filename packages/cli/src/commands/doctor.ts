@@ -141,8 +141,9 @@ export class DoctorCommand extends BaseCommand {
       checks.push({
         category: 'Database',
         name: 'Database Configuration',
-        status: 'ok',
-        message: 'No database configured for this application',
+        status: 'warn',
+        message:
+          'No database configured. Add jsango.config.ts or set DATABASE_URL in .env (see docs/database/README.md).',
       });
     }
 

@@ -55,6 +55,10 @@ export {
   defaultModelRegistry,
   setDatabaseManager,
   getDatabaseManager,
+  transaction,
+  getActiveTransaction,
+  type ModelWriteOptions,
+  type TrashedMode,
   type DefinedModelStatic,
   type ModelInstance,
   type FieldDefinition,
@@ -62,8 +66,55 @@ export {
   type PaginationOptions,
   type PaginationResult,
 } from '@jsango/orm';
-export { DatabaseManager, type IDatabaseDriver, type QueryResult } from '@jsango/database';
-export { MigrationRunner } from '@jsango/migrations';
+export {
+  DatabaseManager,
+  databaseConfigFromEnv,
+  parseConnectionUrl,
+  SqlDialect,
+  DatabaseError,
+  ConnectionError,
+  QueryError,
+  DatabaseConfigurationError,
+  type DatabaseConfig,
+  type ConnectionConfig,
+  type PoolConfig,
+  type IDatabaseDriver,
+  type IDatabaseConnection,
+  type IDatabaseTransaction,
+  type QueryResult,
+  type DatabaseResult,
+} from '@jsango/database';
+export {
+  MigrationRunner,
+  Migration,
+  MigrationContext,
+  TableBuilder,
+  ColumnModifier,
+  defineMigration,
+  loadMigrationsFromDirectory,
+  MigrationRegistry,
+  SchemaState,
+  CreateTableOperation,
+  DropTableOperation,
+  AddColumnOperation,
+  DropColumnOperation,
+  AlterColumnOperation,
+  RenameColumnOperation,
+  RenameTableOperation,
+  CreateIndexOperation,
+  DropIndexOperation,
+  CreateUniqueConstraintOperation,
+  DropUniqueConstraintOperation,
+  AddForeignKeyOperation,
+  DropForeignKeyOperation,
+  RawSqlOperation,
+  MigrationError,
+  type MigrationOptions,
+  type MigrationPlanStep,
+  type ColumnDefinition,
+  type TableDefinition,
+} from '@jsango/migrations';
+export { defineConfig, type JsangoProjectConfig } from '@jsango/cli';
 
 // Auth & Permissions
 export {

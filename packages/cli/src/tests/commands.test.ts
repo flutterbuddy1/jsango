@@ -196,7 +196,7 @@ describe('Built-in Commands', () => {
       const code = await cmd.execute(ctx);
       expect(code).toBe(ExitCode.SUCCESS);
       expect(stdoutData).toContain('HEALTHY');
-      expect(stdoutData).toContain('PONG');
+      expect(stdoutData).toContain('memory');
 
       await db.close();
     });

@@ -3,6 +3,7 @@ import { SchemaSnapshot } from './schema.js';
 import { MemorySchemaIntrospector } from '../internal/introspectors/memory-introspector.js';
 import { PostgresSchemaIntrospector } from '../internal/introspectors/postgres-introspector.js';
 import { SqliteSchemaIntrospector } from '../internal/introspectors/sqlite-introspector.js';
+import { MysqlSchemaIntrospector } from '../internal/introspectors/mysql-introspector.js';
 import type { MigrationDialect } from '../internal/compiler.js';
 
 export interface ISchemaIntrospector {
@@ -21,6 +22,9 @@ export class SchemaIntrospector implements ISchemaIntrospector {
         break;
       case 'sqlite':
         this.delegate = new SqliteSchemaIntrospector();
+        break;
+      case 'mysql':
+        this.delegate = new MysqlSchemaIntrospector();
         break;
       default:
         this.delegate = new MemorySchemaIntrospector();

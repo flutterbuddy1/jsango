@@ -1,3 +1,6 @@
+import type { SqlDialect } from './dialect.js';
+import type { PoolConfig } from './config.js';
+
 export interface FieldMetadata {
   readonly name: string;
   readonly type?: string | undefined;
@@ -52,6 +55,13 @@ export interface IDriverConnection {
 export interface IDatabaseDriver {
   readonly name: string;
   readonly capabilities: DatabaseCapabilities;
+  /**
+   * Pool settings the driver recommends (e.g. a single connection for in-memory SQLite).
+   * Explicit `pool` settings in the connection config take precedence.
+   */
+  readonly poolDefaults?: PoolConfig | undefined;
+  /** Hard upper bound on pooled connections that user config cannot exceed. */
+  readonly maxConnections?: number | undefined;
   connect(): Promise<IDriverConnection>;
   disconnect(): Promise<void>;
 }
@@ -59,6 +69,8 @@ export interface IDatabaseDriver {
 export interface IDatabaseTransaction {
   readonly id: string;
   readonly isCompleted: boolean;
+  /** SQL dialect of the underlying connection (quoting, placeholders, RETURNING support). */
+  readonly dialect?: SqlDialect | undefined;
   query<T = Record<string, unknown>>(
     sql: string,
     params?: readonly unknown[],
@@ -75,6 +87,10 @@ export type ITransaction = IDatabaseTransaction;
 
 export interface IDatabaseConnection {
   readonly isReleased: boolean;
+  /** SQL dialect of the connection (quoting, placeholders, RETURNING support). */
+  readonly dialect?: SqlDialect | undefined;
+  /** Name of the driver serving this connection (e.g. 'postgres', 'mysql', 'sqlite'). */
+  readonly driverName?: string | undefined;
   query<T = Record<string, unknown>>(
     sql: string,
     params?: readonly unknown[],

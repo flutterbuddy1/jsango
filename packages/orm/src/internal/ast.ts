@@ -25,6 +25,8 @@ export interface JoinNode {
 
 export interface SelectAst {
   readonly table: string;
+  /** Implicit conditions (e.g. soft-delete) ANDed with the parenthesized user conditions. */
+  readonly scope?: readonly WhereConditionNode[] | undefined;
   readonly columns: readonly string[];
   readonly where: readonly WhereConditionNode[];
   readonly orderBy: readonly OrderByNode[];
@@ -37,26 +39,36 @@ export interface InsertAst {
   readonly table: string;
   readonly columns: readonly string[];
   readonly rows: readonly (readonly unknown[])[];
+  /** Columns to return (`['*']` for all); only emitted when the dialect supports RETURNING. */
+  readonly returning?: readonly string[] | undefined;
 }
 
 export interface UpdateAst {
   readonly table: string;
+  /** Implicit conditions (e.g. soft-delete) ANDed with the parenthesized user conditions. */
+  readonly scope?: readonly WhereConditionNode[] | undefined;
   readonly values: Readonly<Record<string, unknown>>;
   readonly where: readonly WhereConditionNode[];
 }
 
 export interface DeleteAst {
   readonly table: string;
+  /** Implicit conditions (e.g. soft-delete) ANDed with the parenthesized user conditions. */
+  readonly scope?: readonly WhereConditionNode[] | undefined;
   readonly where: readonly WhereConditionNode[];
 }
 
 export interface CountAst {
   readonly table: string;
+  /** Implicit conditions (e.g. soft-delete) ANDed with the parenthesized user conditions. */
+  readonly scope?: readonly WhereConditionNode[] | undefined;
   readonly column?: string | undefined;
   readonly where: readonly WhereConditionNode[];
 }
 
 export interface ExistsAst {
   readonly table: string;
+  /** Implicit conditions (e.g. soft-delete) ANDed with the parenthesized user conditions. */
+  readonly scope?: readonly WhereConditionNode[] | undefined;
   readonly where: readonly WhereConditionNode[];
 }

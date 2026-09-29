@@ -1,6 +1,6 @@
 {
   "name": "jsango-monorepo",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "private": true,
   "description": "Production-grade, batteries-included TypeScript backend framework for modern JavaScript runtimes",
   "packageManager": "pnpm@12.5.1",
@@ -19,12 +19,17 @@
   "devDependencies": {
     "@eslint/js": "^9.21.0",
     "@types/node": "^26.6.2",
+    "better-sqlite3": "^13.0.3",
     "eslint": "^9.21.0",
+    "mysql2": "^3.24.4",
+    "pg": "^8.23.0",
+    "pg-mem": "^3.0.14",
     "prettier": "^3.5.3",
     "turbo": "^2.4.4",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.25.0",
-    "vitest": "^3.0.7"
+    "vitest": "^3.0.7",
+    "jsango": "workspace:*"
   },
   "engines": {
     "node": ">=20.0.0"
