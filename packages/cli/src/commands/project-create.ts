@@ -70,7 +70,7 @@ export class ProjectCreateCommand extends BaseCommand {
           dev: 'tsc -b && node dist/index.js',
         },
         dependencies: {
-          jsango: '^1.1.0',
+          jsango: '^1.1.1',
           dotenv: '^16.4.7',
         },
         devDependencies: {
@@ -194,7 +194,7 @@ pnpm start
 
 ## Database
 
-The starter uses an in-memory database by default. Copy `.env.example` to `.env`, choose a
+The starter uses an in-memory database by default. Copy \`.env.example\` to \`.env\`, choose a
 database driver, and follow the [database setup guide](https://github.com/flutterbuddy1/jsango/tree/main/docs/database/README.md).
 `;
     fs.writeFileSync(path.join(targetDir, 'README.md'), readmeContent, 'utf8');

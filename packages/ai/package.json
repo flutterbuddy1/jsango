@@ -1,6 +1,6 @@
 {
   "name": "@jsango/ai",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "First-class LLM, AI Agent, and Workflow Orchestration Runtime for JSango",
   "type": "module",
   "main": "./dist/index.js",
@@ -14,7 +14,8 @@
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc -b",
-    "clean": "rm -rf dist *.tsbuildinfo"
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "prepack": "pnpm run build"
   },
   "dependencies": {
     "@jsango/runtime": "workspace:^",

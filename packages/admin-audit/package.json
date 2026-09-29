@@ -1,6 +1,6 @@
 {
   "name": "@jsango/admin-audit",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Structured audit log for jsango Admin — records every create, update, delete, and action",
   "type": "module",
   "main": "./dist/index.js",
@@ -14,7 +14,8 @@
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc -b",
-    "clean": "rm -rf dist *.tsbuildinfo"
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "prepack": "pnpm run build"
   },
   "dependencies": {
     "@jsango/core": "workspace:^",

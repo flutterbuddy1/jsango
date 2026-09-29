@@ -1,6 +1,6 @@
 {
   "name": "@jsango/admin-auth",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Authentication and authorization integration for jsango Admin",
   "type": "module",
   "main": "./dist/index.js",
@@ -14,7 +14,8 @@
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc -b",
-    "clean": "rm -rf dist *.tsbuildinfo"
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "prepack": "pnpm run build"
   },
   "dependencies": {
     "@jsango/core": "workspace:^",

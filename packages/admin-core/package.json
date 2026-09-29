@@ -1,6 +1,6 @@
 {
   "name": "@jsango/admin-core",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Core Admin registry, resource definitions, fields, forms, tables, and auto-generation for jsango",
   "type": "module",
   "main": "./dist/index.js",
@@ -18,7 +18,8 @@
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc -b",
-    "clean": "rm -rf dist *.tsbuildinfo"
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "prepack": "pnpm run build"
   },
   "dependencies": {
     "@jsango/core": "workspace:^",

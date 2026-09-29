@@ -1,6 +1,6 @@
 {
   "name": "@jsango/admin-ui",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Enterprise-grade frontend Admin UI foundation for jsango",
   "type": "module",
   "main": "./dist/index.js",
@@ -30,7 +30,8 @@
   "scripts": {
     "build": "tsc -b && node scripts/build-bundle.mjs",
     "typecheck": "tsc -b",
-    "clean": "rm -rf dist *.tsbuildinfo"
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "prepack": "pnpm run build"
   },
   "dependencies": {
     "@jsango/admin-core": "workspace:^",
