@@ -7,7 +7,7 @@ import { DestructiveOperationError, UsageError } from '../public/errors.js';
 import { ProjectDiscovery } from '../internal/project.js';
 
 /** Framework version written into generated package.json files. */
-const FRAMEWORK_VERSION = '1.2.0';
+const FRAMEWORK_VERSION = '1.3.0';
 
 export class ProjectCreateCommand extends BaseCommand {
   public readonly name = 'create';
@@ -204,6 +204,7 @@ if (process.env.NODE_ENV !== 'test') {
 #   PostgreSQL: DATABASE_URL=postgres://user:password@localhost:5432/myapp
 #   MySQL:      DATABASE_URL=mysql://user:password@localhost:3306/myapp
 #   SQLite:     DATABASE_URL=sqlite:./db.sqlite3
+#   MongoDB:    DATABASE_URL=mongodb://user:password@localhost:27017/myapp  (npm install mongodb)
 DATABASE_URL=
 
 # Option B: individual settings (used when DATABASE_URL is empty)
@@ -246,7 +247,7 @@ npm run dev                 # http://127.0.0.1:3000
 \`\`\`
 
 SQLite works out of the box on Node.js 22.13+. For other databases install the client:
-\`npm install pg\` (PostgreSQL) or \`npm install mysql2\` (MySQL / MariaDB).
+\`npm install pg\` (PostgreSQL), \`npm install mysql2\` (MySQL / MariaDB) or \`npm install mongodb\` (MongoDB).
 
 ## Database workflow
 

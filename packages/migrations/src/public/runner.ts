@@ -16,6 +16,8 @@ import {
   MigrationError,
   MigrationNotFoundError,
 } from './errors.js';
+import { SchemaState } from './state.js';
+import { compileMongoOperation } from '../internal/mongo-compiler.js';
 import {
   SqlMigrationCompiler,
   SqliteRebuildRequired,
@@ -118,9 +120,18 @@ export class MigrationRunner {
     const pending = await this.pendingMigrations(name, options?.target);
 
     const steps: MigrationPlanStep[] = [];
+    const state = dialect === 'mongodb' ? await this.stateBefore(name, pending[0]?.id) : undefined;
     for (const migration of pending) {
       const statements: string[] = [];
       for (const op of await migration.collectOperations(dialect)) {
+        if (state) {
+          const before = state.clone();
+          state.apply(op);
+          for (const command of compileMongoOperation(op, before, state)) {
+            statements.push(JSON.stringify(command));
+          }
+          continue;
+        }
         try {
           statements.push(...compiler.compileStatements(op));
         } catch (err) {
@@ -170,12 +181,14 @@ export class MigrationRunner {
         const dialect = this.getDialect(connectionName);
         const nextBatch = (await MigrationStorage.getMaxBatch(conn)) + 1;
         const newlyApplied: string[] = [];
+        const schemaState =
+          dialect === 'mongodb' ? await this.stateBefore(connectionName, pending[0]!.id) : undefined;
 
         for (const migration of pending) {
           const started = Date.now();
           try {
             await this.runInMigrationScope(conn, dialect, async (executor) => {
-              await migration.up(new MigrationContext(executor, dialect));
+              await migration.up(new MigrationContext(executor, dialect, { schemaState }));
               await MigrationStorage.recordMigration(executor, migration, nextBatch);
             });
           } catch (err) {
@@ -242,6 +255,10 @@ export class MigrationRunner {
 
         const dialect = this.getDialect(connectionName);
         const rolledBackIds: string[] = [];
+        const schemaState =
+          dialect === 'mongodb'
+            ? await this.stateThrough(applied.map((a) => a.id))
+            : undefined;
 
         // Execute in reverse order
         for (let i = migrationDefs.length - 1; i >= 0; i--) {
@@ -249,7 +266,7 @@ export class MigrationRunner {
           const started = Date.now();
           try {
             await this.runInMigrationScope(conn, dialect, async (executor) => {
-              await migration.down(new MigrationContext(executor, dialect));
+              await migration.down(new MigrationContext(executor, dialect, { schemaState }));
               await MigrationStorage.removeMigration(executor, migration.id);
             });
           } catch (err) {
@@ -281,6 +298,8 @@ export class MigrationRunner {
         const applied = await MigrationStorage.getAppliedMigrations(conn);
         const dialect = this.getDialect(connectionName);
         const rolledBackIds: string[] = [];
+        const schemaState =
+          dialect === 'mongodb' ? await this.stateThrough(applied.map((a) => a.id)) : undefined;
 
         // Rollback all applied migrations in reverse
         for (let i = applied.length - 1; i >= 0; i--) {
@@ -288,7 +307,7 @@ export class MigrationRunner {
           const def = this.registry.getMigration(rec.id);
           await this.runInMigrationScope(conn, dialect, async (executor) => {
             if (def) {
-              await def.down(new MigrationContext(executor, dialect));
+              await def.down(new MigrationContext(executor, dialect, { schemaState }));
             }
             // Remove tracking record even if definition not present during hard reset
             await MigrationStorage.removeMigration(executor, rec.id);
@@ -299,6 +318,23 @@ export class MigrationRunner {
         return { rolledBack: Object.freeze(rolledBackIds) };
       });
     });
+  }
+
+  /** Schema produced by every registered migration that sorts before `migrationId`. */
+  private async stateBefore(connectionName: string, migrationId: string | undefined): Promise<SchemaState> {
+    const earlier = this.migrationsFor(connectionName).filter(
+      (m) => migrationId === undefined || m.id.localeCompare(migrationId) < 0
+    );
+    return SchemaState.fromMigrations(earlier, this.getDialect(connectionName));
+  }
+
+  /** Schema produced by the given (applied) migrations, in id order. */
+  private async stateThrough(ids: readonly string[]): Promise<SchemaState> {
+    const defs = [...ids]
+      .sort((a, b) => a.localeCompare(b))
+      .map((id) => this.registry.getMigration(id))
+      .filter((m): m is Migration => m !== undefined);
+    return SchemaState.fromMigrations(defs);
   }
 
   private async pendingMigrations(connectionName: string, target?: string): Promise<Migration[]> {
@@ -341,7 +377,9 @@ export class MigrationRunner {
     dialect: MigrationDialect,
     step: (executor: IDatabaseConnection | import('@jsango/database').IDatabaseTransaction) => Promise<void>
   ): Promise<void> {
-    const transactional = dialect !== 'mysql' && typeof conn.transaction === 'function';
+    // MySQL auto-commits DDL; MongoDB cannot create collections/indexes inside most transactions.
+    const transactional =
+      dialect !== 'mysql' && dialect !== 'mongodb' && typeof conn.transaction === 'function';
 
     if (!transactional) {
       await step(conn);
@@ -384,7 +422,9 @@ export class MigrationRunner {
     const partial =
       dialect === 'mysql'
         ? ' MySQL cannot roll back DDL, so statements that ran before the error remain applied; fix the schema manually or adjust the migration before retrying.'
-        : ' Its changes were rolled back.';
+        : dialect === 'mongodb'
+          ? ' MongoDB migrations are not transactional, so commands that ran before the error remain applied; fix the data or collection manually, or adjust the migration before retrying.'
+          : ' Its changes were rolled back.';
     return new MigrationError({
       message: `Failed to ${action} migration '${migration.id}': ${reason}.${partial}${done}`,
       cause: err,

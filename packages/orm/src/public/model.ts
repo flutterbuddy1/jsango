@@ -9,12 +9,11 @@ import type {
 } from './types.js';
 import { ModelMetadata } from './metadata.js';
 import { QueryBuilder } from './query.js';
-import { SqlCompiler } from '../internal/compiler.js';
+import { engineFor, modelInfo } from '../internal/engine.js';
 import { Hydrator } from '../internal/hydration.js';
 import { ModelNotFoundError, QueryError } from './errors.js';
 import { defaultModelRegistry } from './registry.js';
 import { withQueryContext } from './connection.js';
-import { serializeFieldValue } from '../internal/values.js';
 
 /**
  * Only declared fields (plus timestamp / soft-delete columns) are written to the database, so
@@ -146,7 +145,8 @@ export class Model {
   public async save(options?: ModelWriteOptions): Promise<this> {
     return this.executeWithConnection(options?.connection, async (conn) => {
       const meta = (this.constructor as typeof Model).metadata;
-      const compiler = SqlCompiler.forContext(conn);
+      const engine = engineFor(conn);
+      const info = modelInfo(meta);
 
       if (this._isNew) {
         // 1. Apply defaults for any missing fields
@@ -177,7 +177,7 @@ export class Model {
         for (const [fieldName, val] of Object.entries(this._attributes)) {
           if (val !== undefined && isPersistedAttribute(meta, fieldName)) {
             cols.push(meta.fieldToColumn(fieldName));
-            rowValues.push(serializeFieldValue(meta, fieldName, val));
+            rowValues.push(engine.serialize(meta, fieldName, val));
           }
         }
 
@@ -187,14 +187,11 @@ export class Model {
           );
         }
 
-        const { sql, params } = compiler.compileInsert({
-          table: meta.table,
-          columns: cols,
-          rows: [rowValues],
-          returning: ['*'],
-        });
-
-        const result = await conn.query<Record<string, unknown>>(sql, params);
+        const result = await engine.insert(
+          conn,
+          { table: meta.table, columns: cols, rows: [rowValues], returning: ['*'] },
+          info
+        );
 
         // Prefer the row returned by RETURNING (includes DB defaults and generated keys);
         // fall back to the driver's last insert id (MySQL).
@@ -228,7 +225,7 @@ export class Model {
       const updateValues: Record<string, unknown> = {};
       for (const [fieldName, val] of Object.entries(dirty)) {
         if (!isPersistedAttribute(meta, fieldName)) continue;
-        updateValues[meta.fieldToColumn(fieldName)] = serializeFieldValue(meta, fieldName, val);
+        updateValues[meta.fieldToColumn(fieldName)] = engine.serialize(meta, fieldName, val);
       }
       if (Object.keys(updateValues).length === 0) {
         this._originalAttributes = { ...this._attributes };
@@ -238,21 +235,15 @@ export class Model {
       const pkCol = meta.fieldToColumn(meta.primaryKey);
       const pkVal = this._originalAttributes[meta.primaryKey] ?? this._attributes[meta.primaryKey];
 
-      const { sql, params } = compiler.compileUpdate({
-        table: meta.table,
-        values: updateValues,
-        where: [
-          {
-            type: 'comparison',
-            column: pkCol,
-            operator: '=',
-            value: pkVal,
-            boolean: 'AND',
-          },
-        ],
-      });
-
-      await conn.query<Record<string, unknown>>(sql, params);
+      await engine.update(
+        conn,
+        {
+          table: meta.table,
+          values: updateValues,
+          where: [{ type: 'comparison', column: pkCol, operator: '=', value: pkVal, boolean: 'AND' }],
+        },
+        info
+      );
       this._originalAttributes = { ...this._attributes };
       return this;
     });
@@ -274,22 +265,65 @@ export class Model {
         return;
       }
 
-      const compiler = SqlCompiler.forContext(conn);
-      const { sql, params } = compiler.compileDelete({
-        table: meta.table,
-        where: [
-          {
-            type: 'comparison',
-            column: pkCol,
-            operator: '=',
-            value: pkVal,
-            boolean: 'AND',
-          },
-        ],
-      });
-
-      await conn.query(sql, params);
+      await engineFor(conn).delete(
+        conn,
+        {
+          table: meta.table,
+          where: [{ type: 'comparison', column: pkCol, operator: '=', value: pkVal, boolean: 'AND' }],
+        },
+        modelInfo(meta)
+      );
     });
+  }
+
+  /** Restores a soft-deleted model (clears `deletedAt`). */
+  public async restore(options?: ModelWriteOptions): Promise<this> {
+    const meta = (this.constructor as typeof Model).metadata;
+    if (!meta.softDelete.enabled) {
+      throw new QueryError(`Model '${meta.name}' does not use soft deletes.`);
+    }
+    this._attributes[meta.softDelete.deletedAt] = null;
+    return this.save(options);
+  }
+
+  /**
+   * Atomically adds `amount` to a column in the database (no read-modify-write race) and updates
+   * this instance: `await post.increment('views')`.
+   */
+  public async increment(field: string, amount = 1, options?: ModelWriteOptions): Promise<this> {
+    return this.executeWithConnection(options?.connection, async (conn) => {
+      const meta = (this.constructor as typeof Model).metadata;
+      const pkVal = this.primaryKey;
+      if (pkVal === undefined || pkVal === null) {
+        throw new QueryError(`Cannot increment '${meta.name}.${field}' before the model is saved.`);
+      }
+      const values: Record<string, unknown> = {};
+      if (meta.timestamps.enabled) {
+        const now = new Date();
+        values[meta.fieldToColumn(meta.timestamps.updatedAt)] = now;
+        this._attributes[meta.timestamps.updatedAt] = now;
+      }
+      await engineFor(conn).update(
+        conn,
+        {
+          table: meta.table,
+          values,
+          increments: { [meta.fieldToColumn(field)]: amount },
+          where: [
+            { type: 'comparison', column: meta.fieldToColumn(meta.primaryKey), operator: '=', value: pkVal, boolean: 'AND' },
+          ],
+        },
+        modelInfo(meta)
+      );
+      const current = Number(this._attributes[field] ?? 0);
+      this._attributes[field] = current + amount;
+      this._originalAttributes = { ...this._originalAttributes, ...this._attributes };
+      return this;
+    });
+  }
+
+  public async decrement(field: string, amount = 1, options?: ModelWriteOptions): Promise<this> {
+    return this.increment(field, -amount, options);
   }
 
   public async refresh(options?: ModelWriteOptions): Promise<this> {
@@ -401,6 +435,36 @@ export interface DefinedModelStatic<
   with(...relations: readonly string[]): QueryBuilder<ModelInstance<TFields, TRelations>>;
   withTrashed(): QueryBuilder<ModelInstance<TFields, TRelations>>;
   onlyTrashed(): QueryBuilder<ModelInstance<TFields, TRelations>>;
+  select(...columns: readonly string[]): QueryBuilder<ModelInstance<TFields, TRelations>>;
+  whereNot(
+    columnOrConditions: string | Record<string, unknown>,
+    operatorOrValue?: unknown,
+    value?: unknown
+  ): QueryBuilder<ModelInstance<TFields, TRelations>>;
+  whereBetween(column: string, range: readonly [unknown, unknown]): QueryBuilder<ModelInstance<TFields, TRelations>>;
+  whereLike(column: string, pattern: string, options?: { caseSensitive?: boolean }): QueryBuilder<ModelInstance<TFields, TRelations>>;
+  whereRaw(sqlOrFilter: string | Record<string, unknown>, params?: readonly unknown[]): QueryBuilder<ModelInstance<TFields, TRelations>>;
+  latest(column?: string): QueryBuilder<ModelInstance<TFields, TRelations>>;
+  oldest(column?: string): QueryBuilder<ModelInstance<TFields, TRelations>>;
+  findMany(ids: readonly unknown[]): Promise<readonly ModelInstance<TFields, TRelations>[]>;
+  pluck<T = unknown>(column: string): Promise<T[]>;
+  exists(): Promise<boolean>;
+  sum(column: string): Promise<number>;
+  avg(column: string): Promise<number | null>;
+  min(column: string): Promise<number | null>;
+  max(column: string): Promise<number | null>;
+  /** Returns the first row matching `where`, or creates it from `where` + `values`. */
+  firstOrCreate(
+    where: Partial<InferModelAttributes<TFields>> & Record<string, unknown>,
+    values?: Partial<InferModelAttributes<TFields>> & Record<string, unknown>,
+    options?: ModelWriteOptions
+  ): Promise<ModelInstance<TFields, TRelations>>;
+  /** Updates the first row matching `where` with `values`, or creates it. */
+  updateOrCreate(
+    where: Partial<InferModelAttributes<TFields>> & Record<string, unknown>,
+    values: Partial<InferModelAttributes<TFields>> & Record<string, unknown>,
+    options?: ModelWriteOptions
+  ): Promise<ModelInstance<TFields, TRelations>>;
   create(
     attributes: InferCreationAttributes<TFields>,
     options?: ModelWriteOptions
@@ -529,6 +593,90 @@ export function defineModel<
       return this.query().withTrashed();
     }
 
+    public static select(...columns: readonly string[]): QueryBuilder<Model> {
+      return this.query().select(...columns);
+    }
+
+    public static whereNot(
+      columnOrConditions: string | Record<string, unknown>,
+      operatorOrValue?: unknown,
+      value?: unknown
+    ): QueryBuilder<Model> {
+      return this.query().whereNot(columnOrConditions, operatorOrValue, value);
+    }
+
+    public static whereBetween(column: string, range: readonly [unknown, unknown]): QueryBuilder<Model> {
+      return this.query().whereBetween(column, range);
+    }
+
+    public static whereLike(column: string, pattern: string, options?: { caseSensitive?: boolean }): QueryBuilder<Model> {
+      return this.query().whereLike(column, pattern, options);
+    }
+
+    public static whereRaw(sqlOrFilter: string | Record<string, unknown>, params?: readonly unknown[]): QueryBuilder<Model> {
+      return this.query().whereRaw(sqlOrFilter, params);
+    }
+
+    public static latest(column?: string): QueryBuilder<Model> {
+      return this.query().latest(column);
+    }
+
+    public static oldest(column?: string): QueryBuilder<Model> {
+      return this.query().oldest(column);
+    }
+
+    public static findMany(ids: readonly unknown[]): Promise<readonly Model[]> {
+      return this.query().findMany(ids);
+    }
+
+    public static pluck<T = unknown>(column: string): Promise<T[]> {
+      return this.query().pluck<T>(column);
+    }
+
+    public static exists(): Promise<boolean> {
+      return this.query().exists();
+    }
+
+    public static sum(column: string): Promise<number> {
+      return this.query().sum(column);
+    }
+
+    public static avg(column: string): Promise<number | null> {
+      return this.query().avg(column);
+    }
+
+    public static min(column: string): Promise<number | null> {
+      return this.query().min(column);
+    }
+
+    public static max(column: string): Promise<number | null> {
+      return this.query().max(column);
+    }
+
+    public static async firstOrCreate(
+      where: Record<string, unknown>,
+      values: Record<string, unknown> = {},
+      options?: ModelWriteOptions
+    ): Promise<Model> {
+      const query = options?.connection ? this.query().using(options.connection) : this.query();
+      const existing = await query.where(where).first();
+      if (existing) return existing;
+      return this.create({ ...where, ...values }, options);
+    }
+
+    public static async updateOrCreate(
+      where: Record<string, unknown>,
+      values: Record<string, unknown>,
+      options?: ModelWriteOptions
+    ): Promise<Model> {
+      const query = options?.connection ? this.query().using(options.connection) : this.query();
+      const existing = await query.where(where).first();
+      if (!existing) return this.create({ ...where, ...values }, options);
+      for (const [key, val] of Object.entries(values)) existing.set(key, val);
+      await existing.save(options);
+      return existing;
+    }
+
     public static onlyTrashed(): QueryBuilder<Model> {
       return this.query().onlyTrashed();
     }
@@ -552,7 +700,7 @@ export function defineModel<
 
       const meta = this.metadata;
       return withQueryContext(options?.connection, meta.connection, async (conn) => {
-        const compiler = SqlCompiler.forContext(conn);
+        const engine = engineFor(conn);
         const now = new Date();
 
         // Apply defaults and timestamps, then use the union of keys so every row has every column.
@@ -578,17 +726,14 @@ export function defineModel<
         );
         const cols = keys.map((key) => meta.fieldToColumn(key));
         const rows = prepared.map((row) =>
-          keys.map((key) => serializeFieldValue(meta, key, row[key] ?? null))
+          keys.map((key) => engine.serialize(meta, key, row[key] ?? null))
         );
 
-        const { sql, params } = compiler.compileInsert({
-          table: meta.table,
-          columns: cols,
-          rows,
-          returning: ['*'],
-        });
-
-        const result = await conn.query<Record<string, unknown>>(sql, params);
+        const result = await engine.insert(
+          conn,
+          { table: meta.table, columns: cols, rows, returning: ['*'] },
+          modelInfo(meta)
+        );
 
         // If returned rows exist, hydrate them. Otherwise instantiate with input records.
         if (result.rows.length === prepared.length) {

@@ -85,6 +85,11 @@ export class SchemaState {
     return state;
   }
 
+  /** Independent copy of this state. */
+  public clone(): SchemaState {
+    return SchemaState.fromSnapshot(this.toSnapshot());
+  }
+
   public hasTable(name: string): boolean {
     return this.tables.has(name);
   }

@@ -27,7 +27,7 @@ import { MigrationError } from '../public/errors.js';
 
 const IDENTIFIER_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 
-export type MigrationDialect = 'postgres' | 'sqlite' | 'mysql' | 'memory';
+export type MigrationDialect = 'postgres' | 'sqlite' | 'mysql' | 'mongodb' | 'memory';
 
 /**
  * Maps a driver name ('pg', 'postgresql', 'mariadb', 'sqlite3', ...) to the migration dialect.
@@ -46,6 +46,9 @@ export function toMigrationDialect(driverName: string | undefined): MigrationDia
     case 'sqlite3':
     case 'better-sqlite3':
       return 'sqlite';
+    case 'mongodb':
+    case 'mongo':
+      return 'mongodb';
     default:
       return 'memory';
   }

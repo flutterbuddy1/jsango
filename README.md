@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.2.0-green.svg" alt="Version: 1.2.0" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.3.0-green.svg" alt="Version: 1.3.0" /></a>
   <a href="tsconfig.base.json"><img src="https://img.shields.io/badge/TypeScript-Strict%205.8-blue.svg" alt="TypeScript: Strict" /></a>
   <a href="https://flutterbuddy1.github.io/jsango/"><img src="https://img.shields.io/badge/Docs-Landing%20Page-6366f1.svg" alt="Documentation Site" /></a>
 </p>
@@ -176,13 +176,13 @@ app.admin({
 await app.listen(3000);
 ```
 
-### 5. Database, Models & Migrations (PostgreSQL, MySQL, SQLite)
+### 5. Database, Models & Migrations (PostgreSQL, MySQL, SQLite, MongoDB)
 
 Connect with one environment variable, describe tables as models, and let jsango write the migrations. The workflow is the same as Django's `makemigrations` / `migrate`:
 
 ```bash
 # .env
-DATABASE_URL=postgres://app:secret@localhost:5432/myapp   # or mysql://…, sqlite:./db.sqlite3
+DATABASE_URL=postgres://app:secret@localhost:5432/myapp   # or mysql://…, sqlite:./db.sqlite3, mongodb://…
 ```
 
 ```typescript

@@ -12,6 +12,8 @@ export type {
   IDatabaseTransaction,
   ITransaction,
   DatabaseHealthResult,
+  MongoCommand,
+  IDocumentExecutor,
 } from './types.js';
 
 export {
@@ -77,4 +79,9 @@ export {
   type SqliteDriverOptions,
   type SqliteDriverDependencies,
 } from '../internal/drivers/sqlite-driver.js';
-export { MongoDatabaseDriver, MongoDriverConnection } from '../internal/drivers/mongo-driver.js';
+export {
+  MongoDatabaseDriver,
+  MongoDriverConnection,
+  type MongoDriverOptions,
+  type MongoDriverDependencies,
+} from '../internal/drivers/mongo-driver.js';

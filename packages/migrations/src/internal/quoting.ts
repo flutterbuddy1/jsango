@@ -11,3 +11,8 @@ export function adaptIdentifierQuotes(
 ): string {
   return connection.dialect?.quoteChar === '`' ? sql.replace(/"/g, '`') : sql;
 }
+
+/** True for MongoDB connections/transactions (which take structured commands, not SQL). */
+export function isMongoExecutor(connection: IDatabaseConnection | IDatabaseTransaction): boolean {
+  return connection.dialect?.name === 'mongodb' && typeof connection.execute === 'function';
+}

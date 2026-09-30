@@ -30,6 +30,7 @@ export class ColumnSchema {
   public readonly precision?: number | undefined;
   public readonly scale?: number | undefined;
   public readonly comment?: string | undefined;
+  public readonly objectId: boolean;
 
   public constructor(def: ColumnDefinition) {
     this.name = def.name;
@@ -43,6 +44,7 @@ export class ColumnSchema {
     this.precision = def.precision;
     this.scale = def.scale;
     this.comment = def.comment;
+    this.objectId = def.objectId ?? false;
     Object.freeze(this);
   }
 
@@ -57,7 +59,8 @@ export class ColumnSchema {
       defaultsEqual(this.defaultValue, other.defaultValue) &&
       this.length === other.length &&
       this.precision === other.precision &&
-      this.scale === other.scale
+      this.scale === other.scale &&
+      this.objectId === other.objectId
     );
   }
 
@@ -74,6 +77,7 @@ export class ColumnSchema {
       precision: this.precision,
       scale: this.scale,
       comment: this.comment,
+      ...(this.objectId ? { objectId: true } : {}),
     };
   }
 }

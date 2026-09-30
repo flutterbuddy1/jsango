@@ -232,6 +232,23 @@ export class DatabaseManager {
   }
 
   /**
+   * Native MongoDB `Db` handle for a mongodb connection, for features the ORM and
+   * `connection.execute()` do not wrap (change streams, GridFS, $lookup-heavy pipelines, ...).
+   */
+  public async mongo<TDb = unknown>(name?: string): Promise<TDb> {
+    const connName = this.resolveConnectionName(name);
+    const driver = this.getConnectionDriver(connName, this.config.connections[connName]!) as IDatabaseDriver & {
+      getDb?: () => Promise<unknown>;
+    };
+    if (typeof driver.getDb !== 'function') {
+      throw new DatabaseConfigurationError(
+        `Connection "${connName}" uses the ${driver.name} driver, not MongoDB.`
+      );
+    }
+    return (await driver.getDb()) as TDb;
+  }
+
+  /**
    * Opens a connection and runs `SELECT 1`, throwing a descriptive ConnectionError on failure.
    * Call it at application startup to fail fast on bad credentials or an unreachable server.
    */

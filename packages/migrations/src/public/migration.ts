@@ -1,4 +1,4 @@
-import type { IDatabaseConnection, IDatabaseTransaction } from '@jsango/database';
+import type { IDatabaseConnection, IDatabaseTransaction, MongoCommand, DatabaseResult } from '@jsango/database';
 import type {
   ColumnDefinition,
   ColumnType,
@@ -31,6 +31,8 @@ import {
   type MigrationDialect,
 } from '../internal/compiler.js';
 import { rebuildSqliteTable } from '../internal/sqlite-rebuild.js';
+import { compileMongoOperation } from '../internal/mongo-compiler.js';
+import { SchemaState } from './state.js';
 import { IrreversibleMigrationError, MigrationError } from './errors.js';
 
 // ---------------------------------------------------------------------------
@@ -142,6 +144,16 @@ export class TableBuilder {
   /** Auto-incrementing BIGINT primary key (default name `id`). */
   public bigId(name = 'id'): ColumnModifier {
     return this.column(name, 'bigint', { primaryKey: true, autoIncrement: true });
+  }
+
+  /** ObjectId primary key (native `_id` on MongoDB, VARCHAR(24) on SQL databases). */
+  public objectIdKey(name = 'id'): ColumnModifier {
+    return this.column(name, 'string', { primaryKey: true, length: 24, objectId: true });
+  }
+
+  /** ObjectId reference column (native ObjectId on MongoDB, VARCHAR(24) on SQL databases). */
+  public objectId(name: string): ColumnModifier {
+    return this.column(name, 'string', { length: 24, objectId: true });
   }
 
   public string(name: string, length = 255): ColumnModifier {
@@ -266,6 +278,11 @@ export interface MigrationContextOptions {
    * Used to compute the schema produced by hand-written migrations without a database.
    */
   readonly recordTo?: MigrationOperation[] | undefined;
+  /**
+   * Schema before this migration (replayed from earlier migrations). Operations update it as they
+   * run. MongoDB needs it to regenerate collection validators and indexes.
+   */
+  readonly schemaState?: SchemaState | undefined;
 }
 
 /**
@@ -277,6 +294,8 @@ export class MigrationContext implements SchemaBuilder {
   public readonly dialect: MigrationDialect;
   private readonly compiler: SqlMigrationCompiler;
   private readonly recordTo: MigrationOperation[] | undefined;
+  /** Schema as of the operations executed so far. */
+  public readonly schema: SchemaState;
 
   public constructor(
     connection: IDatabaseConnection | IDatabaseTransaction,
@@ -287,6 +306,7 @@ export class MigrationContext implements SchemaBuilder {
     this.dialect = dialect;
     this.compiler = new SqlMigrationCompiler(dialect);
     this.recordTo = options?.recordTo;
+    this.schema = options?.schemaState ?? new SchemaState();
   }
 
   /** True while the migration is being replayed to compute schema state (nothing is executed). */
@@ -297,7 +317,28 @@ export class MigrationContext implements SchemaBuilder {
   /** Executes raw SQL. Skipped (no-op) when the migration is only being replayed. */
   public async sql(sql: string, params?: readonly unknown[]): Promise<void> {
     if (this.recordTo) return;
+    if (this.dialect === 'mongodb') {
+      throw new MigrationError({
+        message: 'ctx.sql() is not available on MongoDB. Use ctx.execute({ op: "updateMany", collection: "users", filter: {}, update: { $set: {...} } }) for data migrations.',
+      });
+    }
     await this.connection.query(sql, params);
+  }
+
+  /**
+   * Runs a MongoDB command (data migrations, custom indexes, ...). Skipped while the migration is
+   * only being replayed.
+   *
+   * ```ts
+   * await ctx.execute({ op: 'updateMany', collection: 'users', filter: { role: null }, update: { $set: { role: 'member' } } });
+   * ```
+   */
+  public async execute<T = Record<string, unknown>>(command: MongoCommand): Promise<DatabaseResult<T>> {
+    if (this.recordTo) return { rows: [], rowCount: 0 };
+    if (typeof this.connection.execute !== 'function') {
+      throw new MigrationError({ message: 'ctx.execute() is only available on MongoDB connections; use ctx.sql() instead.' });
+    }
+    return this.connection.execute<T>(command);
   }
 
   public async raw(sql: string, params?: readonly unknown[]): Promise<void> {
@@ -311,6 +352,16 @@ export class MigrationContext implements SchemaBuilder {
       return;
     }
 
+    if (this.dialect === 'mongodb') {
+      const before = this.schema.clone();
+      this.schema.apply(operation);
+      for (const command of compileMongoOperation(operation, before, this.schema)) {
+        await this.execute(command);
+      }
+      return;
+    }
+
+    this.schema.apply(operation);
     let statements: string[];
     try {
       statements = this.compiler.compileStatements(operation);

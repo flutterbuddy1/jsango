@@ -1,4 +1,5 @@
 import type {
+  MongoCommand,
   DatabaseCapabilities,
   DatabaseResult,
   IDatabaseConnection,
@@ -87,6 +88,14 @@ export class DatabaseConnection implements IDatabaseConnection {
     }
   }
 
+  /**
+   * Executes a structured document command (MongoDB). Throws on SQL connections.
+   */
+  public async execute<T = Record<string, unknown>>(command: MongoCommand): Promise<DatabaseResult<T>> {
+    this.assertNotReleased();
+    return runDocumentCommand<T>(this.rawConnection, command, this.driverName, this.telemetry);
+  }
+
   public async beginTransaction(options?: TransactionOptions): Promise<IDatabaseTransaction> {
     this.assertNotReleased();
 
@@ -112,9 +121,15 @@ export class DatabaseConnection implements IDatabaseConnection {
     }
 
     const txId = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const tx = new DatabaseTransaction(txId, this.rawConnection, this.dialect, () => {
-      this.activeTransaction = null;
-    });
+    const tx = new DatabaseTransaction(
+      txId,
+      this.rawConnection,
+      this.dialect,
+      () => {
+        this.activeTransaction = null;
+      },
+      this.driverName
+    );
 
     this.activeTransaction = tx;
     return tx;
@@ -172,5 +187,31 @@ export class DatabaseConnection implements IDatabaseConnection {
     if (this.released) {
       throw new ConnectionError('Database connection has already been released back to the pool.');
     }
+  }
+}
+
+/** Shared implementation of execute() for connections and transactions. */
+export async function runDocumentCommand<T>(
+  raw: IDriverConnection,
+  command: MongoCommand,
+  driverName: string,
+  telemetry?: QueryTelemetryHook
+): Promise<DatabaseResult<T>> {
+  if (typeof raw.execute !== 'function') {
+    throw new QueryError(
+      `The ${driverName} driver does not support document commands; use query() with SQL instead.`,
+      command.op
+    );
+  }
+  const label = `mongo:${command.op}${'collection' in command ? ` ${command.collection}` : ''}`;
+  const started = Date.now();
+  telemetry?.onQueryStart?.(label, []);
+  try {
+    const result = await raw.execute<T>(command);
+    telemetry?.onQueryEnd?.(label, Date.now() - started, result.rowCount);
+    return result;
+  } catch (err) {
+    telemetry?.onQueryError?.(label, Date.now() - started, err);
+    throw err;
   }
 }

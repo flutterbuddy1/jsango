@@ -40,7 +40,7 @@
         <a href="index.html" class="logo-brand docs-logo">
           <img src="images/logo.png" alt="JSango Logo" class="logo-img">
           <span class="logo-text">JSango</span>
-          <span class="brand-badge jsango-version-badge">v1.2.0</span>
+          <span class="brand-badge jsango-version-badge">v1.3.0</span>
         </a>
       </div>
 
@@ -105,7 +105,9 @@
           <li><a href="#model-definitions" class="sidebar-link">Defining Models &amp; Fields</a></li>
           <li><a href="#relationships" class="sidebar-link">Relations &amp; Eager Loading</a></li>
           <li><a href="#query-builder" class="sidebar-link">Querying &amp; Pagination</a></li>
+          <li><a href="#advanced-queries" class="sidebar-link">Advanced Queries &amp; Aggregates</a></li>
           <li><a href="#transactions" class="sidebar-link">Transactions &amp; Soft Deletes</a></li>
+          <li><a href="#mongodb" class="sidebar-link">MongoDB</a></li>
           <li><a href="#migrations-engine" class="sidebar-link">Migrations (makemigrations / migrate)</a></li>
           <li><a href="#migrations-handwritten" class="sidebar-link">Hand-written Migrations</a></li>
           <li><a href="#migrations-production" class="sidebar-link">Production &amp; CI</a></li>
@@ -339,6 +341,7 @@ app.<span class="hl-fn">crud</span>(<span class="hl-str">'/api/crud/products'</s
 │   ├── workflows/         # Multi-agent orchestration workflows
 │   ├── jobs/              # Background queue workers
 │   ├── events/            # Strongly typed domain events
+│   ├── database.ts        # DatabaseManager from DATABASE_URL
 │   ├── database.ts        # DatabaseManager from DATABASE_URL
 │   ├── database.ts        # DatabaseManager from DATABASE_URL
 │   └── index.ts           # App bootstrap & server initialization
@@ -653,7 +656,7 @@ app.<span class="hl-fn">post</span>(<span class="hl-str">'/api/products'</span>,
       <!-- SECTION: Database Drivers & Configuration -->
       <section id="database-drivers" class="doc-section">
         <h2>Connecting a Database</h2>
-        <p>JSango talks to PostgreSQL, MySQL/MariaDB and SQLite through one <code>DatabaseManager</code>. Models, query builder and migrations generate the right SQL for each database automatically (quoting, placeholders, types, <code>RETURNING</code>).</p>
+        <p>JSango talks to PostgreSQL, MySQL/MariaDB, SQLite and MongoDB through one <code>DatabaseManager</code>. The same models, queries and migration commands work on all of them; jsango generates the right SQL (quoting, placeholders, types, <code>RETURNING</code>) or MongoDB commands (filters, pipelines, validators) for each.</p>
         <div class="cli-table-wrapper" style="margin-bottom: 24px;">
           <table class="cli-table">
             <thead>
@@ -663,7 +666,7 @@ app.<span class="hl-fn">post</span>(<span class="hl-str">'/api/products'</span>,
               <tr><td><strong>PostgreSQL 12+</strong></td><td><code>postgres</code> (<code>pg</code>, <code>postgresql</code>)</td><td><code>npm install pg</code></td><td><code>postgres://user:pass@host:5432/db</code></td></tr>
               <tr><td><strong>MySQL 8+ / MariaDB</strong></td><td><code>mysql</code> (<code>mariadb</code>)</td><td><code>npm install mysql2</code></td><td><code>mysql://user:pass@host:3306/db</code></td></tr>
               <tr><td><strong>SQLite</strong></td><td><code>sqlite</code></td><td>nothing on Node 22.13+ (else <code>better-sqlite3</code>)</td><td><code>sqlite:./db.sqlite3</code></td></tr>
-              <tr><td><strong>MongoDB</strong></td><td><code>mongodb</code></td><td><code>npm install mongodb</code></td><td><code>mongodb://host:27017</code> (raw commands only)</td></tr>
+              <tr><td><strong>MongoDB 5+</strong></td><td><code>mongodb</code> (<code>mongo</code>)</td><td><code>npm install mongodb</code></td><td><code>mongodb://user:pass@host:27017/db</code> / <code>mongodb+srv://…</code></td></tr>
               <tr><td><strong>In-memory</strong></td><td><code>memory</code></td><td>—</td><td>tests only</td></tr>
             </tbody>
           </table>
@@ -1067,6 +1070,91 @@ for await (const u of User.query().cursor(500)) {
 
         <p>Operators: <code>=</code> <code>!=</code> <code>&gt;</code> <code>&gt;=</code> <code>&lt;</code> <code>&lt;=</code> <code>LIKE</code> <code>NOT LIKE</code> <code>ILIKE</code> <code>IN</code> <code>NOT IN</code>; <code>where('x', null)</code> becomes <code>IS NULL</code>. Anything else is rejected, so user input can't inject SQL through the operator. Keys that aren't declared fields are ignored on insert/update.</p>
 
+        <h3 id="advanced-queries">Advanced Queries</h3>
+        <p>Identical on PostgreSQL, MySQL, SQLite and MongoDB:</p>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>Advanced queries</span>
+            <button class="copy-code-btn copy-trigger" data-copy="// genre = &#x27;fiction&#x27; AND (price &lt; 10 OR pages &gt; 500)
+await Book.where(&#x27;genre&#x27;, &#x27;fiction&#x27;)
+  .where((q) =&gt; q.where(&#x27;price&#x27;, &#x27;&lt;&#x27;, 10).orWhere(&#x27;pages&#x27;, &#x27;&gt;&#x27;, 500))
+  .get();
+
+await Book.whereNot(&#x27;status&#x27;, &#x27;draft&#x27;).get();
+await Book.whereBetween(&#x27;price&#x27;, [10, 25]).get();
+await Book.whereLike(&#x27;title&#x27;, &#x27;%guide%&#x27;).get();     // case-insensitive
+await Book.select(&#x27;genre&#x27;).distinct().get();
+await Book.orderBy(&#x27;price&#x27;).pluck(&#x27;title&#x27;);
+await Book.latest().first();
+
+// aggregates
+await Book.sum(&#x27;price&#x27;);
+await Book.where(&#x27;genre&#x27;, &#x27;science&#x27;).avg(&#x27;price&#x27;);
+await Book.min(&#x27;price&#x27;);
+await Book.max(&#x27;pages&#x27;);
+
+// GROUP BY / HAVING -&gt; plain rows
+await Book.query().groupBy(
+  [&#x27;genre&#x27;],
+  { total: [&#x27;sum&#x27;, &#x27;price&#x27;], books: [&#x27;count&#x27;] },
+  { having: [[&#x27;books&#x27;, &#x27;&gt;=&#x27;, 2]], orderBy: [[&#x27;total&#x27;, &#x27;DESC&#x27;]] }
+); // [{ genre: &#x27;science&#x27;, total: 42.5, books: 2 }, ...]
+
+// atomic counters, find-or-create, batches, row locks
+await Author.where(&#x27;active&#x27;, true).increment(&#x27;logins&#x27;);
+await post.increment(&#x27;views&#x27;);
+await Tag.firstOrCreate({ slug: &#x27;news&#x27; }, { label: &#x27;News&#x27; });
+await Setting.updateOrCreate({ key: &#x27;theme&#x27; }, { value: &#x27;dark&#x27; });
+await User.query().chunk(500, async (users) =&gt; { /* ... */ });
+await transaction(async () =&gt; {
+  const acc = await Account.where(&#x27;id&#x27;, id).lockForUpdate().first();
+});
+
+// escape hatch
+await User.whereRaw(&#x27;LOWER(email) = ?&#x27;, [email]).get();      // SQL
+await User.whereRaw({ tags: { $all: [&#x27;a&#x27;, &#x27;b&#x27;] } }).get();   // MongoDB">Copy</button>
+          </div>
+          <pre><code><span class="hl-comm">// genre = 'fiction' AND (price &lt; 10 OR pages &gt; 500)</span>
+<span class="hl-kw">await</span> <span class="hl-type">Book</span>.<span class="hl-fn">where</span>(<span class="hl-str">'genre'</span>, <span class="hl-str">'fiction'</span>)
+  .<span class="hl-fn">where</span>((q) =&gt; q.<span class="hl-fn">where</span>(<span class="hl-str">'price'</span>, <span class="hl-str">'&lt;'</span>, <span class="hl-num">10</span>).<span class="hl-fn">orWhere</span>(<span class="hl-str">'pages'</span>, <span class="hl-str">'&gt;'</span>, <span class="hl-num">500</span>))
+  .<span class="hl-fn">get</span>();
+
+<span class="hl-kw">await</span> <span class="hl-type">Book</span>.<span class="hl-fn">whereNot</span>(<span class="hl-str">'status'</span>, <span class="hl-str">'draft'</span>).<span class="hl-fn">get</span>();
+<span class="hl-kw">await</span> <span class="hl-type">Book</span>.<span class="hl-fn">whereBetween</span>(<span class="hl-str">'price'</span>, [<span class="hl-num">10</span>, <span class="hl-num">25</span>]).<span class="hl-fn">get</span>();
+<span class="hl-kw">await</span> <span class="hl-type">Book</span>.<span class="hl-fn">whereLike</span>(<span class="hl-str">'title'</span>, <span class="hl-str">'%guide%'</span>).<span class="hl-fn">get</span>();     <span class="hl-comm">// case-insensitive</span>
+<span class="hl-kw">await</span> <span class="hl-type">Book</span>.<span class="hl-fn">select</span>(<span class="hl-str">'genre'</span>).<span class="hl-fn">distinct</span>().<span class="hl-fn">get</span>();
+<span class="hl-kw">await</span> <span class="hl-type">Book</span>.<span class="hl-fn">orderBy</span>(<span class="hl-str">'price'</span>).<span class="hl-fn">pluck</span>(<span class="hl-str">'title'</span>);
+<span class="hl-kw">await</span> <span class="hl-type">Book</span>.<span class="hl-fn">latest</span>().<span class="hl-fn">first</span>();
+
+<span class="hl-comm">// aggregates</span>
+<span class="hl-kw">await</span> <span class="hl-type">Book</span>.<span class="hl-fn">sum</span>(<span class="hl-str">'price'</span>);
+<span class="hl-kw">await</span> <span class="hl-type">Book</span>.<span class="hl-fn">where</span>(<span class="hl-str">'genre'</span>, <span class="hl-str">'science'</span>).<span class="hl-fn">avg</span>(<span class="hl-str">'price'</span>);
+<span class="hl-kw">await</span> <span class="hl-type">Book</span>.<span class="hl-fn">min</span>(<span class="hl-str">'price'</span>);
+<span class="hl-kw">await</span> <span class="hl-type">Book</span>.<span class="hl-fn">max</span>(<span class="hl-str">'pages'</span>);
+
+<span class="hl-comm">// GROUP BY / HAVING -&gt; plain rows</span>
+<span class="hl-kw">await</span> <span class="hl-type">Book</span>.<span class="hl-fn">query</span>().<span class="hl-fn">groupBy</span>(
+  [<span class="hl-str">'genre'</span>],
+  { total: [<span class="hl-str">'sum'</span>, <span class="hl-str">'price'</span>], books: [<span class="hl-str">'count'</span>] },
+  { having: [[<span class="hl-str">'books'</span>, <span class="hl-str">'&gt;='</span>, <span class="hl-num">2</span>]], orderBy: [[<span class="hl-str">'total'</span>, <span class="hl-str">'DESC'</span>]] }
+); <span class="hl-comm">// [{ genre: 'science', total: 42.5, books: 2 }, ...]</span>
+
+<span class="hl-comm">// atomic counters, find-or-create, batches, row locks</span>
+<span class="hl-kw">await</span> <span class="hl-type">Author</span>.<span class="hl-fn">where</span>(<span class="hl-str">'active'</span>, <span class="hl-kw">true</span>).<span class="hl-fn">increment</span>(<span class="hl-str">'logins'</span>);
+<span class="hl-kw">await</span> post.<span class="hl-fn">increment</span>(<span class="hl-str">'views'</span>);
+<span class="hl-kw">await</span> <span class="hl-type">Tag</span>.<span class="hl-fn">firstOrCreate</span>({ slug: <span class="hl-str">'news'</span> }, { label: <span class="hl-str">'News'</span> });
+<span class="hl-kw">await</span> <span class="hl-type">Setting</span>.<span class="hl-fn">updateOrCreate</span>({ key: <span class="hl-str">'theme'</span> }, { value: <span class="hl-str">'dark'</span> });
+<span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">query</span>().<span class="hl-fn">chunk</span>(<span class="hl-num">500</span>, <span class="hl-kw">async</span> (users) =&gt; { /* ... */ });
+<span class="hl-kw">await</span> <span class="hl-fn">transaction</span>(<span class="hl-kw">async</span> () =&gt; {
+  <span class="hl-kw">const</span> acc = <span class="hl-kw">await</span> <span class="hl-type">Account</span>.<span class="hl-fn">where</span>(<span class="hl-str">'id'</span>, id).<span class="hl-fn">lockForUpdate</span>().<span class="hl-fn">first</span>();
+});
+
+<span class="hl-comm">// escape hatch</span>
+<span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">whereRaw</span>(<span class="hl-str">'LOWER(email) = ?'</span>, [email]).<span class="hl-fn">get</span>();      <span class="hl-comm">// SQL</span>
+<span class="hl-kw">await</span> <span class="hl-type">User</span>.<span class="hl-fn">whereRaw</span>({ tags: { $all: [<span class="hl-str">'a'</span>, <span class="hl-str">'b'</span>] } }).<span class="hl-fn">get</span>();   <span class="hl-comm">// MongoDB</span></code></pre>
+        </div>
+
+
         <h3 id="soft-deletes">Soft Deletes</h3>
         <div class="code-box">
           <div class="code-box-header">
@@ -1128,6 +1216,107 @@ await db.transaction(async (tx) =&gt; {
       <hr class="doc-divider">
 
       <!-- SECTION: Automated Migrations -->
+      <section id="mongodb" class="doc-section">
+        <h2>MongoDB</h2>
+        <p>Models, queries, relations, transactions and migrations all work on MongoDB. Install the driver and point <code>DATABASE_URL</code> at your server or Atlas cluster:</p>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>Terminal</span>
+            <button class="copy-code-btn copy-trigger" data-copy="npm install mongodb
+# .env
+DATABASE_URL=mongodb://app:secret@localhost:27017/myapp">Copy</button>
+          </div>
+          <pre><code>npm install mongodb
+<span class="hl-comm"># .env</span>
+DATABASE_URL=mongodb://app:secret@localhost:27017/myapp</code></pre>
+        </div>
+
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>src/models/post.ts</span>
+            <button class="copy-code-btn copy-trigger" data-copy="export const Post = defineModel(&#x27;Post&#x27;, {
+  id: fields.objectId({ primaryKey: true }),  // maps to _id, new ObjectId on create
+  title: fields.string(),
+  authorId: fields.objectId(),                // ObjectId reference
+  tags: fields.json({ nullable: true }),      // stored natively
+}, {
+  table: &#x27;posts&#x27;,                             // collection
+  timestamps: true,
+  relations: { author: { type: &#x27;belongsTo&#x27;, target: &#x27;Author&#x27;, foreignKey: &#x27;authorId&#x27; } },
+});
+
+const post = await Post.create({ title: &#x27;Hello&#x27;, authorId: author.id });
+post.id;                   // &#x27;65f1c2…&#x27; (ObjectId as string)
+await Post.find(post.id);  // converted back to ObjectId in queries">Copy</button>
+          </div>
+          <pre><code><span class="hl-kw">export</span> <span class="hl-kw">const</span> <span class="hl-type">Post</span> = <span class="hl-fn">defineModel</span>(<span class="hl-str">'Post'</span>, {
+  id: fields.<span class="hl-fn">objectId</span>({ primaryKey: <span class="hl-kw">true</span> }),  <span class="hl-comm">// maps to _id, new ObjectId on create</span>
+  title: fields.<span class="hl-fn">string</span>(),
+  authorId: fields.<span class="hl-fn">objectId</span>(),                <span class="hl-comm">// ObjectId reference</span>
+  tags: fields.<span class="hl-fn">json</span>({ nullable: <span class="hl-kw">true</span> }),      <span class="hl-comm">// stored natively</span>
+}, {
+  table: <span class="hl-str">'posts'</span>,                             <span class="hl-comm">// collection</span>
+  timestamps: <span class="hl-kw">true</span>,
+  relations: { author: { type: <span class="hl-str">'belongsTo'</span>, target: <span class="hl-str">'Author'</span>, foreignKey: <span class="hl-str">'authorId'</span> } },
+});
+
+<span class="hl-kw">const</span> post = <span class="hl-kw">await</span> <span class="hl-type">Post</span>.<span class="hl-fn">create</span>({ title: <span class="hl-str">'Hello'</span>, authorId: author.id });
+post.id;                   <span class="hl-comm">// '65f1c2…' (ObjectId as string)</span>
+<span class="hl-kw">await</span> <span class="hl-type">Post</span>.<span class="hl-fn">find</span>(post.id);  <span class="hl-comm">// converted back to ObjectId in queries</span></code></pre>
+        </div>
+
+        <p><code>where</code> becomes a filter (<code>$eq</code>, <code>$in</code>, <code>$regex</code> for LIKE, <code>$or</code>/<code>$and</code>/<code>$nor</code> for groups, with SQL precedence); aggregates and <code>groupBy</code> run as aggregation pipelines; <code>increment</code> uses <code>$inc</code>.</p>
+        <div class="cli-table-wrapper" style="margin-bottom: 24px;">
+          <table class="cli-table">
+            <thead>
+              <tr><th>Migration operation</th><th>On MongoDB</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>create table</td><td><code>createCollection</code> + <code>$jsonSchema</code> validator (required fields &amp; types) + indexes</td></tr>
+              <tr><td>unique / index</td><td><code>createIndex</code> (unique on nullable fields ignores missing values, like SQL NULLs)</td></tr>
+              <tr><td>add column</td><td>backfill the default into existing documents, then update the validator</td></tr>
+              <tr><td>drop / rename column</td><td>update the validator, then <code>$unset</code> / <code>$rename</code> the field and rebuild its indexes</td></tr>
+              <tr><td>foreign keys</td><td>skipped — relations are resolved by the ORM</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-icon">💡</div>
+          <div class="callout-body"><strong>Transactions</strong> need a replica set or sharded cluster (Atlas always has one). Locally: <code>mongod --replSet rs0</code> and run <code>rs.initiate()</code> once. Migrations do not need transactions and work on a standalone server.</div>
+        </div>
+
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>Data migrations &amp; native access</span>
+            <button class="copy-code-btn copy-trigger" data-copy="export default defineMigration({
+  id: &#x27;20260930130000_backfill_roles&#x27;,
+  async up(ctx) {
+    await ctx.execute({ op: &#x27;updateMany&#x27;, collection: &#x27;users&#x27;, filter: { role: null }, update: { $set: { role: &#x27;member&#x27; } } });
+  },
+});
+
+// anything else: the native driver
+import type { Db } from &#x27;mongodb&#x27;;
+const mongo = await db.mongo&lt;Db&gt;();
+await mongo.collection(&#x27;events&#x27;).aggregate([...]).toArray();">Copy</button>
+          </div>
+          <pre><code><span class="hl-kw">export</span> <span class="hl-kw">default</span> <span class="hl-fn">defineMigration</span>({
+  id: <span class="hl-str">'20260930130000_backfill_roles'</span>,
+  <span class="hl-kw">async</span> <span class="hl-fn">up</span>(ctx) {
+    <span class="hl-kw">await</span> ctx.<span class="hl-fn">execute</span>({ op: <span class="hl-str">'updateMany'</span>, collection: <span class="hl-str">'users'</span>, filter: { role: <span class="hl-kw">null</span> }, update: { $set: { role: <span class="hl-str">'member'</span> } } });
+  },
+});
+
+<span class="hl-comm">// anything else: the native driver</span>
+<span class="hl-kw">import</span> type { <span class="hl-type">Db</span> } <span class="hl-kw">from</span> <span class="hl-str">'mongodb'</span>;
+<span class="hl-kw">const</span> mongo = <span class="hl-kw">await</span> db.mongo&lt;<span class="hl-type">Db</span>&gt;();
+<span class="hl-kw">await</span> mongo.<span class="hl-fn">collection</span>(<span class="hl-str">'events'</span>).<span class="hl-fn">aggregate</span>([...]).<span class="hl-fn">toArray</span>();</code></pre>
+        </div>
+      </section>
+
+      <hr class="doc-divider">
+
       <section id="migrations-engine" class="doc-section">
         <h2>Migrations</h2>
         <p>Migrations turn changes in your models into versioned, reviewable changes to the real database — the same workflow as Django:</p>
@@ -1265,12 +1454,12 @@ export default defineMigration({
         <div class="cli-table-wrapper" style="margin-bottom: 24px;">
           <table class="cli-table">
             <thead>
-              <tr><th></th><th>PostgreSQL</th><th>SQLite</th><th>MySQL / MariaDB</th></tr>
+              <tr><th></th><th>PostgreSQL</th><th>SQLite</th><th>MySQL / MariaDB</th><th>MongoDB</th></tr>
             </thead>
             <tbody>
-              <tr><td>Each migration in a transaction</td><td>✅</td><td>✅</td><td>❌ (DDL auto-commits)</td></tr>
-              <tr><td>Failure mid-migration</td><td>fully rolled back</td><td>fully rolled back</td><td>earlier statements stay applied</td></tr>
-              <tr><td>ALTER COLUMN, add/drop FK</td><td>native</td><td>automatic table rebuild (data kept)</td><td>native</td></tr>
+              <tr><td>Each migration in a transaction</td><td>✅</td><td>✅</td><td>❌ (DDL auto-commits)</td><td>❌</td></tr>
+              <tr><td>Failure mid-migration</td><td>fully rolled back</td><td>fully rolled back</td><td>earlier statements stay applied</td><td>earlier commands stay applied</td></tr>
+              <tr><td>ALTER COLUMN, add/drop FK</td><td>native</td><td>automatic table rebuild (data kept)</td><td>native</td><td>validator update; FKs skipped</td></tr>
             </tbody>
           </table>
         </div>
@@ -1308,6 +1497,8 @@ npm start</code></pre>
               <tr><td><code>database &quot;x&quot; does not exist</code></td><td>Create it first: <code>CREATE DATABASE x;</code></td></tr>
               <tr><td><code>no such table</code> / <code>relation &quot;users&quot; does not exist</code></td><td>Run <code>npx jsango makemigrations</code> then <code>npx jsango migrate</code>.</td></tr>
               <tr><td><code>Migration run contains destructive changes</code></td><td>Review with <code>migrate --dry-run</code>, then <code>migrate --yes</code>.</td></tr>
+              <tr><td><code>MongoDB transactions need a replica set</code></td><td>Run <code>mongod --replSet rs0</code> + <code>rs.initiate()</code>, or use Atlas.</td></tr>
+              <tr><td><code>Document failed validation</code></td><td>A MongoDB document misses a required field or has the wrong type; make the field <code>nullable: true</code> or pass a value.</td></tr>
               <tr><td><code>Could not acquire migration lock</code></td><td>Another migrate is running; the lock of a crashed run expires after 15 minutes.</td></tr>
             </tbody>
           </table>
@@ -2116,97 +2307,97 @@ app.<span class="hl-fn">openapi</span>({
             <tbody>
               <tr>
                 <td><code>jsango</code></td>
-                <td><span class="badge badge-success">v1.2.0</span></td>
+                <td><span class="badge badge-success">v1.3.0</span></td>
                 <td>Primary batteries-included meta-package (<code>createApp</code>, <code>model</code>, <code>agent</code>, <code>tool</code>).</td>
               </tr>
               <tr>
                 <td><code>@jsango/ai</code></td>
-                <td><span class="badge badge-success">v1.2.0</span></td>
+                <td><span class="badge badge-success">v1.3.0</span></td>
                 <td>AI Platform: Autonomous Agents, Multi-Agent Workflows, RAG Vector Search, MCP Protocol.</td>
               </tr>
               <tr>
                 <td><code>@jsango/orm</code></td>
-                <td><span class="badge badge-success">v1.2.0</span></td>
+                <td><span class="badge badge-success">v1.3.0</span></td>
                 <td>Declarative ORM, Relations, Eager Loading (No N+1), AST Query Builder.</td>
               </tr>
               <tr>
                 <td><code>@jsango/database</code></td>
-                <td><span class="badge badge-success">v1.2.0</span></td>
+                <td><span class="badge badge-success">v1.3.0</span></td>
                 <td>Database Drivers: PostgreSQL, MySQL/MariaDB, SQLite, MongoDB, In-Memory Engine.</td>
               </tr>
               <tr>
                 <td><code>@jsango/router</code></td>
-                <td><span class="badge badge-success">v1.2.0</span></td>
+                <td><span class="badge badge-success">v1.3.0</span></td>
                 <td>Ultra-fast SegRadix Trie Router (&gt;7.7M ops/sec) with inline parameter validators.</td>
               </tr>
               <tr>
                 <td><code>@jsango/http</code></td>
-                <td><span class="badge badge-success">v1.2.0</span></td>
+                <td><span class="badge badge-success">v1.3.0</span></td>
                 <td>Typed HTTP Request, Response, RequestContext, Cookies, and HTTP Status Codes.</td>
               </tr>
               <tr>
                 <td><code>@jsango/admin-server</code></td>
-                <td><span class="badge badge-success">v1.2.0</span></td>
+                <td><span class="badge badge-success">v1.3.0</span></td>
                 <td>Backend server &amp; REST endpoints powering the dynamic Admin Console.</td>
               </tr>
               <tr>
                 <td><code>@jsango/admin-ui</code></td>
-                <td><span class="badge badge-success">v1.2.0</span></td>
+                <td><span class="badge badge-success">v1.3.0</span></td>
                 <td>React Single-Page Application (SPA) dashboard for database records &amp; system diagnostics.</td>
               </tr>
               <tr>
                 <td><code>@jsango/admin-core</code></td>
-                <td><span class="badge badge-success">v1.2.0</span></td>
+                <td><span class="badge badge-success">v1.3.0</span></td>
                 <td>Resource registry, faceted filters, search rules, and CSV/JSON export definitions.</td>
               </tr>
               <tr>
                 <td><code>@jsango/auth</code></td>
-                <td><span class="badge badge-success">v1.2.0</span></td>
+                <td><span class="badge badge-success">v1.3.0</span></td>
                 <td>RFC 6238 TOTP 2FA, Scrypt Password Hashing, JWT Tokens, Multi-device Sessions.</td>
               </tr>
               <tr>
                 <td><code>@jsango/queue</code></td>
-                <td><span class="badge badge-success">v1.2.0</span></td>
+                <td><span class="badge badge-success">v1.3.0</span></td>
                 <td>Background job worker loops, automatic exponential retries, dead-letter storage.</td>
               </tr>
               <tr>
                 <td><code>@jsango/cache</code></td>
-                <td><span class="badge badge-success">v1.2.0</span></td>
+                <td><span class="badge badge-success">v1.3.0</span></td>
                 <td>High-speed caching layer supporting memory and Redis drivers with TTL &amp; tags.</td>
               </tr>
               <tr>
                 <td><code>@jsango/events</code></td>
-                <td><span class="badge badge-success">v1.2.0</span></td>
+                <td><span class="badge badge-success">v1.3.0</span></td>
                 <td>Strongly typed in-memory and distributed Pub/Sub event bus.</td>
               </tr>
               <tr>
                 <td><code>@jsango/websocket</code></td>
-                <td><span class="badge badge-success">v1.2.0</span></td>
+                <td><span class="badge badge-success">v1.3.0</span></td>
                 <td>Realtime WebSockets with room grouping, client broadcasting, and heartbeat pings.</td>
               </tr>
               <tr>
                 <td><code>@jsango/validation</code></td>
-                <td><span class="badge badge-success">v1.2.0</span></td>
+                <td><span class="badge badge-success">v1.3.0</span></td>
                 <td>Compiled schema validators (<code>string</code>, <code>number</code>, <code>object</code>, <code>array</code>).</td>
               </tr>
               <tr>
                 <td><code>@jsango/migrations</code></td>
-                <td><span class="badge badge-success">v1.2.0</span></td>
+                <td><span class="badge badge-success">v1.3.0</span></td>
                 <td>Automated schema diffing, batch migration runner, and rollback engine.</td>
               </tr>
               <tr>
                 <td><code>@jsango/openapi</code></td>
-                <td><span class="badge badge-success">v1.2.0</span></td>
+                <td><span class="badge badge-success">v1.3.0</span></td>
                 <td>OpenAPI 3.1 specification generation and dark-themed Swagger UI dashboard.</td>
               </tr>
               <tr>
                 <td><code>@jsango/observability</code></td>
-                <td><span class="badge badge-success">v1.2.0</span></td>
+                <td><span class="badge badge-success">v1.3.0</span></td>
                 <td>Structured logging, Prometheus metric exposition, and distributed tracing hooks.</td>
               </tr>
               <tr>
                 <td><code>@jsango/cli</code></td>
-                <td><span class="badge badge-success">v1.2.0</span></td>
+                <td><span class="badge badge-success">v1.3.0</span></td>
                 <td>Command-line interface for scaffolding, model generation, migrations, and diagnostics.</td>
               </tr>
             </tbody>
@@ -2245,6 +2436,7 @@ app.<span class="hl-fn">openapi</span>({
         <li><a href="#model-definitions" class="toc-link">Defining Models</a></li>
         <li><a href="#relationships" class="toc-link">Relations</a></li>
         <li><a href="#query-builder" class="toc-link">Querying &amp; Transactions</a></li>
+        <li><a href="#mongodb" class="toc-link">MongoDB</a></li>
         <li><a href="#migrations-engine" class="toc-link">Migrations</a></li>
         <li><a href="#admin-overview" class="toc-link">React Admin Console</a></li>
         <li><a href="#admin-credentials" class="toc-link">Admin Credentials</a></li>

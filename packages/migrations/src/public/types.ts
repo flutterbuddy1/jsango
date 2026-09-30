@@ -17,6 +17,8 @@ export interface ColumnDefinition {
   readonly precision?: number | undefined;
   readonly scale?: number | undefined;
   readonly comment?: string | undefined;
+  /** Stores an ObjectId on MongoDB (`fields.objectId()`); a VARCHAR(24) on SQL databases. */
+  readonly objectId?: boolean | undefined;
 }
 
 export interface IndexDefinition {

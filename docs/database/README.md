@@ -1,8 +1,8 @@
 # Database Guide: Connections, Models & Migrations
 
 This guide covers everything you need to use a database with jsango: connecting to
-PostgreSQL / MySQL / SQLite, defining models, querying, and evolving your schema with
-migrations.
+PostgreSQL / MySQL / SQLite / MongoDB, defining models, querying, and evolving your schema with
+migrations. The same models, queries and migration commands work on all of them.
 
 - [How the pieces fit together](#how-the-pieces-fit-together)
 - [Quick start](#quick-start)
@@ -10,6 +10,7 @@ migrations.
 - [2. `jsango.config.ts`](#2-jsangoconfigts)
 - [3. Defining models](#3-defining-models)
 - [4. Querying](#4-querying)
+- [4a. MongoDB](#4a-mongodb)
 - [5. Migrations](#5-migrations)
 - [6. Production checklist](#6-production-checklist)
 - [7. Troubleshooting](#7-troubleshooting)
@@ -68,7 +69,7 @@ Node.js 22.13+. To switch databases, edit `.env` (see below). Your code stays th
 | PostgreSQL 12+ | `postgres` (aliases `postgresql`, `pg`) | `npm install pg` | `postgres://user:pass@host:5432/db` |
 | MySQL 8+ / MariaDB 10.5+ | `mysql` (alias `mariadb`) | `npm install mysql2` | `mysql://user:pass@host:3306/db` |
 | SQLite 3.35+ | `sqlite` | nothing on Node 22.13+ (`node:sqlite`); otherwise `npm install better-sqlite3` | `sqlite:./db.sqlite3` |
-| MongoDB | `mongodb` | `npm install mongodb` | `mongodb://host:27017` |
+| MongoDB 5+ | `mongodb` (alias `mongo`) | `npm install mongodb` | `mongodb://user:pass@host:27017/db` or `mongodb+srv://…` |
 | In-memory (tests) | `memory` | nothing | — |
 
 > The client packages are optional peer dependencies: install only the one you use. If it is
@@ -182,7 +183,7 @@ Hint: The server refused the connection. Is the database running and listening o
 ### Raw SQL
 
 Write SQL with `?` placeholders. They are converted to `$1, $2, …` for PostgreSQL
-automatically.
+automatically. (For MongoDB see [section 4a](#4a-mongodb).)
 
 ```ts
 const { rows } = await db.query('SELECT id, email FROM users WHERE created_at > ?', [since]);
@@ -268,6 +269,7 @@ Fields are **NOT NULL by default**. Use `nullable: true` for optional columns.
 | `fields.json()` | `JSONB` | `JSON` | `TEXT` | object / array |
 | `fields.uuid()` | `UUID` | `CHAR(36)` | `VARCHAR(36)` | `string` |
 | `fields.binary()` | `BYTEA` | `LONGBLOB` | `BLOB` | `Uint8Array` |
+| `fields.objectId()` | `VARCHAR(24)` | `VARCHAR(24)` | `VARCHAR(24)` | `string` (a native `ObjectId` on MongoDB) |
 
 Values are converted both ways: booleans come back as `true`/`false` on every database, dates as
 `Date`, JSON as parsed objects.
@@ -376,6 +378,76 @@ operator argument.
 Keys that aren't declared fields are ignored on insert/update. You can pass a request body to
 `create()` without it failing on unknown columns. You should still validate input.
 
+### Advanced queries
+
+These work identically on PostgreSQL, MySQL, SQLite and MongoDB:
+
+```ts
+// Grouped conditions:  genre = 'fiction' AND (price < 10 OR pages > 500)
+await Book.where('genre', 'fiction')
+  .where((q) => q.where('price', '<', 10).orWhere('pages', '>', 500))
+  .get();
+
+await Book.whereNot('status', 'draft').get();
+await Book.whereNot((q) => q.where('genre', 'kids').orWhere('price', 0)).get();
+await Book.whereBetween('price', [10, 25]).get();          // also whereNotBetween / orWhereBetween
+await Book.whereLike('title', '%guide%').get();            // case-insensitive everywhere
+await Book.whereLike('code', 'AB_%', { caseSensitive: true }).get(); // exact case on PostgreSQL / MongoDB
+await Book.where('price', 'BETWEEN', [10, 25]).get();      // operator form
+await Book.orWhereIn('genre', ['a', 'b']).orWhereNull('pages').get();
+
+// Selection
+await Book.select('genre').distinct().orderBy('genre').get();
+await Book.orderBy('price').pluck('title');                // ['Tiny Tales', ...]
+await Book.where('isbn', isbn).value('title');             // single value or null
+await Book.findMany([id1, id2]);
+await Book.latest().first();                               // newest by createdAt (oldest() too)
+await Book.query().firstOrFail();
+
+// Aggregates
+await Book.sum('price');                                   // 0 when nothing matches
+await Book.where('genre', 'science').avg('price');         // null when nothing matches
+await Book.min('price');
+await Book.max('pages');
+await Book.count('pages');                                 // counts non-null values
+await Book.where('genre', 'none').doesntExist();
+
+// GROUP BY / HAVING -> plain rows
+await Book.query()
+  .where('publishedAt', '>=', new Date('2024-01-01'))
+  .groupBy(
+    ['genre'],
+    { total: ['sum', 'price'], books: ['count'], longest: ['max', 'pages'] },
+    { having: [['books', '>=', 2]], orderBy: [['total', 'DESC']], limit: 10 }
+  );
+// [{ genre: 'science', total: 42.5, books: 2, longest: 300 }, ...]
+
+// Atomic counters (no read-modify-write race)
+await Author.where('active', true).increment('logins');   // bulk; decrement() too
+await post.increment('views', 1);                          // single model, also updates `post.views`
+
+// Find-or-create / upsert-style helpers
+const tag = await Tag.firstOrCreate({ slug: 'news' }, { label: 'News' });
+const setting = await Setting.updateOrCreate({ key: 'theme' }, { value: 'dark' });
+
+// Batches
+await User.query().chunk(500, async (users, page) => { /* ... return false to stop */ });
+
+// Row locks inside a transaction (PostgreSQL / MySQL; no-op on SQLite and MongoDB)
+await transaction(async () => {
+  const account = await Account.where('id', id).lockForUpdate().first();
+  // ...
+});
+
+// Soft-delete restore
+await Post.onlyTrashed().where('authorId', id).restore();
+await post.restore();
+
+// Escape hatch
+await User.whereRaw('LOWER(email) = ?', [email]).get();          // SQL databases
+await User.whereRaw({ tags: { $all: ['a', 'b'] } }).get();       // MongoDB
+```
+
 ### Eager loading (no N+1)
 
 ```ts
@@ -412,6 +484,109 @@ await transaction(async () => { /* ... */ }, { isolationLevel: 'SERIALIZABLE', c
 Every model call inside the callback, including nested async functions, uses the transaction.
 You don't need to pass it around. To use an explicit transaction or connection instead:
 `User.query().using(tx)`, `User.create(data, { connection: tx })`, `user.save({ connection: tx })`.
+
+---
+
+## 4a. MongoDB
+
+Models, queries, relations, transactions and migrations all work on MongoDB. Connect it like
+any other database:
+
+```bash
+npm install mongodb
+# .env
+DATABASE_URL=mongodb://app:secret@localhost:27017/myapp
+# or MongoDB Atlas: mongodb+srv://app:secret@cluster0.xxxxx.mongodb.net/myapp
+```
+
+**Model ids.** Documents are keyed by `_id`. jsango maps your model's primary key to `_id`
+and exposes it as a 24-character hex string:
+
+```ts
+export const Post = defineModel('Post', {
+  id: fields.objectId({ primaryKey: true }),   // a new ObjectId is generated on create
+  title: fields.string(),
+  authorId: fields.objectId(),                 // stored as an ObjectId reference
+  tags: fields.json({ nullable: true }),       // arrays / objects are stored natively
+}, {
+  table: 'posts',                              // collection name
+  timestamps: true,
+  relations: { author: { type: 'belongsTo', target: 'Author', foreignKey: 'authorId' } },
+});
+
+const post = await Post.create({ title: 'Hello', authorId: author.id });
+post.id;                          // '65f1c2...' (ObjectId as a string)
+await Post.find(post.id);         // strings are converted to ObjectId in queries
+```
+
+Use `fields.objectId()` for primary keys and references if a model must run on MongoDB and SQL
+databases (on SQL it becomes `VARCHAR(24)`). `fields.id()` also works on MongoDB, but the ids
+are ObjectId strings rather than numbers.
+
+**How queries are translated.** `where` becomes a filter (`$eq`, `$ne`, `$gt`, `$in`,
+`$regex` for `LIKE`, `$or`/`$and`/`$nor` for groups, with SQL precedence). `orderBy`,
+`limit` and `offset` map to `sort`, `limit` and `skip`. `count` uses `countDocuments`.
+Aggregates and `groupBy` run as aggregation pipelines, and `increment` uses `$inc`. `IS NULL`
+matches both missing and null fields, like an SQL NULL.
+
+**Transactions** need a **replica set** or a sharded cluster (Atlas always has one). On a
+standalone `mongod`, `transaction()` fails with a hint. For local development:
+
+```bash
+mongod --replSet rs0 --dbpath ./data   # then, once, in mongosh:  rs.initiate()
+```
+
+Migrations don't need transactions and work on standalone servers too.
+
+**Migrations on MongoDB.** `makemigrations` and `migrate` work the same way as on SQL, and
+the operations are translated as follows:
+
+| Operation | MongoDB |
+| --- | --- |
+| create table | `createCollection` with a `$jsonSchema` validator (required fields + types, `validationLevel: moderate`) plus indexes |
+| unique / index | `createIndex` (unique indexes on nullable fields ignore missing values, like SQL NULLs) |
+| add column | backfills the default into existing documents, then updates the validator |
+| drop column | relaxes the validator, drops the indexes on it, then `$unset`s the field everywhere |
+| rename column | updates the validator, `$rename`s the field, and rebuilds the indexes on it |
+| alter column | updates the validator |
+| rename / drop table | `renameCollection` / `drop` |
+| foreign keys | skipped (MongoDB has none); relations are still resolved by the ORM |
+
+Migration history lives in the `jsango_migrations` collection, and the lock in
+`jsango_migration_lock`. For data migrations, use `ctx.execute()` (`ctx.sql()` isn't available):
+
+```ts
+export default defineMigration({
+  id: '20260930130000_backfill_roles',
+  async up(ctx) {
+    await ctx.execute({ op: 'updateMany', collection: 'users', filter: { role: null }, update: { $set: { role: 'member' } } });
+    await ctx.execute({ op: 'createIndex', collection: 'users', keys: { lastSeenAt: -1 }, name: 'idx_users_last_seen' });
+  },
+  async down(ctx) {
+    await ctx.execute({ op: 'dropIndex', collection: 'users', name: 'idx_users_last_seen' });
+  },
+});
+```
+
+`t.objectIdKey()` and `t.objectId('authorId')` are the table-builder equivalents of the model
+fields.
+
+**Native access.** For change streams, GridFS, `$lookup`-heavy pipelines and similar, use the
+native driver:
+
+```ts
+import type { Db } from 'mongodb';
+const mongo = await db.mongo<Db>();
+await mongo.collection('events').aggregate([...]).toArray();
+
+// or structured commands through a pooled connection:
+const conn = await db.connection();
+try {
+  const { rows } = await conn.execute({ op: 'aggregate', collection: 'orders', pipeline: [{ $match: { status: 'paid' } }] });
+} finally {
+  await conn.release();
+}
+```
 
 ---
 
@@ -546,11 +721,11 @@ Use the `ctx` schema helpers rather than `ctx.sql()` for schema changes, because
 
 ### How each database runs migrations
 
-| | PostgreSQL | SQLite | MySQL / MariaDB |
-| --- | --- | --- | --- |
-| Each migration in a transaction | ✅ | ✅ | ❌ DDL auto-commits |
-| Failure mid-migration | fully rolled back | fully rolled back | earlier statements stay applied; the error says so |
-| `ALTER COLUMN`, add/drop foreign key | native | table rebuild (automatic, data preserved) | native |
+| | PostgreSQL | SQLite | MySQL / MariaDB | MongoDB |
+| --- | --- | --- | --- | --- |
+| Each migration in a transaction | ✅ | ✅ | ❌ DDL auto-commits | ❌ |
+| Failure mid-migration | fully rolled back | fully rolled back | earlier statements stay applied; the error says so | earlier commands stay applied; the error says so |
+| `ALTER COLUMN`, add/drop foreign key | native | table rebuild (automatic, data preserved) | native | validator update; FKs skipped |
 
 - **SQLite** can't alter columns or add/drop foreign keys in place. jsango rebuilds the table:
   it creates a copy with the new definition, copies the rows, swaps the tables and recreates
@@ -606,6 +781,9 @@ CLI, so TypeScript migrations run without a build step.
 | --- | --- |
 | `No database is configured for this project` | Add `jsango.config.ts` (see [section 2](#2-jsangoconfigts)) or set `DATABASE_URL` in `.env`. |
 | `PostgreSQL support requires the 'pg' package` | `npm install pg` (or `mysql2` / `better-sqlite3` / `mongodb`). |
+| `MongoDB transactions need a replica set` | Start `mongod --replSet rs0` and run `rs.initiate()` once, or use Atlas. |
+| `Document failed validation` (MongoDB) | A document is missing a required (non-nullable) field or has the wrong type. Make the field `nullable: true` or pass a value. |
+| `MongoDB connections do not run SQL` | Use models, `conn.execute({...})` or `db.mongo()` instead of `db.query('SELECT ...')`. |
 | `SQLite support requires 'better-sqlite3' or Node.js 22.13+` | Upgrade Node.js, or run `npm install better-sqlite3`. |
 | `ECONNREFUSED` | The database server isn't running, or the host/port is wrong. |
 | `password authentication failed` / `ER_ACCESS_DENIED_ERROR` | Wrong user or password. URL-encode special characters in `DATABASE_URL`. |
@@ -620,8 +798,8 @@ CLI, so TypeScript migrations run without a build step.
 
 ## 8. Limitations
 
-- **MongoDB** works through `db.query()` with JSON commands only. The ORM, relations and
-  migrations are SQL-only.
+- **MongoDB:** raw SQL (`whereRaw('…')`, `db.query('SELECT …')`) isn't available. Use relations (`.with()`), `whereRaw({ …filter })`, `conn.execute()` or `db.mongo()` instead. Savepoints (nested transactions) aren't supported, and the database doesn't enforce foreign keys.
+- `whereLike(…, { caseSensitive: true })` is exact-case only on PostgreSQL and MongoDB. SQLite `LIKE` is always case-insensitive for ASCII, and MySQL follows the column collation (case-insensitive by default).
 - `makemigrations` doesn't detect renames. Use a hand-written `ctx.renameColumn()` /
   `ctx.renameTable()` migration.
 - SQLite table rebuilds keep columns, keys, indexes and unique constraints. `CHECK` constraints

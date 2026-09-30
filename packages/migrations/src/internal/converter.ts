@@ -39,6 +39,7 @@ export class ModelSchemaConverter {
           precision: field.precision,
           scale: field.scale,
           comment: field.comment,
+          ...(field.options['objectId'] === true ? { objectId: true } : {}),
         };
 
         columns.push(colDef);

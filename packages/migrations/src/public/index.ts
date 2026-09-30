@@ -20,3 +20,4 @@ export {
   type MigrationDialect,
 } from '../internal/compiler.js';
 export { MigrationStorage } from '../internal/storage.js';
+export { compileMongoOperation, buildValidator } from '../internal/mongo-compiler.js';

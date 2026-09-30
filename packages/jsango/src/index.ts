@@ -57,6 +57,10 @@ export {
   getDatabaseManager,
   transaction,
   getActiveTransaction,
+  generateObjectId,
+  type WhereGroupCallback,
+  type GroupAggregates,
+  type GroupByOptions,
   type ModelWriteOptions,
   type TrashedMode,
   type DefinedModelStatic,
@@ -83,6 +87,7 @@ export {
   type IDatabaseTransaction,
   type QueryResult,
   type DatabaseResult,
+  type MongoCommand,
 } from '@jsango/database';
 export {
   MigrationRunner,

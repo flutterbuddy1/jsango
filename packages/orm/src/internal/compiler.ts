@@ -5,6 +5,8 @@ import type {
   DeleteAst,
   CountAst,
   ExistsAst,
+  AggregateAst,
+  GroupAst,
   WhereConditionNode,
 } from './ast.js';
 import type { CompiledQuery, QueryContext } from '../public/types.js';
@@ -22,6 +24,9 @@ export interface SqlCompilerOptions {
 }
 
 const IDENTIFIER_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+
+const AGGREGATE_SQL = { count: 'COUNT', sum: 'SUM', avg: 'AVG', min: 'MIN', max: 'MAX' } as const;
+const HAVING_OPERATORS = new Set(['=', '!=', '>', '>=', '<', '<=']);
 
 const ALLOWED_OPERATORS = new Set([
   '=',
@@ -106,7 +111,7 @@ export class SqlCompiler {
     const cols =
       ast.columns.length === 0 ? '*' : ast.columns.map((c) => this.escapeIdentifier(c)).join(', ');
 
-    let sql = `SELECT ${cols} FROM ${this.escapeIdentifier(ast.table)}`;
+    let sql = `SELECT ${ast.distinct ? 'DISTINCT ' : ''}${cols} FROM ${this.escapeIdentifier(ast.table)}`;
 
     if (ast.joins && ast.joins.length > 0) {
       for (const join of ast.joins) {
@@ -152,6 +157,77 @@ export class SqlCompiler {
       sql += ` OFFSET ${ast.offset}`;
     }
 
+    if (ast.lock) {
+      // Row locks only exist on PostgreSQL and MySQL; SQLite serializes writers anyway.
+      if (this.dialect === 'postgres') sql += ast.lock === 'update' ? ' FOR UPDATE' : ' FOR SHARE';
+      else if (this.dialect === 'mysql') sql += ast.lock === 'update' ? ' FOR UPDATE' : ' LOCK IN SHARE MODE';
+    }
+
+    return { sql, params: Object.freeze(params) };
+  }
+
+  /** `SELECT SUM(col) AS aggregate FROM ...` (also COUNT / AVG / MIN / MAX). */
+  public compileAggregate(ast: AggregateAst): CompiledQuery {
+    const fn = AGGREGATE_SQL[ast.fn];
+    if (!fn) throw new QueryError(`Unsupported aggregate function '${String(ast.fn)}'.`);
+    const target = ast.column === '*' ? '*' : this.escapeIdentifier(ast.column);
+    let sql = `SELECT ${fn}(${target}) AS ${this.escapeIdentifier('aggregate')} FROM ${this.escapeIdentifier(ast.table)}`;
+    const params: unknown[] = [];
+    const built = this.buildWhere(ast.scope, ast.where, 1);
+    if (built) {
+      sql += ` WHERE ${built.sql}`;
+      params.push(...built.params);
+    }
+    return { sql, params: Object.freeze(params) };
+  }
+
+  /** `SELECT keys, AGG(col) AS alias ... GROUP BY keys HAVING ... ORDER BY ... LIMIT`. */
+  public compileGroup(ast: GroupAst): CompiledQuery {
+    if (ast.groupBy.length === 0) throw new QueryError('groupBy() requires at least one column.');
+    const params: unknown[] = [];
+    const keys = ast.groupBy.map((c) => this.escapeIdentifier(c));
+    const aggregateSql = (alias: string): string => {
+      const agg = ast.aggregates[alias]!;
+      const fn = AGGREGATE_SQL[agg.fn];
+      if (!fn) throw new QueryError(`Unsupported aggregate function '${String(agg.fn)}'.`);
+      return `${fn}(${agg.column ? this.escapeIdentifier(agg.column) : '*'})`;
+    };
+    const aggs = Object.keys(ast.aggregates).map(
+      (alias) => `${aggregateSql(alias)} AS ${this.escapeIdentifier(alias)}`
+    );
+
+    let sql = `SELECT ${[...keys, ...aggs].join(', ')} FROM ${this.escapeIdentifier(ast.table)}`;
+    let counter = 1;
+    const built = this.buildWhere(ast.scope, ast.where, counter);
+    if (built) {
+      sql += ` WHERE ${built.sql}`;
+      params.push(...built.params);
+      counter = built.nextCounter;
+    }
+    sql += ` GROUP BY ${keys.join(', ')}`;
+
+    if (ast.having && ast.having.length > 0) {
+      const parts = ast.having.map((h) => {
+        if (!(h.alias in ast.aggregates)) {
+          throw new QueryError(`having() refers to unknown aggregate '${h.alias}'.`);
+        }
+        if (!HAVING_OPERATORS.has(h.operator)) {
+          throw new QueryError(`Unsupported HAVING operator '${h.operator}'.`);
+        }
+        params.push(h.value);
+        // Repeat the expression: not every database accepts aliases in HAVING.
+        return `${aggregateSql(h.alias)} ${h.operator} ${this.createPlaceholder(counter++)}`;
+      });
+      sql += ` HAVING ${parts.join(' AND ')}`;
+    }
+
+    if (ast.orderBy && ast.orderBy.length > 0) {
+      sql += ` ORDER BY ${ast.orderBy.map((o) => `${this.escapeIdentifier(o.column)} ${o.direction}`).join(', ')}`;
+    }
+    if (typeof ast.limit === 'number') {
+      if (!Number.isInteger(ast.limit) || ast.limit < 0) throw new QueryError(`Invalid LIMIT value: ${ast.limit}`);
+      sql += ` LIMIT ${ast.limit}`;
+    }
     return { sql, params: Object.freeze(params) };
   }
 
@@ -186,7 +262,8 @@ export class SqlCompiler {
 
   public compileUpdate(ast: UpdateAst): CompiledQuery {
     const keys = Object.keys(ast.values);
-    if (keys.length === 0) {
+    const increments = Object.entries(ast.increments ?? {});
+    if (keys.length === 0 && increments.length === 0) {
       throw new QueryError('UPDATE query requires at least one field to update.');
     }
 
@@ -197,6 +274,14 @@ export class SqlCompiler {
     for (const key of keys) {
       setClauses.push(`${this.escapeIdentifier(key)} = ${this.createPlaceholder(paramCounter++)}`);
       params.push(ast.values[key]);
+    }
+    for (const [key, amount] of increments) {
+      if (typeof amount !== 'number' || !Number.isFinite(amount)) {
+        throw new QueryError(`increment() amount for '${key}' must be a finite number.`);
+      }
+      const col = this.escapeIdentifier(key);
+      setClauses.push(`${col} = ${col} + ${this.createPlaceholder(paramCounter++)}`);
+      params.push(amount);
     }
 
     let sql = `UPDATE ${this.escapeIdentifier(ast.table)} SET ${setClauses.join(', ')}`;
@@ -299,21 +384,58 @@ export class SqlCompiler {
 
     for (let i = 0; i < conditions.length; i++) {
       const cond = conditions[i]!;
-      const prefix = i === 0 ? '' : ` ${cond.boolean} `;
+      const prefix = i === 0 ? '' : ` ${cond.boolean === 'OR' ? 'OR' : 'AND'} `;
+
+      if (cond.type === 'group') {
+        const children = cond.children ?? [];
+        if (children.length === 0) {
+          sql += `${prefix}${cond.operator === 'NOT' ? '1 = 0' : '1 = 1'}`;
+          continue;
+        }
+        const inner = this.compileWhereClause(children, paramCounter);
+        paramCounter = inner.nextCounter;
+        params.push(...inner.params);
+        sql += `${prefix}${cond.operator === 'NOT' ? 'NOT ' : ''}(${inner.sql})`;
+        continue;
+      }
+
+      if (cond.type === 'raw') {
+        if (typeof cond.sql !== 'string') {
+          throw new QueryError('whereRaw() with a filter object is only supported on MongoDB; pass an SQL string for SQL databases.');
+        }
+        let fragment = cond.sql;
+        const rawParams = cond.params ?? [];
+        if (this.placeholderType === 'dollar') {
+          fragment = fragment.replace(/\?/g, () => this.createPlaceholder(paramCounter++));
+        } else {
+          paramCounter += rawParams.length;
+        }
+        params.push(...rawParams);
+        sql += `${prefix}(${fragment})`;
+        continue;
+      }
+
       const col = this.escapeIdentifier(cond.column);
 
       if (cond.type === 'null') {
-        sql += `${prefix}${col} ${cond.operator}`;
+        const op = cond.operator.toUpperCase() === 'IS NOT NULL' ? 'IS NOT NULL' : 'IS NULL';
+        sql += `${prefix}${col} ${op}`;
       } else if (cond.type === 'in') {
+        const op = cond.operator.toUpperCase() === 'NOT IN' ? 'NOT IN' : 'IN';
         const vals = cond.values ?? [];
         if (vals.length === 0) {
           // Empty IN condition evaluates to false (or true for NOT IN)
-          sql += cond.operator === 'IN' ? `${prefix}1 = 0` : `${prefix}1 = 1`;
+          sql += op === 'IN' ? `${prefix}1 = 0` : `${prefix}1 = 1`;
         } else {
           const placeholders = vals.map(() => this.createPlaceholder(paramCounter++));
-          sql += `${prefix}${col} ${cond.operator} (${placeholders.join(', ')})`;
+          sql += `${prefix}${col} ${op} (${placeholders.join(', ')})`;
           params.push(...vals);
         }
+      } else if (cond.type === 'between') {
+        const op = cond.operator.toUpperCase() === 'NOT BETWEEN' ? 'NOT BETWEEN' : 'BETWEEN';
+        const [low, high] = cond.values ?? [];
+        sql += `${prefix}${col} ${op} ${this.createPlaceholder(paramCounter++)} AND ${this.createPlaceholder(paramCounter++)}`;
+        params.push(low, high);
       } else {
         sql += `${prefix}${col} ${this.normalizeOperator(cond.operator)} ${this.createPlaceholder(paramCounter++)}`;
         params.push(cond.value);

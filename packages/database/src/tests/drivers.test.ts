@@ -206,10 +206,20 @@ describe('Database Drivers Suite', () => {
   });
 
   describe('MongoDB Driver', () => {
-    it('explains how to install the client package when it is missing', async () => {
-      const driver = new MongoDatabaseDriver({ url: 'mongodb://localhost:27017', database: 'test' });
+    it('reports an actionable error when the server is unreachable', async () => {
+      const driver = new MongoDatabaseDriver({
+        host: '127.0.0.1',
+        port: 1,
+        database: 'test',
+        pool: { connectionTimeoutMs: 300 },
+      });
       expect(driver.name).toBe('mongodb');
-      await expect(driver.connect()).rejects.toThrow(/npm install mongodb/);
+      await expect(driver.connect()).rejects.toThrow(/Failed to connect to MongoDB at 127\.0\.0\.1:1\/test/);
+    });
+
+    it('explains how to install the client package when it is missing', async () => {
+      const driver = new MongoDatabaseDriver({ url: 'mongodb://localhost:27017' }, { mongodb: {} });
+      await expect(driver.connect()).rejects.toThrow(/does not export MongoClient/);
     });
   });
 

@@ -1,6 +1,6 @@
 import type { IDatabaseConnection } from '@jsango/database';
 import { MigrationLockedError } from './errors.js';
-import { adaptIdentifierQuotes } from '../internal/quoting.js';
+import { adaptIdentifierQuotes, isMongoExecutor } from '../internal/quoting.js';
 
 export interface MigrationLockOptions {
   readonly acquireTimeoutMs?: number | undefined;
@@ -43,6 +43,7 @@ export class MigrationLock {
   }
 
   public async ensureTable(): Promise<void> {
+    if (isMongoExecutor(this.connection)) return;
     await this.connection.query(this.sql(`
       CREATE TABLE IF NOT EXISTS "${MigrationLock.TABLE_NAME}" (
         "id" VARCHAR(64) PRIMARY KEY,
@@ -79,6 +80,15 @@ export class MigrationLock {
     }
 
     try {
+      if (isMongoExecutor(this.connection)) {
+        await this.connection.execute!({
+          op: 'updateOne',
+          collection: MigrationLock.TABLE_NAME,
+          filter: { _id: 'lock', owner_id: this.ownerId },
+          update: { $set: { is_locked: 0, owner_id: '', acquired_at: '' } },
+        });
+        return;
+      }
       await this.connection.query(
         this.sql(`
         UPDATE "${MigrationLock.TABLE_NAME}"
@@ -104,6 +114,30 @@ export class MigrationLock {
   private async tryAcquire(): Promise<boolean> {
     const nowIso = new Date().toISOString();
     const nowMs = Date.now();
+
+    if (isMongoExecutor(this.connection)) {
+      const staleBefore = new Date(nowMs - this.lockExpiryMs).toISOString();
+      try {
+        // Matches when unlocked, stale, or already ours; otherwise the upsert collides with the
+        // existing _id and fails, meaning another process holds the lock.
+        const res = await this.connection.execute!({
+          op: 'findOneAndUpdate',
+          collection: MigrationLock.TABLE_NAME,
+          filter: {
+            _id: 'lock',
+            $or: [{ is_locked: 0 }, { acquired_at: { $lt: staleBefore } }, { owner_id: this.ownerId }],
+          },
+          update: { $set: { is_locked: 1, owner_id: this.ownerId, acquired_at: nowIso } },
+          upsert: true,
+        });
+        return res.rows.length > 0;
+      } catch (err) {
+        if (/E11000|duplicate key/i.test(err instanceof Error ? err.message : String(err))) {
+          return false;
+        }
+        throw err;
+      }
+    }
 
     // Check existing lock row
     const result = await this.connection.query<Record<string, unknown>>(

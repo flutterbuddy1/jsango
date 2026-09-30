@@ -1,4 +1,5 @@
 import type {
+  MongoCommand,
   DatabaseResult,
   IDatabaseTransaction,
   IDriverConnection,
@@ -15,17 +16,29 @@ export class DatabaseTransaction implements IDatabaseTransaction {
   public readonly dialect: SqlDialect;
   private state: TransactionState = 'active';
   private readonly onCompleted?: (() => void) | undefined;
+  public readonly driverName: string | undefined;
 
   constructor(
     id: string,
     rawConnection: IDriverConnection,
     dialect: SqlDialect,
-    onCompleted?: (() => void) | undefined
+    onCompleted?: (() => void) | undefined,
+    driverName?: string
   ) {
     this.id = id;
     this.rawConnection = rawConnection;
     this.dialect = dialect;
     this.onCompleted = onCompleted;
+    this.driverName = driverName;
+  }
+
+  /** Executes a structured document command (MongoDB) inside this transaction. */
+  public async execute<T = Record<string, unknown>>(command: MongoCommand): Promise<DatabaseResult<T>> {
+    this.assertActive('execute command');
+    if (typeof this.rawConnection.execute !== 'function') {
+      throw new TransactionError('This driver does not support document commands.');
+    }
+    return this.rawConnection.execute<T>(command);
   }
 
   public get isCompleted(): boolean {

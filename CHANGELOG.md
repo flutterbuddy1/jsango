@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] - 2026-09-30
+
+### MongoDB support and advanced queries for every database
+
+#### MongoDB: first-class support
+- **Fixed:** `jsango migrate` failed on MongoDB with "Unsupported MongoDB command". The migration history, lock and schema operations were SQL-only. MongoDB now has its own path: collections, `$jsonSchema` validators (required fields and types), unique/partial indexes, default backfill on added fields, `$unset`/`$rename` for dropped/renamed fields, and history/lock collections. It works on standalone servers and replica sets.
+- The ORM runs on MongoDB. Every query builder feature is translated to filters and aggregation pipelines with SQL semantics (AND/OR precedence, `LIKE` → anchored regex, `IS NULL` matches missing fields). The primary key maps to `_id`, and ObjectIds are exposed as hex strings.
+- `fields.objectId()` for portable ids and references (native ObjectId on MongoDB, `VARCHAR(24)` on SQL). Table-builder equivalents: `t.objectIdKey()` / `t.objectId()`.
+- Transactions through client sessions, with an actionable hint when the server isn't a replica set.
+- `connection.execute({ op, collection, … })` structured commands, `ctx.execute()` in migrations, and `db.mongo<Db>()` for the native driver.
+
+#### Advanced queries (all databases)
+- Grouped conditions `where(q => …)` / `orWhere(q => …)`, `whereNot`, `whereBetween` / `whereNotBetween`, `whereLike` (case-insensitive everywhere), `whereRaw` (SQL string or Mongo filter), `orWhereIn`, `orWhereNull`, and the `BETWEEN` operator form.
+- `distinct()`, `pluck()`, `value()`, `findMany()`, `firstOrFail()`, `latest()` / `oldest()`, `take()` / `skip()`, `chunk()`.
+- Aggregates: `sum`, `avg`, `min`, `max`, `count(column)`, and `groupBy(columns, aggregates, { having, orderBy, limit })`.
+- Atomic `increment` / `decrement` (bulk and per model), `firstOrCreate`, `updateOrCreate`, `restore()` for soft deletes, and `lockForUpdate()` / `sharedLock()`.
+- `whereIn` / `whereNull` / `BETWEEN` operators are now allow-listed as well, so no operator text reaches SQL unvalidated.
+
+#### Tests
+- One advanced ORM + migrations scenario run unchanged on SQLite, PostgreSQL (pg-mem) and MongoDB (replica set), plus real servers through `JSANGO_TEST_POSTGRES_URL` / `JSANGO_TEST_MYSQL_URL` / `JSANGO_TEST_MONGO_URL`.
+- The MongoDB CLI workflow (db:status → makemigrations → migrate → model change → rollback) on a standalone server.
+
+---
+
 ## [1.2.0] - 2026-09-30
 
 ### Database, ORM & Migrations: working end to end on PostgreSQL, MySQL and SQLite

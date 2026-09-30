@@ -1,7 +1,7 @@
 import type { IDatabaseConnection, IDatabaseTransaction } from '@jsango/database';
 import type { MigrationRecord } from '../public/types.js';
 import type { Migration } from '../public/migration.js';
-import { adaptIdentifierQuotes } from './quoting.js';
+import { adaptIdentifierQuotes, isMongoExecutor } from './quoting.js';
 
 export type DatabaseExecutor = IDatabaseConnection | IDatabaseTransaction;
 
@@ -13,6 +13,10 @@ export class MigrationStorage {
   }
 
   public static async ensureTable(connection: DatabaseExecutor): Promise<void> {
+    if (isMongoExecutor(connection)) {
+      // Collections are created on first insert; nothing to prepare.
+      return;
+    }
     await connection.query(
       MigrationStorage.sql(
         connection,
@@ -31,6 +35,23 @@ export class MigrationStorage {
     connection: DatabaseExecutor
   ): Promise<readonly MigrationRecord[]> {
     await MigrationStorage.ensureTable(connection);
+
+    if (isMongoExecutor(connection)) {
+      const res = await connection.execute!<Record<string, unknown>>({
+        op: 'find',
+        collection: MigrationStorage.TABLE_NAME,
+        sort: { _id: 1 },
+      });
+      return Object.freeze(
+        res.rows.map((row) => ({
+          id: String(row['_id']),
+          name: String(row['name']),
+          appliedAt: new Date(String(row['applied_at'])),
+          batch: Number(row['batch']),
+          checksum: row['checksum'] ? String(row['checksum']) : undefined,
+        }))
+      );
+    }
 
     const result = await connection.query<Record<string, unknown>>(
       MigrationStorage.sql(
@@ -59,6 +80,14 @@ export class MigrationStorage {
     checksum?: string
   ): Promise<void> {
     const now = new Date().toISOString();
+    if (isMongoExecutor(connection)) {
+      await connection.execute!({
+        op: 'insertOne',
+        collection: MigrationStorage.TABLE_NAME,
+        document: { _id: migration.id, name: migration.name, applied_at: now, batch, checksum: checksum ?? null },
+      });
+      return;
+    }
     await connection.query(
       MigrationStorage.sql(
         connection,
@@ -70,6 +99,10 @@ export class MigrationStorage {
   }
 
   public static async removeMigration(connection: DatabaseExecutor, id: string): Promise<void> {
+    if (isMongoExecutor(connection)) {
+      await connection.execute!({ op: 'deleteOne', collection: MigrationStorage.TABLE_NAME, filter: { _id: id } });
+      return;
+    }
     await connection.query(
       MigrationStorage.sql(connection, `DELETE FROM "${MigrationStorage.TABLE_NAME}" WHERE "id" = ?`),
       [id]
@@ -78,6 +111,15 @@ export class MigrationStorage {
 
   public static async getMaxBatch(connection: DatabaseExecutor): Promise<number> {
     await MigrationStorage.ensureTable(connection);
+    if (isMongoExecutor(connection)) {
+      const res = await connection.execute!<{ max: unknown }>({
+        op: 'aggregate',
+        collection: MigrationStorage.TABLE_NAME,
+        pipeline: [{ $group: { _id: null, max: { $max: '$batch' } } }],
+      });
+      const max = res.rows[0]?.max;
+      return max === null || max === undefined ? 0 : Number(max);
+    }
     const result = await connection.query<Record<string, unknown>>(
       MigrationStorage.sql(
         connection,
