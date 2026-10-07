@@ -8,6 +8,9 @@ import { DatabaseManager, MemoryDatabaseDriver } from '@jsango/database';
 import { defineModel, fields, setDatabaseManager, defaultModelRegistry } from '@jsango/orm';
 import { CreateTableOperation, Migration, MigrationRegistry } from '@jsango/migrations';
 import { ExitCode } from '../public/types.js';
+import { createRequire } from 'node:module';
+
+const PKG_VERSION = (createRequire(import.meta.url)('../../package.json') as { version: string }).version;
 
 describe('Built-in Commands', () => {
   let app: CliApplication;
@@ -38,7 +41,7 @@ describe('Built-in Commands', () => {
     it('should output version in text mode', async () => {
       const code = await app.run(['version'], output);
       expect(code).toBe(ExitCode.SUCCESS);
-      expect(stdoutData).toContain('jsango v1.0.0');
+      expect(stdoutData).toContain(`jsango v${PKG_VERSION}`);
     });
 
     it('should output version in json mode', async () => {
@@ -46,7 +49,7 @@ describe('Built-in Commands', () => {
       expect(code).toBe(ExitCode.SUCCESS);
       const parsed = JSON.parse(stdoutData.trim()) as Record<string, unknown>;
       expect(parsed['framework']).toBe('jsango');
-      expect(parsed['version']).toBe('1.0.0');
+      expect(parsed['version']).toBe(PKG_VERSION);
     });
   });
 

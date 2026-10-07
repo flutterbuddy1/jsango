@@ -125,7 +125,16 @@ export interface OpenApiOptions {
   readonly description?: string;
 }
 
-function parseRouteArgs(args: any[]): { handler: RouteHandler; options: RouteOptions } {
+/**
+ * Arguments of `app.get/post/...`: middleware (`validate(...)`, `auth.required()`, ...), route
+ * options, and the handler last. `ctx` is typed as RequestContext (`ctx.params`, `ctx.query`,
+ * `ctx.body`, `ctx.request`).
+ */
+export type RouteArg =
+  | ((ctx: RequestContext, next: () => Promise<HttpResponse>) => unknown)
+  | RouteOptions;
+
+function parseRouteArgs(args: readonly RouteArg[]): { handler: RouteHandler; options: RouteOptions } {
   let options: Record<string, any> = {};
   const functions: Function[] = [];
 
@@ -181,43 +190,43 @@ export class JSangoApplication {
 
   // --- HTTP Methods with Automatic Variadic Middleware Support ---
 
-  public get(path: string, ...handlers: any[]): this {
+  public get(path: string, ...handlers: RouteArg[]): this {
     const { handler, options } = parseRouteArgs(handlers);
     this.app.get(path, handler, options);
     return this;
   }
 
-  public post(path: string, ...handlers: any[]): this {
+  public post(path: string, ...handlers: RouteArg[]): this {
     const { handler, options } = parseRouteArgs(handlers);
     this.app.post(path, handler, options);
     return this;
   }
 
-  public put(path: string, ...handlers: any[]): this {
+  public put(path: string, ...handlers: RouteArg[]): this {
     const { handler, options } = parseRouteArgs(handlers);
     this.app.put(path, handler, options);
     return this;
   }
 
-  public patch(path: string, ...handlers: any[]): this {
+  public patch(path: string, ...handlers: RouteArg[]): this {
     const { handler, options } = parseRouteArgs(handlers);
     this.app.patch(path, handler, options);
     return this;
   }
 
-  public delete(path: string, ...handlers: any[]): this {
+  public delete(path: string, ...handlers: RouteArg[]): this {
     const { handler, options } = parseRouteArgs(handlers);
     this.app.delete(path, handler, options);
     return this;
   }
 
-  public head(path: string, ...handlers: any[]): this {
+  public head(path: string, ...handlers: RouteArg[]): this {
     const { handler, options } = parseRouteArgs(handlers);
     this.app.head(path, handler, options);
     return this;
   }
 
-  public options(path: string, ...handlers: any[]): this {
+  public options(path: string, ...handlers: RouteArg[]): this {
     const { handler, options } = parseRouteArgs(handlers);
     this.app.options(path, handler, options);
     return this;

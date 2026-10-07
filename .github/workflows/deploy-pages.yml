@@ -6,6 +6,11 @@ on:
       - main
     paths:
       - 'site/**'
+      - 'docs/**'
+      - 'README.md'
+      - 'CHANGELOG.md'
+      - 'packages/cli/templates/**'
+      - 'scripts/build-llms.mjs'
       - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 
@@ -24,6 +29,9 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Build llms.txt and llms-full.txt for AI assistants
+        run: node scripts/build-llms.mjs site
 
       - name: Deploy to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4

@@ -1,5 +1,5 @@
 // Primary Application & Bootstrap
-export { createApp, JSangoApplication, type CrudOptions, type AdminOptions, type AdminCredentials, type AdminResourceEntry, type OpenApiOptions } from './application.js';
+export { createApp, JSangoApplication, type CrudOptions, type AdminOptions, type AdminCredentials, type AdminResourceEntry, type OpenApiOptions, type RouteArg } from './application.js';
 
 // HTTP Layer
 export {

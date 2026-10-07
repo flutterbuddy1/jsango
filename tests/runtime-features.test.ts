@@ -20,7 +20,7 @@ import {
 } from '../packages/ai/dist/index.js';
 import { MetricRegistry } from '../packages/observability/dist/index.js';
 import { DatabaseManager } from '../packages/database/dist/index.js';
-import { createApp, defineModel, fields, setDatabaseManager } from '../packages/jsango/dist/index.js';
+import { createApp, defineModel, fields, setDatabaseManager, validate, schema, string } from '../packages/jsango/dist/index.js';
 import { clearDatabaseManager } from '../packages/orm/dist/index.js';
 
 describe('workflow', () => {
@@ -235,6 +235,27 @@ describe('app.crud filters', () => {
       await server.close();
       clearDatabaseManager();
       await db.close();
+    }
+  });
+});
+
+describe('route handler context', () => {
+  it('exposes ctx.params, ctx.query and the validated ctx.body (destructurable)', async () => {
+    const app = createApp();
+    app.get('/posts/:id', ({ params, query }) => ({ id: params['id'], page: query['page'] }));
+    app.post('/posts', validate({ body: schema({ title: string().min(3) }) }), ({ body }) => ({ created: body.title }));
+    app.post('/raw', async (ctx) => ({ body: ctx.body ?? null, raw: await ctx.request.json() }));
+    const server = await app.listen(0, '127.0.0.1');
+    try {
+      const base = `http://127.0.0.1:${server.address!.port}`;
+      expect(await (await fetch(`${base}/posts/7?page=2`)).json()).toEqual({ id: '7', page: '2' });
+      const post = (body: unknown, path = '/posts') =>
+        fetch(base + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      expect(await (await post({ title: 'Hello', extra: 1 })).json()).toEqual({ created: 'Hello' });
+      expect((await post({ title: 'x' })).status).toBe(400);
+      expect(await (await post({ a: 1 }, '/raw')).json()).toEqual({ body: null, raw: { a: 1 } });
+    } finally {
+      await server.close();
     }
   });
 });

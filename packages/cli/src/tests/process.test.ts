@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest';
 import * as child_process from 'node:child_process';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+
+const PKG_VERSION = (createRequire(import.meta.url)('../../package.json') as { version: string }).version;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,7 +16,7 @@ describe('CLI Process Integration Tests', () => {
       encoding: 'utf8',
     });
     expect(res.status).toBe(0);
-    expect(res.stdout).toContain('jsango v1.0.0');
+    expect(res.stdout).toContain(`jsango v${PKG_VERSION}`);
     expect(res.stderr).toBe('');
   });
 

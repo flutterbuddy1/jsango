@@ -66,6 +66,13 @@ await app.listen(3000);
 
 ---
 
+## Building with AI assistants
+
+Every `jsango new` project ships an `AGENTS.md` (read by Claude Code, Cursor, Copilot, Codex, ...) that makes AI agents
+build with jsango's APIs instead of other libraries and verify their work. Add it to an existing project with
+`npx jsango ai:init`. AI assistants can read the docs at
+[llms.txt](https://flutterbuddy1.github.io/jsango/llms.txt) / [llms-full.txt](https://flutterbuddy1.github.io/jsango/llms-full.txt).
+
 ## Essential Guides
 
 ### 1. Simple REST & CRUD APIs
@@ -279,6 +286,7 @@ await app.listen(3000);
 | `jsango routes` | List all registered HTTP and WebSocket routes |
 | `jsango make:agent <name>` | Generate an AI Agent template |
 | `jsango ai:doctor` | Verify configured AI providers and API keys |
+| `jsango ai:init` | Add or refresh `AGENTS.md` / `CLAUDE.md` so AI coding agents use jsango |
 | `jsango doctor` | Verify environment, dependencies, and configuration |
 
 ---

@@ -29,4 +29,5 @@ export { DiagnosticsCommand } from './commands/diagnostics.js';
 export { AdminGenerateCommand } from './commands/admin-generate.js';
 export { AiGenerateCommand } from './commands/ai-generate.js';
 export { AiDoctorCommand } from './commands/ai-doctor.js';
+export { AiInitCommand } from './commands/ai-init.js';
 

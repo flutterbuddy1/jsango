@@ -15,6 +15,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `MemoryAuthStore` (default) and `DatabaseAuthStore` (PostgreSQL, MySQL, SQLite, MongoDB) for sessions, revocations and counters. A warning is logged when the memory store is used in production.
 - `JwksVerifier` for verifying provider tokens on their own.
 
+### Building with AI assistants
+- `jsango new` writes an `AGENTS.md` (plus a `CLAUDE.md` importing it) that tells AI coding agents to build with jsango's APIs, gives them the project layout and commands, has them verify with `tsc` / `migrate:check`, and has them draft bug reports for the user to submit. Its code is type-checked in CI.
+- `jsango ai:init` adds or refreshes it in existing projects and keeps the project's own instructions.
+- The docs site publishes [`llms.txt`](https://flutterbuddy1.github.io/jsango/llms.txt) and `llms-full.txt`, generated from the guides on every deploy.
+- `jsango --version` and `jsango doctor` report the real version (they always said 1.0.0).
+
+### Found by letting an AI agent build a project from AGENTS.md
+- **Model attributes are typed.** `fields.string()` and the other builders were inferred as `FieldDefinition<unknown>` inside `defineModel`, so every attribute was a union of all column types (`post.title` was not a `string`). Attributes now have their real types (`string`, `number`, `boolean`, `Date`, `string | null` for nullable fields, custom unions via `fields.string<'a' | 'b'>()`). Code that relied on the loose types may now report real type errors.
+- **`({ params })`, `({ query })` and `({ body })` work in route handlers**, as the docs always showed. They used to be `undefined`. `ctx.params`, `ctx.query` and `ctx.body` (the body validated by `validate()`) are now on `RequestContext`.
+- **Route handlers are typed.** `app.get/post/...` used `any[]`, so `ctx` was untyped. Handlers and middleware are now typed `RouteArg`s.
+
 ### Admin panel: customizable, secure and built for large tables
 - **Customizing:** `resources: [{ model, ...options }]` (and `new AdminResource({ modelName })`) now merges your options with the model's fields, so overriding one column no longer drops the rest. Computed columns (`computedGetter`) work in lists, details and exports. Boolean and choice fields get filters automatically.
 - **Dashboards:** `app.admin({ dashboard: [...] })` with `MetricWidget`, `ChartWidget` (line/bar with tooltip, legend and dark mode), `TableWidget` and `ActivityWidget`. Widgets load independently and in parallel, and support `cacheSeconds`, `refreshIntervalSeconds` and `permission`.

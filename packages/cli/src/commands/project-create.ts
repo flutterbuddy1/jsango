@@ -6,6 +6,7 @@ import { ExitCode } from '../public/types.js';
 import { DestructiveOperationError, UsageError } from '../public/errors.js';
 import { ProjectDiscovery } from '../internal/project.js';
 import { FRAMEWORK_VERSION } from './version.js';
+import { writeAgentFiles } from '../internal/agent-files.js';
 
 
 export class ProjectCreateCommand extends BaseCommand {
@@ -219,6 +220,10 @@ DATABASE_SSL=
 DATABASE_POOL_MAX=10
 
 PORT=3000
+
+# ---- Auth (createAuth) ----------------------------------------------------
+# 32+ random characters: openssl rand -base64 48
+AUTH_SECRET=
 `,
 
       '.gitignore': `node_modules/
@@ -258,6 +263,11 @@ SQLite works out of the box on Node.js 22.13+. For other databases install the c
 Other commands: \`npx jsango migrate:status\`, \`npx jsango migrate:rollback\`, \`npx jsango db:status\`.
 
 See the [database guide](https://github.com/flutterbuddy1/jsango/tree/main/docs/database/README.md).
+
+## Building with AI
+
+\`AGENTS.md\` tells AI coding agents (Claude Code, Cursor, Copilot, Codex, ...) to build with jsango's APIs
+instead of other libraries. Refresh it after upgrading jsango: \`npx jsango ai:init\`.
 `,
     };
 
@@ -266,6 +276,9 @@ See the [database guide](https://github.com/flutterbuddy1/jsango/tree/main/docs/
       fs.mkdirSync(path.dirname(filePath), { recursive: true });
       fs.writeFileSync(filePath, content, 'utf8');
     }
+
+    // Instructions for AI coding agents (Claude Code, Cursor, Copilot, Codex, ...).
+    const agentFiles = writeAgentFiles(targetDir).map((r) => r.file);
 
     // A ready-to-use .env (SQLite) so the first `npm run migrate` works without editing.
     const envPath = path.join(targetDir, '.env');
@@ -277,7 +290,7 @@ See the [database guide](https://github.com/flutterbuddy1/jsango/tree/main/docs/
       context.output.json({
         projectName,
         targetDir,
-        files: [...Object.keys(files), '.env'],
+        files: [...Object.keys(files), ...agentFiles, '.env'],
       });
       return ExitCode.SUCCESS;
     }
@@ -291,6 +304,8 @@ See the [database guide](https://github.com/flutterbuddy1/jsango/tree/main/docs/
     context.output.text(`  ${colors.dim('$')} npm run makemigrations`);
     context.output.text(`  ${colors.dim('$')} npm run migrate`);
     context.output.text(`  ${colors.dim('$')} npm run dev`);
+    context.output.text();
+    context.output.text(`Building with an AI assistant? ${colors.cyan('AGENTS.md')} teaches it to use jsango.`);
     context.output.text();
 
     return ExitCode.SUCCESS;

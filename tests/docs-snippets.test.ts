@@ -63,6 +63,7 @@ function collect(): Snippet[] {
     const readme = path.join(ROOT, 'packages', pkg, 'README.md');
     if (fs.existsSync(readme)) markdown.push(readme);
   }
+  markdown.push(path.join(ROOT, 'packages', 'cli', 'templates', 'AGENTS.md')); // AI agent rules
 
   for (const file of markdown) {
     const text = fs.readFileSync(file, 'utf8');

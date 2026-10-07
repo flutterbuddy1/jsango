@@ -8,7 +8,7 @@ type CustomFieldOptions<T> = Omit<FieldOptions<T>, 'type'> & {
 function createField<T>(
   type: FieldOptions['type'],
   options?: CustomFieldOptions<T>
-): FieldDefinition<T> {
+): FieldDefinition<NoInfer<T>> {
   const { defaultValue, maxLength, ...rest } = options ?? {};
   return {
     type,
@@ -33,8 +33,13 @@ export function generateObjectId(): string {
   return bytes.map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+/*
+ * Builders return FieldDefinition<NoInfer<T>>: inside defineModel's object literal TypeScript would
+ * otherwise infer T from the contextual type (FieldDefinition<unknown>) instead of using the default,
+ * and every model attribute would be typed as a union of all column types.
+ */
 export const fields = {
-  id<T = number>(options?: CustomFieldOptions<T>): FieldDefinition<T> {
+  id<T = number>(options?: CustomFieldOptions<T>): FieldDefinition<NoInfer<T>> {
     return createField<T>('integer', {
       primaryKey: true,
       autoIncrement: true,
@@ -42,51 +47,51 @@ export const fields = {
     });
   },
 
-  string<T = string>(options?: CustomFieldOptions<T>): FieldDefinition<T> {
+  string<T = string>(options?: CustomFieldOptions<T>): FieldDefinition<NoInfer<T>> {
     return createField<T>('string', options);
   },
 
-  number<T = number>(options?: CustomFieldOptions<T>): FieldDefinition<T> {
+  number<T = number>(options?: CustomFieldOptions<T>): FieldDefinition<NoInfer<T>> {
     return createField<T>('float', options);
   },
 
-  text<T = string>(options?: CustomFieldOptions<T>): FieldDefinition<T> {
+  text<T = string>(options?: CustomFieldOptions<T>): FieldDefinition<NoInfer<T>> {
     return createField<T>('text', options);
   },
 
-  integer<T = number>(options?: CustomFieldOptions<T>): FieldDefinition<T> {
+  integer<T = number>(options?: CustomFieldOptions<T>): FieldDefinition<NoInfer<T>> {
     return createField<T>('integer', options);
   },
 
-  bigint<T = bigint>(options?: CustomFieldOptions<T>): FieldDefinition<T> {
+  bigint<T = bigint>(options?: CustomFieldOptions<T>): FieldDefinition<NoInfer<T>> {
     return createField<T>('bigint', options);
   },
 
-  float<T = number>(options?: CustomFieldOptions<T>): FieldDefinition<T> {
+  float<T = number>(options?: CustomFieldOptions<T>): FieldDefinition<NoInfer<T>> {
     return createField<T>('float', options);
   },
 
-  decimal<T = number>(options?: CustomFieldOptions<T>): FieldDefinition<T> {
+  decimal<T = number>(options?: CustomFieldOptions<T>): FieldDefinition<NoInfer<T>> {
     return createField<T>('decimal', options);
   },
 
-  boolean<T = boolean>(options?: CustomFieldOptions<T>): FieldDefinition<T> {
+  boolean<T = boolean>(options?: CustomFieldOptions<T>): FieldDefinition<NoInfer<T>> {
     return createField<T>('boolean', options);
   },
 
-  dateTime<T = Date>(options?: CustomFieldOptions<T>): FieldDefinition<T> {
+  dateTime<T = Date>(options?: CustomFieldOptions<T>): FieldDefinition<NoInfer<T>> {
     return createField<T>('dateTime', options);
   },
 
-  date<T = Date>(options?: CustomFieldOptions<T>): FieldDefinition<T> {
+  date<T = Date>(options?: CustomFieldOptions<T>): FieldDefinition<NoInfer<T>> {
     return createField<T>('date', options);
   },
 
-  time<T = Date>(options?: CustomFieldOptions<T>): FieldDefinition<T> {
+  time<T = Date>(options?: CustomFieldOptions<T>): FieldDefinition<NoInfer<T>> {
     return createField<T>('time', options);
   },
 
-  json<T = unknown>(options?: CustomFieldOptions<T>): FieldDefinition<T> {
+  json<T = unknown>(options?: CustomFieldOptions<T>): FieldDefinition<NoInfer<T>> {
     return createField<T>('json', options);
   },
 
@@ -95,7 +100,7 @@ export const fields = {
    * primary key and for references to other documents); on SQL databases it is a VARCHAR(24).
    * As a primary key a new id is generated automatically.
    */
-  objectId<T = string>(options?: CustomFieldOptions<T>): FieldDefinition<T> {
+  objectId<T = string>(options?: CustomFieldOptions<T>): FieldDefinition<NoInfer<T>> {
     const isPk = options?.primaryKey === true;
     return createField<T>('string', {
       maxLength: 24,
@@ -105,11 +110,11 @@ export const fields = {
     });
   },
 
-  uuid<T = string>(options?: CustomFieldOptions<T>): FieldDefinition<T> {
+  uuid<T = string>(options?: CustomFieldOptions<T>): FieldDefinition<NoInfer<T>> {
     return createField<T>('uuid', options);
   },
 
-  binary<T = Uint8Array>(options?: CustomFieldOptions<T>): FieldDefinition<T> {
+  binary<T = Uint8Array>(options?: CustomFieldOptions<T>): FieldDefinition<NoInfer<T>> {
     return createField<T>('binary', options);
   },
 } as const;

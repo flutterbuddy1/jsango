@@ -50,6 +50,8 @@ describe('project template', () => {
       '.env',
       '.env.example',
       '.gitignore',
+      'AGENTS.md',
+      'CLAUDE.md',
     ]) {
       expect(fs.existsSync(path.join(PROJECT, file)), file).toBe(true);
     }

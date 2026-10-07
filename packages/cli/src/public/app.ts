@@ -39,6 +39,7 @@ import { DiagnosticsCommand } from '../commands/diagnostics.js';
 import { AdminGenerateCommand } from '../commands/admin-generate.js';
 import { AiGenerateCommand } from '../commands/ai-generate.js';
 import { AiDoctorCommand } from '../commands/ai-doctor.js';
+import { AiInitCommand } from '../commands/ai-init.js';
 
 export interface CliApplicationOptions {
   readonly registry?: CommandRegistry | undefined;
@@ -99,6 +100,7 @@ export class CliApplication {
     registry.register(new AdminGenerateCommand());
     registry.register(new AiGenerateCommand());
     registry.register(new AiDoctorCommand());
+    registry.register(new AiInitCommand());
 
     return app;
 
