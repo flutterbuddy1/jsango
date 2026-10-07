@@ -22,6 +22,8 @@ created ──▶ configured ──▶ committed ──▶ completed
 ## Static Factories
 
 ```typescript
+import { HttpResponse, HttpStatus } from '@jsango/http';
+
 // JSON
 HttpResponse.json({ message: 'Success' }, { status: 200 });
 
@@ -32,7 +34,7 @@ HttpResponse.text('Hello World', { status: 200 });
 HttpResponse.html('<h1>Welcome</h1>', { status: 200 });
 
 // Redirect
-HttpResponse.redirect('/login', HttpStatus.SEE_OTHER);
+HttpResponse.redirect('/login'); // 302 Found
 
 // Empty / No Content
 HttpResponse.empty(HttpStatus.NO_CONTENT);

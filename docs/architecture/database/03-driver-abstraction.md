@@ -9,9 +9,13 @@ The driver abstraction allows the framework to support any relational database e
 The driver factory contract:
 
 ```typescript
+import type { DatabaseCapabilities, IDriverConnection, PoolConfig } from '@jsango/database';
+
 export interface IDatabaseDriver {
   readonly name: string;
   readonly capabilities: DatabaseCapabilities;
+  readonly poolDefaults?: PoolConfig; // recommended pool settings (explicit config wins)
+  readonly maxConnections?: number; // hard upper bound on pooled connections
   connect(): Promise<IDriverConnection>;
   disconnect(): Promise<void>;
 }
@@ -22,9 +26,12 @@ export interface IDatabaseDriver {
 The low-level connection contract:
 
 ```typescript
+import type { DatabaseResult, MongoCommand, QueryOptions } from '@jsango/database';
+
 export interface IDriverConnection {
   readonly isClosed: boolean;
-  query<T>(
+  execute?<T = Record<string, unknown>>(command: MongoCommand): Promise<DatabaseResult<T>>; // MongoDB only
+  query<T = Record<string, unknown>>(
     sql: string,
     params?: readonly unknown[],
     options?: QueryOptions
@@ -39,6 +46,8 @@ export interface IDriverConnection {
 Drivers explicitly declare their capabilities using `DatabaseCapabilities`:
 
 ```typescript
+import type { IsolationLevel } from '@jsango/database';
+
 export interface DatabaseCapabilities {
   readonly supportsTransactions: boolean;
   readonly supportsSavepoints: boolean;
@@ -46,6 +55,7 @@ export interface DatabaseCapabilities {
   readonly supportsReturning: boolean;
   readonly supportsCancellation: boolean;
   readonly placeholderType: 'dollar' | 'question' | 'named';
+  readonly supportsTransactionalDDL?: boolean;
   readonly supportedIsolationLevels?: readonly IsolationLevel[];
 }
 ```

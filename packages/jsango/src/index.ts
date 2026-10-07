@@ -1,5 +1,5 @@
 // Primary Application & Bootstrap
-export { createApp, JSangoApplication, type CrudOptions, type AdminOptions, type OpenApiOptions } from './application.js';
+export { createApp, JSangoApplication, type CrudOptions, type AdminOptions, type AdminCredentials, type AdminResourceEntry, type OpenApiOptions } from './application.js';
 
 // HTTP Layer
 export {
@@ -122,26 +122,8 @@ export {
 export { defineConfig, type JsangoProjectConfig } from '@jsango/cli';
 
 // Auth & Permissions
-export {
-  authenticate,
-  authorize,
-  getAuthContext,
-  setAuthContext,
-  getIdentity,
-  requireIdentity,
-  UserIdentity,
-  BaseIdentity,
-  AnonymousIdentity,
-  SystemIdentity,
-  ServiceAccountIdentity,
-  AuthenticationManager,
-  AuthorizationManager,
-  JwtService,
-  ScryptPasswordHasher,
-  TotpService,
-  type Identity,
-  type AuthContext,
-} from '@jsango/auth';
+// Authentication & authorization (everything @jsango/auth exports)
+export * from '@jsango/auth';
 
 // Realtime & WebSocket
 export {
@@ -179,68 +161,14 @@ export { QueueManager } from '@jsango/queue';
 export { CacheManager } from '@jsango/cache';
 
 // Admin & OpenAPI & Observability
-export {
-  AdminResource,
-  AdminRegistry,
-  AutoResourceGenerator,
-  type AdminResourceOptions,
-} from '@jsango/admin-core';
-export { AdminServer, type AdminServerOptions } from '@jsango/admin-server';
+export * from '@jsango/admin-core';
+export { AdminServer, type AdminServerOptions, type IAdminQueryAdapter } from '@jsango/admin-server';
+export { type IAuditStore, type AdminAuditEntry } from '@jsango/admin-audit';
 export { OpenApiRegistry, OpenApiGenerator } from '@jsango/openapi';
 export { StructuredLogger, MetricRegistry, HealthRegistry, Tracer } from '@jsango/observability';
 
-// AI Platform, Agents & Orchestration
-export {
-  ai,
-  agent,
-  tool,
-  workflow,
-  memory,
-  knowledge,
-  evaluate,
-  mcp,
-  Agent,
-  Workflow,
-  KnowledgeBase,
-  InMemoryVectorStore,
-  InMemoryMemoryStore,
-  DatabaseMemoryStore,
-  FakeLlmProvider,
-  ModelRouter,
-  OpenAiProvider,
-  AnthropicProvider,
-  GeminiProvider,
-  OllamaProvider,
-  AiError,
-  ModelError,
-  ProviderError,
-  ToolError,
-  AgentError,
-  WorkflowError,
-  ApprovalRequiredError,
-  ContextLimitError,
-  BudgetExceededError,
-  GuardrailViolationError,
-  type LlmCallOptions,
-  type LlmResponse,
-  type LlmStream,
-  type LlmMessage,
-  type LlmRole,
-  type LlmToolCall,
-  type LlmUsage,
-  type ToolDefinition,
-  type ToolContext,
-  type AgentConfig,
-  type AgentRunOptions,
-  type AgentRunResult,
-  type AgentEvent,
-  type AgentEventType,
-  type WorkflowResult,
-  type VectorDocument,
-  type VectorSearchResult,
-  type EvaluationCase,
-  type EvaluationResult,
-} from '@jsango/ai';
+// AI Platform, Agents & Orchestration (everything @jsango/ai exports)
+export * from '@jsango/ai';
 
 // CLI
 export { CliApplication } from '@jsango/cli';

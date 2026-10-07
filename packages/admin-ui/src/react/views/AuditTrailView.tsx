@@ -1,131 +1,123 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useAdmin } from '../context/AdminContext.js';
 import { RefreshCw } from 'lucide-react';
 
+interface AuditEntry {
+  id: string;
+  timestamp: string;
+  action: string;
+  resourceId: string;
+  resourceLabel?: string;
+  objectId?: string;
+  objectRepresentation?: string;
+  actor?: { id: string; email?: string; username?: string };
+  changes?: Array<{ field: string; before: unknown; after: unknown }>;
+  ipAddress?: string;
+}
+
+const PAGE_SIZE = 50;
+const ACTIONS = ['create', 'update', 'delete', 'restore', 'action', 'bulk_action', 'export', 'login', 'logout'];
+const BADGE: Record<string, string> = { create: 'teal', delete: 'red', bulk_action: 'red', login: 'purple', logout: 'purple', export: 'gray' };
+const muted = 'var(--chakra-colors-fg-muted)';
+
+const show = (v: unknown) => (v === undefined || v === null ? '∅' : typeof v === 'object' ? JSON.stringify(v) : String(v));
+
+/** The real audit log (`GET /audit`), newest first, filterable by resource and action. */
 export const AuditTrailView: React.FC = () => {
-  const { setBreadcrumbs, showToast } = useAdmin();
+  const { setBreadcrumbs, fetchApi, showToast, resources } = useAdmin();
+  const [entries, setEntries] = useState<AuditEntry[]>([]);
+  const [total, setTotal] = useState(0);
+  const [offset, setOffset] = useState(0);
+  const [resourceId, setResourceId] = useState('');
+  const [action, setAction] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     setBreadcrumbs([{ label: 'Platform' }, { label: 'Audit Trail' }]);
   }, [setBreadcrumbs]);
 
-  const auditEvents = [
-    {
-      id: 1,
-      actor: 'admin@jsango.dev',
-      action: 'UPDATE',
-      resource: 'Product #102',
-      details: 'Updated price to 29.99 and status to published',
-      ip: '127.0.0.1',
-      time: '12 minutes ago',
-    },
-    {
-      id: 2,
-      actor: 'admin@jsango.dev',
-      action: 'CREATE',
-      resource: 'Page #4',
-      details: 'Created new Terms of Service page',
-      ip: '127.0.0.1',
-      time: '45 minutes ago',
-    },
-    {
-      id: 3,
-      actor: 'admin@jsango.dev',
-      action: 'AUTH_2FA_ENABLE',
-      resource: 'Administrator #1',
-      details: 'Activated TOTP Two-Factor Authentication',
-      ip: '127.0.0.1',
-      time: '1 hour ago',
-    },
-    {
-      id: 4,
-      actor: 'system',
-      action: 'MIGRATION_RUN',
-      resource: 'Schema v1.2',
-      details: 'Applied migration 0002_create_pages_table.sql',
-      ip: 'internal',
-      time: '2 hours ago',
-    },
-    {
-      id: 5,
-      actor: 'admin@jsango.dev',
-      action: 'DELETE',
-      resource: 'Product #88',
-      details: 'Deleted discontinued item',
-      ip: '127.0.0.1',
-      time: '5 hours ago',
-    },
-  ];
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(offset) });
+      if (resourceId) params.set('resourceId', resourceId);
+      if (action) params.set('action', action);
+      const page = await fetchApi<{ entries: AuditEntry[]; total: number }>(`/audit?${params}`);
+      setEntries(page.entries ?? []);
+      setTotal(page.total ?? 0);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to load the audit log', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchApi, showToast, offset, resourceId, action]);
 
-  const getActionBadge = (action: string) => {
-    if (action.startsWith('CREATE')) return <span className="chakra-badge teal">{action}</span>;
-    if (action.startsWith('DELETE')) return <span className="chakra-badge red">{action}</span>;
-    if (action.startsWith('AUTH')) return <span className="chakra-badge purple">{action}</span>;
-    return <span className="chakra-badge blue">{action}</span>;
-  };
+  useEffect(() => {
+    load();
+  }, [load]);
 
   return (
-    <div style={{ maxWidth: 1000 }}>
-      {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '1.25rem',
-          flexWrap: 'wrap',
-          gap: '1rem',
-        }}
-      >
+    <div style={{ maxWidth: 1100 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Audit Trail & Security Logs</h1>
-          <div style={{ fontSize: '0.8125rem', color: 'var(--chakra-colors-fg-muted)', marginTop: 2 }}>
-            Immutable record of administrative operations, data mutations, and security events
-          </div>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Audit Trail</h1>
+          <div style={{ fontSize: '0.8125rem', color: muted }}>Every change made through the admin: who, what, when and from where.</div>
         </div>
-
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button
-            type="button"
-            className="chakra-button subtle"
-            onClick={() => showToast('Audit logs refreshed')}
-          >
-            <RefreshCw style={{ width: 14, height: 14 }} /> Refresh Logs
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <select className="chakra-input" style={{ width: 'auto' }} value={resourceId} onChange={(e) => { setResourceId(e.target.value); setOffset(0); }} aria-label="Resource">
+            <option value="">All resources</option>
+            <option value="auth">Sign-ins</option>
+            <option value="auth_security">Account security</option>
+            {resources.map((r) => <option key={r.id} value={r.id}>{r.pluralLabel || r.label}</option>)}
+          </select>
+          <select className="chakra-input" style={{ width: 'auto' }} value={action} onChange={(e) => { setAction(e.target.value); setOffset(0); }} aria-label="Action">
+            <option value="">All actions</option>
+            {ACTIONS.map((a) => <option key={a} value={a}>{a.replace('_', ' ')}</option>)}
+          </select>
+          <button type="button" className="chakra-button subtle" onClick={load} disabled={loading}>
+            <RefreshCw style={{ width: 14, height: 14, animation: loading ? 'spin 1s linear infinite' : 'none' }} /> Refresh
           </button>
         </div>
       </div>
 
-      {/* Audit Log Table */}
-      <div className="chakra-card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table className="chakra-table">
-            <thead>
-              <tr>
-                <th>Timestamp</th>
-                <th>Actor</th>
-                <th>Action</th>
-                <th>Target Resource</th>
-                <th>Operation Details</th>
-                <th style={{ textAlign: 'right' }}>IP Address</th>
+      <div className="chakra-card" style={{ padding: 0, overflowX: 'auto' }}>
+        <table className="chakra-table" style={{ width: '100%' }}>
+          <thead>
+            <tr><th>When</th><th>Actor</th><th>Action</th><th>Target</th><th>Changes</th><th>IP</th></tr>
+          </thead>
+          <tbody>
+            {entries.length === 0 && (
+              <tr><td colSpan={6} style={{ color: muted, textAlign: 'center', padding: '2rem' }}>{loading ? 'Loading…' : 'No audit entries yet.'}</td></tr>
+            )}
+            {entries.map((e) => (
+              <tr key={e.id}>
+                <td style={{ whiteSpace: 'nowrap' }}>{new Date(e.timestamp).toLocaleString()}</td>
+                <td>{e.actor?.email ?? e.actor?.username ?? e.actor?.id ?? 'system'}</td>
+                <td><span className={`chakra-badge ${BADGE[e.action] ?? 'blue'}`}>{e.action.replace('_', ' ')}</span></td>
+                <td>
+                  {e.resourceLabel ?? e.resourceId}
+                  {e.objectId ? ` #${e.objectId}` : ''}
+                  {e.objectRepresentation ? <span style={{ color: muted }}> {e.objectRepresentation}</span> : null}
+                </td>
+                <td style={{ fontSize: '0.75rem', maxWidth: 360 }}>
+                  {(e.changes ?? []).map((c) => (
+                    <div key={c.field}>
+                      <strong>{c.field}</strong>: <span style={{ color: muted }}>{show(c.before)}</span> → {show(c.after)}
+                    </div>
+                  ))}
+                </td>
+                <td style={{ fontFamily: 'var(--chakra-fonts-mono)', fontSize: '0.75rem' }}>{e.ipAddress ?? ''}</td>
               </tr>
-            </thead>
-            <tbody>
-              {auditEvents.map((evt) => (
-                <tr key={evt.id}>
-                  <td style={{ fontSize: '0.75rem', color: 'var(--chakra-colors-fg-muted)', whiteSpace: 'nowrap' }}>
-                    {evt.time}
-                  </td>
-                  <td style={{ fontWeight: 600 }}>{evt.actor}</td>
-                  <td>{getActionBadge(evt.action)}</td>
-                  <td style={{ fontWeight: 600, color: 'var(--chakra-colors-brand-fg)' }}>{evt.resource}</td>
-                  <td style={{ fontSize: '0.8125rem' }}>{evt.details}</td>
-                  <td style={{ textAlign: 'right', fontFamily: 'var(--chakra-fonts-mono)', fontSize: '0.75rem' }}>
-                    {evt.ip}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem', fontSize: '0.8125rem', color: muted }}>
+        <span>{total === 0 ? '0 entries' : `${offset + 1}–${Math.min(offset + PAGE_SIZE, total)} of ${total.toLocaleString()}`}</span>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button type="button" className="chakra-button outline" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}>Previous</button>
+          <button type="button" className="chakra-button outline" disabled={offset + PAGE_SIZE >= total} onClick={() => setOffset(offset + PAGE_SIZE)}>Next</button>
         </div>
       </div>
     </div>

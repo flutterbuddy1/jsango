@@ -1,6 +1,6 @@
 # @jsango/core
 
-> Application lifecycle coordinator, structured error hierarchy, and foundational abstractions for jsango.
+> Structured error base class, logger and application lifecycle contracts, and foundational abstractions for jsango.
 
 Part of the **[jsango](https://github.com/flutterbuddy1/jsango)** backend framework for TypeScript.
 
@@ -15,7 +15,16 @@ pnpm add @jsango/core
 ```typescript
 import { JsangoError } from '@jsango/core';
 
-throw new JsangoError('Invalid state', 'ERR_INVALID_STATE', 400);
+const error = new JsangoError({
+  code: 'ERR_INVALID_STATE',
+  message: 'Invalid state',
+  statusCode: 400,
+  metadata: { orderId: 'ord_1' },
+});
+
+// Safe for HTTP responses: 5xx messages are masked in production.
+console.log(error.toSafeJSON(process.env.NODE_ENV === 'production'));
+throw error;
 ```
 
 ## Documentation

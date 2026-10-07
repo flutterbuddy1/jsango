@@ -43,7 +43,7 @@ emailField.columnName; // "email" (or custom DB column)
 emailField.nullable; // false
 emailField.unique; // true
 emailField.defaultValue; // undefined
-emailField.length; // 255
+emailField.length; // undefined unless set via `length` / `maxLength`
 emailField.options; // Readonly<Record<string, unknown>>
 ```
 

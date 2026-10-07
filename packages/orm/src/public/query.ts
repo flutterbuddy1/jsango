@@ -601,11 +601,13 @@ export class QueryBuilder<TModel extends Model = Model> {
     const page = Math.max(1, Math.floor(options.page));
     const pageSize = Math.max(1, Math.floor(options.pageSize));
 
-    const total = await this.count();
-    const items = await this.clone()
-      .limit(pageSize)
-      .offset((page - 1) * pageSize)
-      .get();
+    const [total, items] = await Promise.all([
+      this.count(),
+      this.clone()
+        .limit(pageSize)
+        .offset((page - 1) * pageSize)
+        .get(),
+    ]);
 
     return {
       items,
@@ -618,6 +620,10 @@ export class QueryBuilder<TModel extends Model = Model> {
 
   public async *cursor(batchSize = 100): AsyncIterable<TModel> {
     const size = Math.max(1, batchSize);
+    if (this.canUseKeyset()) {
+      for await (const batch of this.keysetBatches(size)) yield* batch;
+      return;
+    }
     let currentOffset = this.ast.offset ?? 0;
 
     while (true) {
@@ -637,18 +643,52 @@ export class QueryBuilder<TModel extends Model = Model> {
     }
   }
 
+  /** No custom order, limit or offset: batches can seek by primary key instead of OFFSET. */
+  private canUseKeyset(): boolean {
+    return this.ast.orderBy.length === 0 && this.ast.limit === undefined && this.ast.offset === undefined;
+  }
+
+  /**
+   * Batches ordered by primary key using `WHERE pk > last` (keyset pagination), so every batch
+   * costs the same on tables with millions of rows, unlike OFFSET which rescans skipped rows.
+   */
+  private async *keysetBatches(size: number): AsyncIterable<readonly TModel[]> {
+    const pk = this.modelClass.metadata.primaryKey;
+    // Wrap existing conditions in a group so `OR`s can't escape the `pk > last` condition.
+    const base = this.ast.where.length
+      ? this.clone({ where: [{ type: 'group', column: '', operator: 'AND', boolean: 'AND', children: this.ast.where }] })
+      : this.clone();
+    let last: unknown;
+    for (;;) {
+      let q = base.orderBy(pk).limit(size);
+      if (last !== undefined) q = q.where(pk, '>', last);
+      const batch = await q.get();
+      if (batch.length === 0) return;
+      yield batch;
+      if (batch.length < size) return;
+      last = (batch[batch.length - 1] as unknown as { getAttributes(): Record<string, unknown> }).getAttributes()[pk];
+    }
+  }
+
   /**
    * Processes matching rows in batches. Return `false` from the callback to stop early.
-   * Add an orderBy() for a stable order (the primary key is used when none is set).
+   * Without an orderBy() rows are read in primary-key order using keyset pagination (fast on
+   * large tables); with an orderBy() OFFSET batches are used.
    */
   public async chunk(
     size: number,
     callback: (models: readonly TModel[], page: number) => Promise<unknown> | unknown
   ): Promise<void> {
-    const ordered = this.ast.orderBy.length > 0 ? this : this.orderBy(this.modelClass.metadata.primaryKey);
+    if (this.canUseKeyset()) {
+      let page = 1;
+      for await (const batch of this.keysetBatches(size)) {
+        if ((await callback(batch, page++)) === false) return;
+      }
+      return;
+    }
     let page = 1;
     for (;;) {
-      const batch = await ordered.clone().limit(size).offset((page - 1) * size).get();
+      const batch = await this.clone().limit(size).offset((page - 1) * size).get();
       if (batch.length === 0) return;
       if ((await callback(batch, page)) === false) return;
       if (batch.length < size) return;

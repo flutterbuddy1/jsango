@@ -19,6 +19,8 @@ CommandHandler(CommandContext)
 Every command implements `ICommand` which combines metadata and execution logic:
 
 ```typescript
+import type { ArgumentDefinition, OptionDefinition, CommandExample, CommandContext } from '@jsango/cli';
+
 export interface CommandDefinition {
   readonly name: string;
   readonly description: string;
@@ -40,6 +42,8 @@ export interface ICommand extends CommandDefinition {
 Developers can author commands by extending `BaseCommand` or using the functional `defineCommand` helper:
 
 ```typescript
+import { BaseCommand, ExitCode, FRAMEWORK_VERSION, type CommandContext } from '@jsango/cli';
+
 export class VersionCommand extends BaseCommand {
   public readonly name = 'version';
   public readonly description = 'Display the framework and CLI version';

@@ -54,10 +54,10 @@ Update all module imports in your application codebase:
 
 ```diff
 - import { Application } from '@django-js/middleware';
-- import { Model, Column, PrimaryKey } from '@django-js/orm';
+- import { Model, defineModel, fields } from '@django-js/orm';
 - import { DjangoJsError } from '@django-js/core';
 + import { Application } from '@jsango/middleware';
-+ import { Model, Column, PrimaryKey } from '@jsango/orm';
++ import { Model, defineModel, fields } from '@jsango/orm';
 + import { JsangoError } from '@jsango/core';
 ```
 

@@ -12,18 +12,28 @@ import {
   type IHttpServer,
 } from '@jsango/http';
 import type { RouteHandler, RouteOptions, RouteGroup, RouteGroupConfig, RouteGroupOptions } from '@jsango/router';
-import { defaultModelRegistry, type DefinedModelStatic, type Model } from '@jsango/orm';
-import { AdminRegistry } from '@jsango/admin-core';
-import { AdminServer, type IAdminQueryAdapter, type AdminListQuery, type AdminListResult } from '@jsango/admin-server';
+import { defaultModelRegistry, getDatabaseManager, hasDatabaseManager, type DefinedModelStatic, type Model } from '@jsango/orm';
+import {
+  AdminRegistry,
+  AdminResource,
+  type AdminPage,
+  type AdminResourceOptions,
+  type DashboardWidget,
+} from '@jsango/admin-core';
+import { AdminServer, type IAdminQueryAdapter, type AdminListQuery } from '@jsango/admin-server';
 import { AdminPermissionChecker } from '@jsango/admin-auth';
-import { AdminAuditLogger, InMemoryAuditStore } from '@jsango/admin-audit';
+import { AdminAuditLogger, InMemoryAuditStore, type IAuditStore } from '@jsango/admin-audit';
+import { Auth } from '@jsango/auth';
 import { createAdminUiHandler } from '@jsango/admin-ui';
 import { OpenApiRegistry, OpenApiGenerator } from '@jsango/openapi';
 import { Agent } from '@jsango/ai';
 import { WebSocketEndpointManager, type WebSocketRouteCallback } from './websocket-wrapper.js';
 
 export interface CrudOptions {
+  /** Fields matched by `?search=text` (case-insensitive contains). */
   readonly searchFields?: readonly string[];
+  /** Fields that can be filtered by exact value: `GET /posts?published=true&authorId=3`. */
+  readonly filterFields?: readonly string[];
   readonly defaultPageSize?: number;
   readonly maxPageSize?: number;
 }
@@ -59,30 +69,54 @@ export interface AdminOptions {
    */
   readonly brandSubtitle?: string;
   /**
-   * Super admin credentials for login authentication.
-   * Can also be configured via JSANGO_ADMIN_USER / JSANGO_ADMIN_PASSWORD env variables.
-   * @default username: 'admin@jsango.dev', password: 'admin123'
+   * Who can sign in:
+   * - `createAuth(...)`: your application's users (scrypt passwords, lockout, two-factor). Users
+   *   need the `admin`/`staff` role, the `admin.access` permission or `isSuperuser`.
+   * - `{ email, password }`: a single built-in super admin (or `JSANGO_ADMIN_EMAIL` /
+   *   `JSANGO_ADMIN_PASSWORD`). Without a password, login is refused in production.
    */
-  readonly auth?: {
-    readonly username?: string;
-    readonly email?: string;
-    readonly password?: string;
-    readonly name?: string;
-  };
+  readonly auth?: Auth<any> | AdminCredentials;
+  /** Alias for a built-in super admin account. */
+  readonly credentials?: AdminCredentials;
   /**
-   * Alias for auth options.
+   * ORM models (screens generated from the model), `{ model, ...options }` to customize columns,
+   * search, filters, actions and permissions, or `new AdminResource({...})`.
    */
-  readonly credentials?: {
-    readonly username?: string;
-    readonly email?: string;
-    readonly password?: string;
-    readonly name?: string;
-  };
-  /**
-   * List of ORM models to register into the Admin console.
-   */
-  readonly resources?: readonly (DefinedModelStatic<any, any> | Model)[];
+  readonly resources?: readonly AdminResourceEntry[];
+  /** Dashboard widgets: `new MetricWidget(...)`, `ChartWidget`, `TableWidget`, `ActivityWidget`. */
+  readonly dashboard?: readonly DashboardWidget[];
+  /** Custom sidebar pages, each made of widgets: `new AdminPage({ id, label, widgets })`. */
+  readonly pages?: readonly AdminPage[];
+  /** Where the audit log is stored (default: in memory). */
+  readonly auditStore?: IAuditStore;
+  /** Extra checks on the System page; the database is checked automatically. */
+  readonly healthChecks?: Readonly<Record<string, () => unknown>>;
+  /** Lifetime of an admin login in seconds. Default 8 hours. */
+  readonly sessionTtlSeconds?: number;
+  /** Extra CSS injected into the admin page (brand colors, fonts). */
+  readonly customCss?: string;
+  /** "View site" link. Default '/'. */
+  readonly siteUrl?: string;
+  /** Logo image (https URL, path served by your app, or data:image URL). Square works best. */
+  readonly logoUrl?: string;
+  /** Letters in the logo badge when there is no logoUrl. Default: the title's initials. */
+  readonly logoText?: string;
+  /** Browser tab icon. Defaults to logoUrl. */
+  readonly faviconUrl?: string;
 }
+
+export interface AdminCredentials {
+  readonly username?: string;
+  readonly email?: string;
+  readonly password?: string;
+  readonly name?: string;
+}
+
+export type AdminResourceEntry =
+  | DefinedModelStatic<any, any>
+  | Model
+  | AdminResource
+  | (AdminResourceOptions & { readonly model: DefinedModelStatic<any, any> });
 
 export interface OpenApiOptions {
   readonly path?: string;
@@ -223,10 +257,27 @@ export class JSangoApplication {
 
       let query = modelClass.query();
 
-      if (search && options?.searchFields && options.searchFields.length > 0) {
-        for (const field of options.searchFields) {
-          query = query.orWhere(field, 'LIKE', `%${search}%`);
-        }
+      for (const field of options?.filterFields ?? []) {
+        const raw = ctx.request.query.get(field);
+        if (raw === null || raw === undefined) continue;
+        const type = modelClass.metadata.getField(field)?.type;
+        const value =
+          raw === 'null'
+            ? null
+            : type === 'boolean'
+              ? raw === 'true' || raw === '1'
+              : type === 'integer' || type === 'float' || type === 'decimal'
+                ? Number(raw)
+                : raw;
+        query = query.where(field, value);
+      }
+
+      const searchFields = options?.searchFields ?? [];
+      if (search && searchFields.length > 0) {
+        // Grouped so the OR between search fields cannot bypass the filters above.
+        query = query.where((q) =>
+          searchFields.reduce((acc, field) => acc.orWhereLike(field, `%${search}%`), q)
+        );
       }
 
       return query.paginate({ page, pageSize });
@@ -287,70 +338,36 @@ export class JSangoApplication {
     const uiPath = rawPath.startsWith('/') ? rawPath.replace(/\/$/, '') : `/${rawPath.replace(/\/$/, '')}`;
     const apiPrefix = options.apiPrefix ?? `${uiPath}/api/v1`;
     const registry = new AdminRegistry();
-
-    if (options.resources) {
-      for (const res of options.resources) {
-        registry.register(res as any);
+    for (const entry of options.resources ?? []) {
+      if (entry instanceof AdminResource) {
+        // A resource declared by model name gets the model's fields (overridable by `fields`).
+        const model = entry.options.modelMetadata ? undefined : defaultModelRegistry.getModel(entry.modelName);
+        registry.register(model ? new AdminResource({ ...entry.options, modelMetadata: model.metadata }) : entry);
+      } else if (typeof entry === 'function') {
+        registry.register(entry as any);
+      } else {
+        const { model, ...resourceOptions } = entry as AdminResourceOptions & { model: DefinedModelStatic<any, any> };
+        registry.register(model as any, resourceOptions);
       }
     }
+    for (const widget of options.dashboard ?? []) registry.dashboard.registerWidget(widget);
+    for (const page of options.pages ?? []) registry.registerPage(page);
 
     const permissions = new AdminPermissionChecker();
-    const audit = new AdminAuditLogger({ store: new InMemoryAuditStore() });
+    const audit = new AdminAuditLogger({ store: options.auditStore ?? new InMemoryAuditStore() });
+    const queryAdapter = createOrmAdminAdapter();
+    const authKit = options.auth instanceof Auth ? options.auth : undefined;
 
-    const queryAdapter: IAdminQueryAdapter = {
-      async list(opts: { modelName: string; query: AdminListQuery; searchFields: readonly string[]; pageSize: number }): Promise<AdminListResult> {
-        const modelClass = defaultModelRegistry.getModel(opts.modelName);
-        if (!modelClass) {
-          return { items: [], total: 0, page: 1, pageSize: opts.pageSize, totalPages: 0 };
-        }
-        let q = modelClass.query();
-        if (opts.query.search && opts.searchFields.length > 0) {
-          for (const f of opts.searchFields) {
-            q = q.orWhere(f, 'LIKE', `%${opts.query.search}%`);
-          }
-        }
-        const page = opts.query.page ?? 1;
-        const pageSize = opts.query.pageSize ?? opts.pageSize;
-        const res = await q.paginate({ page, pageSize });
-        return {
-          items: res.items.map((i: any) => (i.toJSON ? i.toJSON() : i.getAttributes())),
-          total: res.total,
-          page: res.page,
-          pageSize: res.pageSize,
-          totalPages: res.totalPages,
-        };
-      },
-      async findById(opts: { modelName: string; id: string | number }): Promise<Record<string, unknown> | null> {
-        const modelClass = defaultModelRegistry.getModel(opts.modelName);
-        if (!modelClass) return null;
-        const found = await modelClass.find(opts.id);
-        return found ? (found.toJSON ? found.toJSON() : found.getAttributes()) : null;
-      },
-      async create(opts: { modelName: string; data: Record<string, unknown> }): Promise<Record<string, unknown>> {
-        const modelClass = defaultModelRegistry.getModel(opts.modelName);
-        if (!modelClass) throw new Error(`Model ${opts.modelName} not found`);
-        const item = await modelClass.create(opts.data as any);
-        return item.toJSON ? item.toJSON() : item.getAttributes();
-      },
-      async update(opts: { modelName: string; id: string | number; data: Record<string, unknown> }): Promise<Record<string, unknown>> {
-        const modelClass = defaultModelRegistry.getModel(opts.modelName);
-        if (!modelClass) throw new Error(`Model ${opts.modelName} not found`);
-        const item = await modelClass.findOrFail(opts.id);
-        for (const [k, v] of Object.entries(opts.data)) {
-          item.set(k, v);
-        }
-        await item.save();
-        return item.toJSON ? item.toJSON() : item.getAttributes();
-      },
-      async delete(options: { modelName: string; id: string | number; primaryKey: string; soft?: boolean | undefined }): Promise<void> {
-        const modelClass = defaultModelRegistry.getModel(options.modelName);
-        if (!modelClass) return;
-        const item = await modelClass.find(options.id);
-        if (item) {
-          await item.delete({ force: !options.soft });
-        }
-      },
-    };
+    const healthChecks: Record<string, () => unknown> = {};
+    if (hasDatabaseManager()) {
+      healthChecks['database'] = async () => {
+        const results = await getDatabaseManager().health();
+        const failed = results.find((r) => r.status !== 'healthy');
+        if (failed) throw new Error(`${failed.connectionName}: ${failed.error ?? 'unreachable'}`);
+        return results.map((r) => `${r.connectionName}: ${r.latencyMs} ms`).join(', ');
+      };
+    }
+    Object.assign(healthChecks, options.healthChecks);
 
     const adminServer = new AdminServer({
       registry,
@@ -358,7 +375,10 @@ export class JSangoApplication {
       audit,
       queryAdapter,
       prefix: apiPrefix,
-      credentials: options.credentials || options.auth,
+      authKit,
+      credentials: options.credentials ?? (authKit ? undefined : (options.auth as AdminCredentials | undefined)),
+      sessionTtlSeconds: options.sessionTtlSeconds,
+      healthChecks,
     });
 
     adminServer.mount(this.app.router);
@@ -369,6 +389,11 @@ export class JSangoApplication {
       apiBasePath: apiPrefix,
       defaultTheme: options.defaultTheme,
       brandSubtitle: options.brandSubtitle,
+      customCss: options.customCss,
+      siteUrl: options.siteUrl,
+      logoUrl: options.logoUrl,
+      logoText: options.logoText,
+      faviconUrl: options.faviconUrl,
     });
 
     this.get(uiPath, uiHandler);
@@ -954,4 +979,86 @@ export class JSangoApplication {
  */
 export function createApp(options?: ApplicationOptions): JSangoApplication {
   return new JSangoApplication(options);
+}
+
+/**
+ * Admin data access through the ORM. Built for large tables: only list columns are loaded,
+ * pages are sorted with a primary-key tie-breaker (stable paging), exports stream with keyset
+ * pagination, and bulk deletes run as one query.
+ */
+function createOrmAdminAdapter(): IAdminQueryAdapter {
+  const model = (name: string) => {
+    const m = defaultModelRegistry.getModel(name);
+    if (!m) throw new Error(`Model "${name}" is not registered.`);
+    return m;
+  };
+  const row = (item: any): Record<string, unknown> => (item.toJSON ? item.toJSON() : item.getAttributes());
+  // ponytail: search is a case-insensitive LIKE '%text%' (a scan on huge tables); index the
+  // columns or point searchFields at indexed/full-text columns when this gets slow.
+  const filtered = (name: string, query: AdminListQuery, searchFields: readonly string[], columns?: readonly string[]) => {
+    let q: any = model(name).query();
+    const search = query.search;
+    if (search && searchFields.length > 0) {
+      q = q.where((g: any) => searchFields.reduce((acc: any, f, i) => (i === 0 ? acc.whereLike(f, `%${search}%`) : acc.orWhereLike(f, `%${search}%`)), g));
+    }
+    for (const [field, value] of Object.entries(query.filters ?? {})) q = q.where(field, value);
+    return columns?.length ? q.select(...columns) : q;
+  };
+
+  return {
+    async list(opts) {
+      const page = opts.query.page ?? 1;
+      const pageSize = opts.query.pageSize ?? opts.pageSize;
+      const sort = opts.query.sort ?? opts.defaultSortField;
+      let q = filtered(opts.modelName, opts.query, opts.searchFields, opts.columns)
+        .orderBy(sort, (opts.query.sortDirection ?? opts.defaultSortDirection).toUpperCase());
+      if (sort !== opts.primaryKey) q = q.orderBy(opts.primaryKey, 'ASC');
+
+      if (opts.exactCount === false) {
+        const items = await q.limit(pageSize + 1).offset((page - 1) * pageSize).get();
+        return { items: items.slice(0, pageSize).map(row), total: null, page, pageSize, totalPages: null, hasMore: items.length > pageSize };
+      }
+      const res = await q.paginate({ page, pageSize });
+      return { items: res.items.map(row), total: res.total, page, pageSize, totalPages: res.totalPages, hasMore: page < res.totalPages };
+    },
+    async *stream(opts) {
+      let batch: Record<string, unknown>[] = [];
+      for await (const item of filtered(opts.modelName, opts.query, opts.searchFields, opts.columns).cursor(opts.batchSize)) {
+        batch.push(row(item));
+        if (batch.length >= opts.batchSize) {
+          yield batch;
+          batch = [];
+        }
+      }
+      if (batch.length > 0) yield batch;
+    },
+    async findById(opts) {
+      const found = await model(opts.modelName).find(opts.id);
+      return found ? row(found) : null;
+    },
+    async findMany(opts) {
+      return (await model(opts.modelName).query().whereIn(opts.primaryKey, opts.ids).get()).map(row);
+    },
+    async create(opts) {
+      return row(await model(opts.modelName).create(opts.data as any));
+    },
+    async update(opts) {
+      const item: any = await model(opts.modelName).findOrFail(opts.id);
+      for (const [k, v] of Object.entries(opts.data)) item.set(k, v);
+      await item.save();
+      return row(item);
+    },
+    async delete(opts) {
+      const item: any = await model(opts.modelName).find(opts.id);
+      if (item) await item.delete({ force: !opts.soft });
+    },
+    async deleteMany(opts) {
+      return model(opts.modelName).query().whereIn(opts.primaryKey, opts.ids).delete({ force: !opts.soft });
+    },
+    async restore(opts) {
+      const m: any = model(opts.modelName);
+      await m.query().withTrashed().where(opts.primaryKey, opts.id).restore();
+      return row(await m.findOrFail(opts.id));
+    },
+  };
 }

@@ -13,15 +13,23 @@ pnpm add @jsango/admin-core
 ## Usage
 
 ```typescript
-import { AdminRegistry, defineAdminResource, fields } from '@jsango/admin-core';
+import { AdminRegistry, AdminResource } from '@jsango/admin-core';
 
 const registry = new AdminRegistry();
-const userResource = defineAdminResource({
-  name: 'User',
+
+const userResource = new AdminResource({
+  modelName: 'User',
+  fields: [
+    { name: 'id', type: 'uuid', readonly: true },
+    { name: 'email', type: 'email', searchable: true },
+    { name: 'createdAt', type: 'datetime', readonly: true },
+  ],
   listFields: ['id', 'email', 'createdAt'],
   searchFields: ['email'],
 });
 registry.register(userResource);
+
+// Or derive a resource automatically from an ORM model: registry.register(User);
 ```
 
 ## Documentation

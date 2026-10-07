@@ -8,30 +8,31 @@ This document records the measurable simplification in lines of code (LoC), impo
 
 ### Before (Multi-package setup)
 ```typescript
-import { Container } from "@jsango/core";
-import { NodeHttpServer } from "@jsango/http";
+import { Container } from "@jsango/container";
+import { createNodeHttpServer, HttpResponse, HttpError } from "@jsango/http";
 import { Router } from "@jsango/router";
-import { JsonMiddleware, ErrorMiddleware } from "@jsango/middleware";
+import { Application } from "@jsango/middleware";
 
 const container = new Container();
 const router = new Router();
-const server = new NodeHttpServer();
+const app = new Application({ container, router });
 
-router.use(new ErrorMiddleware());
-router.use(new JsonMiddleware());
-
-router.get("/hello", async (req, res) => {
-  res.statusCode = 200;
-  res.setHeader("Content-Type", "application/json");
-  res.end(JSON.stringify({ message: "Hello World" }));
+app.use(async (ctx, next) => {
+  try {
+    return await next();
+  } catch (err) {
+    return HttpResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 });
 
-server.setHandler((req, res) => router.handle(req, res));
+router.get("/hello", async (ctx) => HttpResponse.json({ message: "Hello World" }));
+
+const server = createNodeHttpServer((ctx) => app.handle(ctx));
 await server.listen(3000);
 ```
-- **Imports:** 4 packages (`@jsango/core`, `@jsango/http`, `@jsango/router`, `@jsango/middleware`)
+- **Imports:** 4 packages (`@jsango/container`, `@jsango/http`, `@jsango/router`, `@jsango/middleware`)
 - **Lines of Code:** 18
-- **Concepts required:** Dependency container, router instance, raw server lifecycle, middleware pipeline wiring, manual JSON header & stringify.
+- **Concepts required:** Dependency container, router instance, raw server lifecycle, middleware pipeline wiring, explicit response construction.
 
 ### After (Unified Facade)
 ```typescript
@@ -54,28 +55,27 @@ await app.listen(3000);
 
 ### Before
 ```typescript
-import { WebSocketServer } from "@jsango/websocket";
-import { NodeHttpServer } from "@jsango/http";
-import { RoomManager } from "@jsango/websocket/rooms";
+import { createServer } from "node:http";
+import { NodeWebSocketAdapter } from "@jsango/websocket";
 
-const server = new NodeHttpServer();
-const roomManager = new RoomManager();
-const wsServer = new WebSocketServer({ server: server.getUnderlyingServer() });
+const server = createServer();
+const ws = new NodeWebSocketAdapter({ server, path: "/chat", allowAnonymous: true });
 
-wsServer.on("connection", (conn) => {
-  conn.on("message", (raw) => {
-    const data = JSON.parse(raw.toString());
-    if (data.type === "join") {
-      roomManager.join(data.room, conn.id);
-    } else if (data.type === "chat") {
-      roomManager.broadcast(data.room, JSON.stringify(data.payload));
-    }
-  });
+ws.manager.on<{ room: string }>("join", async (ctx, message) => {
+  await ws.manager.joinRoom(ctx.connectionId, message.payload!.room);
 });
+
+ws.manager.on<{ room: string; text: string }>("chat", async (ctx, message) => {
+  const { room, text } = message.payload!;
+  await ws.manager.broadcast(room, { type: "chat", payload: { text } });
+});
+
+await ws.start();
+server.listen(3000);
 ```
-- **Imports:** 3 modules
+- **Imports:** 2 modules
 - **Lines of Code:** 17
-- **Concepts required:** Server underlying handle, manual room manager, socket ID bookkeeping, stringify/parse buffers.
+- **Concepts required:** Raw Node server, adapter/manager split, typed message envelopes (`{ type, payload }`), connection ID bookkeeping.
 
 ### After
 ```typescript
@@ -84,8 +84,10 @@ import { createApp } from "jsango";
 const app = createApp();
 
 app.ws("/chat", (socket) => {
-  socket.on("join", (room) => socket.join(room));
-  socket.on("message", (data) => socket.to("general").send(data));
+  socket.on("message", async (data: any) => {
+    if (data.type === "join") socket.join(data.room);
+    else await socket.to(data.room).send(data);
+  });
 });
 
 await app.listen(3000);
@@ -93,7 +95,7 @@ await app.listen(3000);
 - **Imports:** 1 (`jsango`)
 - **Lines of Code:** 10
 - **Concepts required:** Socket callbacks, `.join()`, `.to().send()`.
-- **Reduction:** **41% LoC reduction**, auto JSON serialization, zero manual room manager instantiation.
+- **Reduction:** **41% LoC reduction**, auto JSON parse/serialization, zero manual room manager instantiation.
 
 ---
 
@@ -102,9 +104,13 @@ await app.listen(3000);
 ### Before
 ```typescript
 import { defineModel, fields } from "@jsango/orm";
-import { DatabaseConnectionManager } from "@jsango/database";
+import { DatabaseManager } from "@jsango/database";
+import { setDatabaseManager } from "@jsango/orm";
+
+setDatabaseManager(new DatabaseManager({ default: "default", connections: { default: { url: process.env.DATABASE_URL } } }));
 
 const User = defineModel({
+  name: "User",
   tableName: "users",
   fields: {
     id: fields.id(),
@@ -114,11 +120,11 @@ const User = defineModel({
   }
 });
 
-const query = User.query().where("active", "=", true).orderBy("created_at", "DESC").limit(20);
+const query = User.query().where("active", "=", true).orderBy("name", "ASC").limit(20);
 const users = await query.get();
 ```
 - **Imports:** 2 packages
-- **Lines of Code:** 15
+- **Lines of Code:** 17
 
 ### After
 ```typescript
@@ -131,7 +137,7 @@ export const User = model("User", {
   active: fields.boolean({ defaultValue: true }),
 });
 
-const users = await User.where("active", true).orderBy("created_at", "DESC").limit(20).get();
+const users = await User.where("active", true).orderBy("name", "ASC").limit(20).get();
 ```
 - **Imports:** 1 (`jsango`)
 - **Lines of Code:** 10
@@ -144,22 +150,21 @@ const users = await User.where("active", true).orderBy("created_at", "DESC").lim
 ### Before
 ```typescript
 import { Router } from "@jsango/router";
-import { SchemaValidator } from "@jsango/validation";
+import { HttpResponse } from "@jsango/http";
+import { schema, string, email } from "@jsango/validation";
 
 const router = new Router();
-const validator = new SchemaValidator({
-  name: { type: "string", minLength: 2, required: true },
-  email: { type: "string", format: "email", required: true }
+const userSchema = schema({
+  name: string().min(2),
+  email: email(),
 });
 
-router.post("/users", async (req, res) => {
-  const validation = validator.validate(req.body);
-  if (!validation.isValid) {
-    res.statusCode = 422;
-    res.end(JSON.stringify({ errors: validation.errors }));
-    return;
+router.post("/users", async (ctx) => {
+  const validation = userSchema.validate(await ctx.request.json());
+  if (!validation.success) {
+    return HttpResponse.json({ errors: validation.errors }, { status: 400 });
   }
-  // proceed...
+  // proceed with validation.data...
 });
 ```
 
@@ -177,12 +182,13 @@ app.post(
       email: email(),
     }),
   }),
-  async ({ body }) => {
+  async (ctx) => {
+    const body = ctx.state.get("validatedBody") as { name: string; email: string };
     return User.create(body);
   }
 );
 ```
-- **Reduction:** Automatic 422 unprocessable entity responses, standardized error formatting, strict TypeScript inference.
+- **Reduction:** Automatic `400 Bad Request` responses (`ERR_VALIDATION_FAILED` with per-field details), standardized error formatting; the parsed body is available as `ctx.state.get("validatedBody")`.
 
 ---
 

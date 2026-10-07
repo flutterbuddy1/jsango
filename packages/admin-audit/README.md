@@ -13,18 +13,25 @@ pnpm add @jsango/admin-audit
 ## Usage
 
 ```typescript
-import { AdminAuditLogger, InMemoryAuditStore, diffChanges } from '@jsango/admin-audit';
+import { AdminAuditLogger, InMemoryAuditStore } from '@jsango/admin-audit';
 
-const store = new InMemoryAuditStore();
-const logger = new AdminAuditLogger(store);
+const logger = new AdminAuditLogger({ store: new InMemoryAuditStore() });
 
-await logger.log({
-  resourceName: 'User',
-  recordId: '123',
-  action: 'update',
-  userId: 'admin-1',
-  changes: diffChanges({ email: 'old@test.com' }, { email: 'new@test.com' }),
+// Sensitive fields (password, token, secret, ...) are redacted from the diff by default.
+const changes = logger.diffChanges(
+  { email: 'old@test.com', password: 'a' },
+  { email: 'new@test.com', password: 'b' }
+);
+
+await logger.log('update', {
+  resourceId: 'user',
+  objectId: '123',
+  actor: { id: 'admin-1', email: 'admin@test.com' },
+  changes,
 });
+
+const page = await logger.query({ resourceId: 'user', limit: 20 });
+console.log(page.total, page.entries);
 ```
 
 ## Documentation

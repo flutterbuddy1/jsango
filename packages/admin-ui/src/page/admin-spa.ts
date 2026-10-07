@@ -39,6 +39,18 @@ export interface AdminSpaOptions {
   readonly brandSubtitle?: string | undefined;
 
   /**
+   * Logo image shown in the header and on the login page: an https URL, a path served by your app
+   * (e.g. '/static/logo.svg') or a data:image URL. Square images look best.
+   */
+  readonly logoUrl?: string | undefined;
+
+  /** Letters shown in the logo badge when there is no logoUrl. Default: the title's initials. */
+  readonly logoText?: string | undefined;
+
+  /** Browser tab icon. Defaults to logoUrl. */
+  readonly faviconUrl?: string | undefined;
+
+  /**
    * Link to the public site/store.
    * @default '/'
    */
@@ -74,6 +86,13 @@ function escapeHtml(str: string): string {
     .replace(/'/g, '&#039;');
 }
 
+/** Accepts http(s), relative paths and data:image URLs; anything else (e.g. javascript:) is dropped. */
+function safeImageUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  const trimmed = url.trim();
+  return /^(https?:\/\/|\/(?!\/)|\.{0,2}\/|data:image\/)/i.test(trimmed) ? trimmed : undefined;
+}
+
 /**
  * Generates the complete, self-contained Chakra UI v3 Admin SPA HTML shell.
  */
@@ -90,9 +109,13 @@ export function renderAdminSpaHtml(options: AdminSpaOptions = {}): string {
   const enableCommandPalette = options.enableCommandPalette ?? true;
   const enableTwoFactor = options.enableTwoFactor ?? true;
 
+  const logoUrl = safeImageUrl(options.logoUrl);
+  const faviconUrl = safeImageUrl(options.faviconUrl) ?? logoUrl;
   const clientConfig = {
     title,
     brandSubtitle,
+    logoUrl,
+    logoText: options.logoText?.slice(0, 3),
     siteUrl,
     apiBasePath,
     defaultTheme,
@@ -105,7 +128,8 @@ export function renderAdminSpaHtml(options: AdminSpaOptions = {}): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>${escapeHtml(title)} — Chakra UI v3 Admin</title>
+  <title>${escapeHtml(title)}</title>
+  ${faviconUrl ? `<link rel="icon" href="${escapeHtml(faviconUrl)}">` : '<link rel="icon" href="data:,">'}
   
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -139,6 +163,11 @@ export function renderAdminSpaHtml(options: AdminSpaOptions = {}): string {
       --chakra-colors-teal-600: #0f766e;
       --chakra-colors-teal-700: #115e59;
     }
+
+    /* Chart series colors (categorical order, validated for color-vision deficiency). */
+    :root { --viz-1: #2a78d6; --viz-2: #eb6834; --viz-3: #1baf7a; --viz-4: #eda100; --viz-5: #e87ba4; --viz-6: #008300; --viz-7: #4a3aa7; --viz-8: #e34948; }
+    [data-theme="dark"] { --viz-1: #3987e5; --viz-2: #d95926; --viz-3: #199e70; --viz-4: #c98500; --viz-5: #d55181; --viz-6: #008300; --viz-7: #9085e9; --viz-8: #e66767; }
+    @media (prefers-color-scheme: dark) { [data-theme="system"] { --viz-1: #3987e5; --viz-2: #d95926; --viz-3: #199e70; --viz-4: #c98500; --viz-5: #d55181; --viz-6: #008300; --viz-7: #9085e9; --viz-8: #e66767; } }
 
     [data-theme="light"] {
       --chakra-colors-bg-canvas: #f8fafc;
@@ -473,15 +502,43 @@ export function renderAdminSpaHtml(options: AdminSpaOptions = {}): string {
       font-weight: 700;
     }
 
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex: 1;
+      min-width: 0; /* lets the title shrink instead of pushing the actions off screen */
+    }
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-shrink: 0;
+      margin-left: 0.75rem;
+    }
     .header-brand {
       display: flex;
       align-items: center;
       gap: 0.6rem;
+      min-width: 0;
       font-weight: 800;
       font-size: 0.9375rem;
       color: var(--chakra-colors-fg-default);
     }
+    .header-brand-text { min-width: 0; line-height: 1.2; }
+    .header-brand-title,
+    .header-brand-subtitle {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .header-brand-subtitle {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: var(--chakra-colors-fg-muted);
+    }
     .header-brand-badge {
+      flex-shrink: 0;
       width: 26px;
       height: 26px;
       border-radius: var(--chakra-radii-md);
@@ -538,6 +595,7 @@ export function renderAdminSpaHtml(options: AdminSpaOptions = {}): string {
 
     /* Responsive Mobile Drawer */
     .mobile-hamburger-btn { display: none; }
+    .mobile-only { display: none !important; }
     .admin-sidebar-backdrop { display: none; }
 
     @media (max-width: 768px) {
@@ -568,6 +626,17 @@ export function renderAdminSpaHtml(options: AdminSpaOptions = {}): string {
       .admin-content {
         padding: 1rem 0.75rem;
       }
+      .admin-topbar { padding: 0 0.75rem; }
+      .topbar-left { gap: 0.5rem; }
+      .topbar-actions { gap: 0.35rem; margin-left: 0.5rem; }
+      .header-brand-subtitle { display: none; }
+      .header-brand-title { font-size: 0.875rem; }
+      .mobile-only { display: flex !important; }
+    }
+    @media (max-width: 480px) {
+      /* Give the title room: "View site" moves into the sidebar. */
+      .topbar-site-link { display: none !important; }
+      .topbar-profile { border-left: none !important; padding-left: 0 !important; }
     }
 
     ${customCss}
@@ -586,7 +655,7 @@ export function renderAdminSpaHtml(options: AdminSpaOptions = {}): string {
 
   <!-- Client-Side Config Initialization -->
   <script>
-    window.__JSANGO_ADMIN_CONFIG__ = ${JSON.stringify(clientConfig)};
+    window.__JSANGO_ADMIN_CONFIG__ = ${JSON.stringify(clientConfig).replace(/</g, '\\u003c')};
   </script>
 
   <!-- Bundled React Application Code -->

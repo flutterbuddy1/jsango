@@ -9,6 +9,9 @@ The authentication subsystem is responsible for verifying client credentials and
 Authentication strategies implement `IAuthenticationStrategy`:
 
 ```typescript
+import type { AuthenticationResult } from '@jsango/auth';
+import type { HttpRequest, RequestContext } from '@jsango/http';
+
 export interface IAuthenticationStrategy {
   readonly name: string;
   authenticate(request: HttpRequest, context: RequestContext): Promise<AuthenticationResult>;
@@ -26,6 +29,8 @@ export interface IAuthenticationStrategy {
 `AuthenticationManager` evaluates strategies in a deterministic, user-configured order:
 
 ```typescript
+import { AuthenticationManager } from '@jsango/auth';
+
 const manager = new AuthenticationManager({
   strategies: [sessionStrategy, bearerStrategy, apiKeyStrategy],
   failOnError: true,

@@ -131,3 +131,18 @@ export { type AuthorizeMiddlewareOptions, authorize } from './middleware/authori
 export { timingSafeEqualString } from '../internal/timing.js';
 export { CryptoUtils } from '../internal/crypto-utils.js';
 export { Base64Url } from '../internal/base64url.js';
+
+// High-level, secure-by-default authentication kit
+export {
+  Auth,
+  createAuth,
+  TooManyAttemptsError,
+  type CreateAuthOptions,
+  type IdentityFields,
+  type AuthMethod,
+  type TokenPair,
+  type MfaChallenge,
+} from './kit/auth.js';
+export { MemoryAuthStore, DatabaseAuthStore, type AuthStore, type AuthStoreDatabase } from './kit/store.js';
+export { JwksVerifier, type JwksVerifierOptions } from './kit/jwks.js';
+export { google, github, oauthProvider, OAuthError, type OAuthProfile, type OAuthProvider } from './kit/oauth.js';

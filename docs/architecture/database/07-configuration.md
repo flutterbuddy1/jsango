@@ -5,16 +5,21 @@ Database configuration is integrated with `@jsango/config` to avoid hardcoding `
 ## Configuration Structure
 
 ```typescript
+import type { PoolConfig } from '@jsango/database';
+
 export interface DatabaseConfig {
   readonly default: string;
   readonly connections: Record<string, ConnectionConfig>;
 }
 
 export interface ConnectionConfig {
-  readonly driver: string; // 'postgres' | 'mysql' | 'sqlite' | 'memory'
+  // 'postgres' | 'mysql' | 'mariadb' | 'sqlite' | 'mongodb' | 'memory' (or a custom driver).
+  // May be omitted when `url` is set; it is inferred from the URL scheme.
+  readonly driver?: string;
   readonly host?: string;
   readonly port?: number;
   readonly database?: string;
+  readonly filename?: string; // sqlite
   readonly username?: string;
   readonly password?: string;
   readonly url?: string;
@@ -28,9 +33,9 @@ export interface ConnectionConfig {
 
 ```typescript
 import { loadDatabaseConfig } from '@jsango/database';
-import { MemoryConfigProvider } from '@jsango/config';
+import { createConfigProvider } from '@jsango/config';
 
-const configProvider = new MemoryConfigProvider({
+const configProvider = createConfigProvider({
   'database.default': 'primary',
   'database.connections': {
     primary: {

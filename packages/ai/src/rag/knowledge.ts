@@ -1,4 +1,4 @@
-import type { ILlmProvider, IVectorStore, VectorDocument } from '../types.js';
+import type { ILlmProvider, IVectorStore, VectorDocument, VectorSearchResult } from '../types.js';
 import { InMemoryVectorStore } from './vector-store.js';
 import { getDefaultRouter } from '../agents/agent.js';
 
@@ -71,6 +71,21 @@ export class KnowledgeBase {
 
     const searchResults = await this.vectorStore.search(queryEmbed, limit);
     return searchResults.map((r) => r.document.content);
+  }
+
+  /**
+   * Like retrieve(), but returns the matched documents with their similarity scores (0..1),
+   * dropping matches below `minScore`.
+   */
+  public async search(
+    query: string,
+    options?: { limit?: number; minScore?: number }
+  ): Promise<VectorSearchResult[]> {
+    if (!this.provider.embed) return [];
+    const [queryEmbed] = await this.provider.embed(query);
+    if (!queryEmbed) return [];
+    const results = await this.vectorStore.search(queryEmbed, options?.limit ?? 5);
+    return results.filter((r) => r.score >= (options?.minScore ?? 0));
   }
 
   public async clear(): Promise<void> {

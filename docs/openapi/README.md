@@ -7,6 +7,10 @@ See [`docs/architecture/openapi/README.md`](file:///Users/mayankdiwakar/Document
 ### 1. Annotate Routes with OpenAPI Metadata
 
 ```typescript
+import { Router } from '@jsango/router';
+
+const router = new Router();
+
 router.get('/users/:id', getUserHandler, {
   metadata: {
     openapi: {

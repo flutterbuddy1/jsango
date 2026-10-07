@@ -79,7 +79,7 @@ describe('Auth Middleware Integration', () => {
   });
 
   it('authenticates valid token, sets identity in context and container, returns 200', async () => {
-    const token = await jwt.sign({ sub: 'user-77', roles: ['admin'] });
+    const token = await jwt.sign({ sub: 'user-77', roles: ['admin'] }, { expiresInSeconds: 3600 });
 
     const app = new Application();
     app.use(authenticate(authManager));
@@ -119,7 +119,7 @@ describe('Auth Middleware Integration', () => {
     expect(res1.statusCode).toBe(401);
 
     // 2. Authenticated user without permission to authorize() -> 403
-    const regularToken = await jwt.sign({ sub: 'user-regular', roles: ['viewer'] });
+    const regularToken = await jwt.sign({ sub: 'user-regular', roles: ['viewer'] }, { expiresInSeconds: 3600 });
     const app403 = new Application();
     app403.use(authenticate(authManager));
     app403.use(authorize('system.manage', { manager: authzManager }));
@@ -134,7 +134,7 @@ describe('Auth Middleware Integration', () => {
     expect(res2.statusCode).toBe(403);
 
     // 3. Authenticated user with permission -> 200
-    const adminToken = await jwt.sign({ sub: 'user-admin', roles: ['admin'] });
+    const adminToken = await jwt.sign({ sub: 'user-admin', roles: ['admin'] }, { expiresInSeconds: 3600 });
     const req3 = new HttpRequest({
       method: 'GET',
       url: 'http://localhost/admin',
@@ -177,7 +177,7 @@ describe('Auth Middleware Integration', () => {
       ],
     });
 
-    const aliceToken = await jwt.sign({ sub: 'user-alice' });
+    const aliceToken = await jwt.sign({ sub: 'user-alice' }, { expiresInSeconds: 3600 });
 
     // Alice accesses her own project p1 -> 200
     const resAliceP1 = await app.handle(

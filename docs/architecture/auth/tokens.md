@@ -5,6 +5,8 @@
 Token authentication in JSango is abstracted through `ITokenVerifier`:
 
 ```typescript
+import type { Identity } from '@jsango/auth';
+
 export interface ITokenVerifier {
   verifyToken(token: string): Promise<Identity | undefined>;
 }

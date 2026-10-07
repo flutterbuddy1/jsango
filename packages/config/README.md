@@ -1,6 +1,6 @@
 # @jsango/config
 
-> Centralized, immutable configuration provider with type casting and schema validation.
+> Centralized, read-only configuration provider with string/number/boolean type casting.
 
 Part of the **[jsango](https://github.com/flutterbuddy1/jsango)** backend framework for TypeScript.
 
@@ -13,13 +13,19 @@ pnpm add @jsango/config
 ## Usage
 
 ```typescript
-import { ConfigProvider } from '@jsango/config';
+import { createConfigProvider, createConfigFromRuntime } from '@jsango/config';
+import { createRuntimeAdapter } from '@jsango/runtime';
 
-const config = new ConfigProvider({
-  APP_ENV: process.env.NODE_ENV || 'development',
-  PORT: Number(process.env.PORT) || 3000,
+const config = createConfigProvider({
+  APP_ENV: 'development',
+  PORT: '3000',
 });
-const port = config.get('PORT');
+const port = config.getNumber('PORT', 3000); // '3000' -> 3000
+const debug = config.getBoolean('DEBUG', false);
+
+// Or read every environment variable through the runtime adapter.
+const env = createConfigFromRuntime(createRuntimeAdapter());
+const dbUrl = env.getString('DATABASE_URL', 'sqlite://./dev.db');
 ```
 
 ## Documentation

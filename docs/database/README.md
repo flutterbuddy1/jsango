@@ -472,7 +472,7 @@ await post.delete({ force: true });  // really delete
 import { transaction } from 'jsango';
 
 await transaction(async () => {
-  const user = await User.create({ email });
+  const user = await User.create({ email: 'ada@example.com' });
   await Profile.create({ userId: user.id });   // same transaction automatically
   if (!ok) throw new Error('rollback');         // any error rolls everything back
 });
@@ -577,7 +577,7 @@ native driver:
 ```ts
 import type { Db } from 'mongodb';
 const mongo = await db.mongo<Db>();
-await mongo.collection('events').aggregate([...]).toArray();
+await mongo.collection('events').aggregate([{ $match: { type: 'signup' } }]).toArray();
 
 // or structured commands through a pooled connection:
 const conn = await db.connection();

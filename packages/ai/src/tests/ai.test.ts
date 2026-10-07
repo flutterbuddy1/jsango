@@ -8,11 +8,18 @@ import {
   memory,
   evaluate,
   mcp,
+  BaseLlmProvider,
   FakeLlmProvider,
   ModelRouter,
+  OllamaProvider,
+  OpenRouterProvider,
+  ProviderError,
   InMemoryVectorStore,
   cosineSimilarity,
   GuardrailViolationError,
+  type LlmCallOptions,
+  type LlmResponse,
+  type LlmStream,
 } from '../index.js';
 
 describe('JSango AI Platform', () => {
@@ -303,6 +310,153 @@ describe('JSango AI Platform', () => {
 
       expect(evalRes.passed).toBe(true);
       expect(evalRes.errors.length).toBe(0);
+    });
+  });
+
+  describe('10. Custom LLM Providers & Providers Validation', () => {
+    it('normalizes Ollama baseUrl and appends /v1 if omitted', () => {
+      const ollama1 = new OllamaProvider({ baseUrl: 'http://localhost:11434' });
+      expect((ollama1 as any).baseUrl).toBe('http://localhost:11434/v1');
+
+      const ollama2 = new OllamaProvider({ baseUrl: 'http://localhost:11434/' });
+      expect((ollama2 as any).baseUrl).toBe('http://localhost:11434/v1');
+
+      const ollama3 = new OllamaProvider({ baseUrl: 'http://localhost:11434/v1' });
+      expect((ollama3 as any).baseUrl).toBe('http://localhost:11434/v1');
+
+      const ollamaDefault = new OllamaProvider();
+      expect((ollamaDefault as any).baseUrl).toBe('http://127.0.0.1:11434/v1');
+    });
+
+    it('identifies ollama provider in ProviderError metadata instead of openai', async () => {
+      const ollama = new OllamaProvider({ baseUrl: 'http://127.0.0.1:9999/v1' });
+      expect(ollama.name).toBe('ollama');
+
+      try {
+        await ollama.generate({ prompt: 'test' });
+        expect.unreachable('Should fail with network or 404');
+      } catch (err: any) {
+        expect(err).toBeInstanceOf(ProviderError);
+        expect(err.provider).toBe('ollama');
+        expect(err.message).toContain('[ollama]');
+      }
+    });
+
+    it('initializes OpenRouterProvider with custom headers and default model', () => {
+      const openRouter = new OpenRouterProvider({
+        apiKey: 'sk-or-test',
+        siteUrl: 'https://myapp.com',
+        siteName: 'MyApp',
+      });
+      expect(openRouter.name).toBe('openrouter');
+      expect((openRouter as any).baseUrl).toBe('https://openrouter.ai/api/v1');
+      expect((openRouter as any).customHeaders).toEqual({
+        'HTTP-Referer': 'https://myapp.com',
+        'X-Title': 'MyApp',
+      });
+    });
+
+    it('routes openrouter model via ModelRouter by default', () => {
+      const router = new ModelRouter();
+      const openRouterProvider = router.getProvider('openrouter');
+      expect(openRouterProvider).toBeDefined();
+      expect(openRouterProvider.name).toBe('openrouter');
+
+      const parsed = router.parseModelString('openrouter:deepseek/deepseek-chat');
+      expect(parsed.provider.name).toBe('openrouter');
+      expect(parsed.modelName).toBe('deepseek/deepseek-chat');
+    });
+
+    it('allows users to register and use custom LLM providers', async () => {
+      class MyCustomProvider extends BaseLlmProvider {
+        public readonly name = 'custom-llm';
+        async generate(options: LlmCallOptions): Promise<LlmResponse> {
+          const input = options.prompt ?? options.messages?.[options.messages.length - 1]?.content ?? '';
+          return {
+            text: `custom:${input}`,
+            usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+          };
+        }
+        async stream(options: LlmCallOptions): Promise<LlmStream> {
+          const input = options.prompt ?? options.messages?.[options.messages.length - 1]?.content ?? '';
+          return this.createStream(async function* () {
+            yield { delta: `custom-stream:${input}` };
+          });
+        }
+      }
+
+      const custom = new MyCustomProvider();
+      ai.registerProvider('custom-llm', custom);
+
+      const res = await ai.generate({ model: 'custom-llm:v1', prompt: 'hello world' });
+      expect(res.text).toBe('custom:hello world');
+
+      // Also directly in agent config
+      const myAgent = agent({
+        name: 'CustomAgent',
+        provider: custom,
+        instructions: 'Test instructions',
+      });
+      const agentRes = await myAgent.run('ping');
+      expect(agentRes.text).toBe('custom:ping');
+    });
+
+    it('infers tool parameter schema from function destructuring when not explicitly provided', () => {
+      const myTool = tool({
+        name: 'checkInventory',
+        description: 'Checks stock and price',
+        execute: async ({ productName }: { productName: string }) => `Product: ${productName}`,
+      });
+
+      expect(myTool.inputSchema).toBeDefined();
+      expect(myTool.inputSchema.type).toBe('object');
+      expect(myTool.inputSchema.properties?.productName).toBeDefined();
+      expect(myTool.inputSchema.properties?.productName.type).toBe('string');
+      expect(myTool.inputSchema.required).toContain('productName');
+    });
+
+    it('converts JSango schema validators to JSON Schema for tool parameters', () => {
+      const myTool = tool({
+        name: 'calculateDiscount',
+        description: 'Calculates discount',
+        schema: {
+          price: { type: 'number' },
+          discountPercent: { type: 'number' },
+        },
+        execute: ({ price, discountPercent }: { price: number; discountPercent: number }) =>
+          price * (1 - discountPercent / 100),
+      });
+
+      expect(myTool.inputSchema.properties?.price?.type).toBe('number');
+      expect(myTool.inputSchema.properties?.discountPercent?.type).toBe('number');
+      expect(myTool.inputSchema.required).toContain('price');
+      expect(myTool.inputSchema.required).toContain('discountPercent');
+    });
+
+    it('extracts text-based tool calls from LLM responses when native tool_calls are not emitted', () => {
+      const ollama = new OllamaProvider();
+      const availableTools = [{ name: 'checkInventory' }, { name: 'calculateDiscount' }];
+
+      // 1. Tag format: <tool_call>{"name": "checkInventory", ...}</tool_call>
+      const text1 = 'Let me check.\n<tool_call>{"name": "checkInventory", "arguments": {"productName": "MacBook"}}</tool_call>';
+      const calls1 = (ollama as any).extractTextToolCalls(text1, ['checkInventory']);
+      expect(calls1.length).toBe(1);
+      expect(calls1[0].name).toBe('checkInventory');
+      expect(calls1[0].arguments).toEqual({ productName: 'MacBook' });
+
+      // 2. Markdown json format: ```json\n{"name": "checkInventory", ...}\n```
+      const text2 = '```json\n{"name": "checkInventory", "arguments": {"productName": "Sony"}}\n```';
+      const calls2 = (ollama as any).extractTextToolCalls(text2, ['checkInventory']);
+      expect(calls2.length).toBe(1);
+      expect(calls2[0].name).toBe('checkInventory');
+      expect(calls2[0].arguments).toEqual({ productName: 'Sony' });
+
+      // 3. Function call syntax: checkInventory({"productName": "Keychron"})
+      const text3 = 'Invoking checkInventory({"productName": "Keychron"})';
+      const calls3 = (ollama as any).extractTextToolCalls(text3, ['checkInventory']);
+      expect(calls3.length).toBe(1);
+      expect(calls3[0].name).toBe('checkInventory');
+      expect(calls3[0].arguments).toEqual({ productName: 'Keychron' });
     });
   });
 });

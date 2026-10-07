@@ -198,15 +198,15 @@ describe('AdminServer', () => {
     expect(db['1']).toBeUndefined();
   });
 
-  it('returns 403 Forbidden for unauthorized user', async () => {
+  it('returns 401 Unauthorized for anonymous requests', async () => {
     currentIdentity = undefined; // Anonymous
     const ctx = createCtx('GET', '/admin/api/v1/resources');
     const res = await router.handle(ctx);
 
-    expect(res.statusCode).toBe(403);
+    expect(res.statusCode).toBe(401);
     const data = JSON.parse(res.body as string) as { ok: boolean; error: { code: string } };
     expect(data.ok).toBe(false);
-    expect(data.error.code).toBe('ERR_ADMIN_FORBIDDEN');
+    expect(data.error.code).toBe('ERR_ADMIN_UNAUTHORIZED');
   });
 
   it('GET /audit queries audit log entries', async () => {

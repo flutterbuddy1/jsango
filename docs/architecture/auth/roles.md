@@ -18,6 +18,8 @@ export interface RoleDefinition {
 `RoleRegistry` registers application and domain roles:
 
 ```typescript
+import { RoleRegistry } from '@jsango/auth';
+
 const roles = new RoleRegistry();
 roles.register({
   name: 'editor',

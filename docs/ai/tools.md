@@ -33,39 +33,43 @@ export const getOrderTool = tool({
 
 ## Function-Style Shorthand
 
-For simple tools without complex configuration, you can use the shorthand syntax:
+For simple tools, pass the name, description and function. Parameters are inferred from the
+function's destructured argument:
 
 ```typescript
 import { tool } from 'jsango';
-import { object, string } from '@jsango/validation';
 
-export const getWeather = tool(
-  'getWeather',
-  'Get current weather for a city',
-  object({ city: string() }),
-  async ({ city }) => {
-    return { city, temperature: 22, condition: 'Sunny' };
-  }
-);
+export const getWeather = tool('getWeather', 'Get current weather for a city', async ({ city }: { city: string }) => {
+  return { city, temperature: 22, condition: 'Sunny' };
+});
 ```
 
 ---
 
 ## Tool Security & Authorization
 
-Tools support built-in authorization checks and execution timeouts:
+`permissions` are checked against `context.user` of the run: users with `hasPermission()`
+(jsango auth identities) or a `permissions: string[]` array. Runs without a user, or users
+lacking a permission, get a `ToolError` instead of executing the tool.
 
 ```typescript
+import { tool, object, string } from 'jsango';
+
 export const deleteUserTool = tool({
   name: 'deleteUser',
   description: 'Delete a user account',
   schema: object({ userId: string() }),
-  permissions: ['users.delete', 'admin'],
-  timeout: 5000, // 5 second timeout
-  execute: async ({ userId }) => {
-    await User.delete(userId);
+  permissions: ['users.delete'],
+  timeoutMs: 5000, // default 30s
+  execute: async ({ userId }: { userId: string }) => {
+    await User.query().where('id', userId).delete();
     return { success: true };
   },
+});
+
+await adminAgent.run({
+  input: 'Delete user 42',
+  context: { user: { id: 'admin_1', permissions: ['users.delete'] } },
 });
 ```
 
@@ -73,19 +77,19 @@ export const deleteUserTool = tool({
 
 ## Human Approval for Sensitive Actions
 
-Tools can require explicit human confirmation before execution:
+Tools with `requiresApproval: true` are never executed by the agent itself; the run pauses
+instead (see [human-in-the-loop](./human-in-the-loop.md)).
 
 ```typescript
+import { tool, object, string, number } from 'jsango';
+
 export const refundPaymentTool = tool({
   name: 'refundPayment',
   description: 'Issue a monetary refund to a customer',
-  schema: object({
-    chargeId: string(),
-    amount: number(),
-  }),
+  schema: object({ chargeId: string(), amount: number() }),
   requiresApproval: true,
-  execute: async ({ chargeId, amount }) => {
-    return await StripeService.refund(chargeId, amount);
+  execute: async ({ chargeId, amount }: { chargeId: string; amount: number }) => {
+    return await payments.refund(chargeId, amount);
   },
 });
 ```

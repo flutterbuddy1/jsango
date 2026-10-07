@@ -5,6 +5,8 @@
 An `Identity` represents an authenticated or anonymous principal within JSango:
 
 ```typescript
+import type { IdentityType } from '@jsango/auth';
+
 export interface Identity {
   readonly id: string;
   readonly type: IdentityType;

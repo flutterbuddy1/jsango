@@ -20,6 +20,8 @@ HTTP header field names are case-insensitive per RFC 7230. `HttpHeaders` provide
 ## Example Usage
 
 ```typescript
+import { HttpHeaders } from '@jsango/http';
+
 const headers = new HttpHeaders();
 headers.set('Content-Type', 'application/json');
 headers.append('Accept', 'application/json');

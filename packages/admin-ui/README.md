@@ -21,12 +21,15 @@ In your JSango application router:
 
 ```typescript
 import { createAdminUiHandler } from '@jsango/admin-ui';
+import { Router } from '@jsango/router';
+
+const router = new Router();
 
 // Mount the Chakra UI Admin Console
 const adminHandler = createAdminUiHandler({
   title: 'JSango Enterprise Admin',
   brandSubtitle: 'Management Console',
-  apiPrefix: '/api/admin',
+  apiPrefix: '/admin/api/v1', // where AdminServer is mounted (its default prefix)
   defaultTheme: 'dark',
   siteUrl: '/',
 });
@@ -49,10 +52,11 @@ npx @jsango/cli make:admin Article --group "Blog Management" --icon "newspaper"
 ## Programmatic / Isomorphic Component API
 
 ```typescript
-import { AdminApp, AdminApiClient, ThemeManager } from '@jsango/admin-ui';
+import { AdminApp, AdminApiClient } from '@jsango/admin-ui';
 
 const client = new AdminApiClient({
-  baseUrl: '/api/admin',
+  baseUrl: '/admin/api/v1',
+  getAuthToken: () => localStorage.getItem('admin-token'),
 });
 
 const app = new AdminApp({

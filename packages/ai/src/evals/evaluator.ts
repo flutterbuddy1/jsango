@@ -1,4 +1,4 @@
-import type { EvaluationCase, EvaluationResult, LlmUsage } from '../types.js';
+import type { AgentRunResult, EvaluationCase, EvaluationResult, LlmUsage } from '../types.js';
 import { Agent } from '../agents/agent.js';
 
 export async function evaluate(
@@ -14,6 +14,8 @@ export async function evaluate(
   for (let i = 0; i < cases.length; i++) {
     const c = cases[i]!;
     const caseStart = Date.now();
+    const errorsBefore = errors.length;
+    let runResult: AgentRunResult | undefined;
 
     try {
       let outputText = '';
@@ -21,6 +23,7 @@ export async function evaluate(
 
       if (target instanceof Agent) {
         const runRes = await target.run({ input: c.input });
+        runResult = runRes;
         outputText = runRes.text;
         executedTools.push(...runRes.toolCalls.map((tc) => tc.name));
         usage.promptTokens += runRes.usage.promptTokens;
@@ -48,7 +51,7 @@ export async function evaluate(
             errors.push(`Case #${i + 1} failed: output does not match pattern ${c.expected}.`);
           }
         } else if (typeof c.expected === 'function') {
-          const pass = await c.expected({ text: outputText } as any);
+          const pass = await c.expected(runResult ?? ({ text: outputText } as AgentRunResult));
           if (!pass) {
             errors.push(`Case #${i + 1} failed custom assertion.`);
           }
@@ -62,7 +65,7 @@ export async function evaluate(
         }
       }
 
-      if (errors.length === 0) {
+      if (errors.length === errorsBefore) {
         passedCount++;
       }
     } catch (err: unknown) {

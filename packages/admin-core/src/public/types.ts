@@ -127,6 +127,13 @@ export interface AdminResourceOptions {
   readonly actions?: readonly AdminActionConfig[] | undefined;
   readonly bulkActions?: readonly AdminBulkActionConfig[] | undefined;
   readonly canSoftDelete?: boolean | undefined;
+  /**
+   * Count all matching rows for "page X of Y" (default true). Set false on tables with millions of
+   * rows where COUNT(*) is slow: the list then shows next/previous paging only.
+   */
+  readonly exactCount?: boolean | undefined;
+  /** Rows per batch for CSV export (default 1000). */
+  readonly exportBatchSize?: number | undefined;
 }
 
 export interface AdminResourceSchema {
@@ -161,4 +168,5 @@ export interface AdminResourceSchema {
     readonly confirmationMessage?: string | undefined;
   }>;
   readonly canSoftDelete: boolean;
+  readonly exactCount: boolean;
 }

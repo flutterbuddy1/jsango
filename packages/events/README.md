@@ -1,6 +1,6 @@
 # @jsango/events
 
-> Typed event definitions, tri-mode execution (sync, async, queued), priority handlers, and event middleware.
+> Typed event payloads, tri-mode execution (sync, async, queued), priority handlers, and event middleware.
 
 Part of the **[jsango](https://github.com/flutterbuddy1/jsango)** backend framework for TypeScript.
 
@@ -13,16 +13,29 @@ pnpm add @jsango/events
 ## Usage
 
 ```typescript
-import { EventBus, defineEvent } from '@jsango/events';
+import { EventBus, createEvent } from '@jsango/events';
 
-const UserRegistered = defineEvent<{ userId: string }>('user.registered');
+type UserRegistered = { userId: string };
+
 const bus = new EventBus();
 
-bus.on(UserRegistered, async (event) => {
-  console.log('Registered user:', event.payload.userId);
+bus.use(async (event, next) => {
+  console.log('dispatching', event.type);
+  await next();
 });
 
-await bus.dispatch(UserRegistered.create({ userId: 'user-123' }));
+bus.on<UserRegistered>(
+  'user.registered',
+  async (event) => {
+    console.log('Registered user:', event.payload.userId);
+  },
+  { mode: 'async', priority: 10 } // 'sync' (default) | 'async' | 'queued'
+);
+
+await bus.emit<UserRegistered>({ type: 'user.registered', payload: { userId: 'user-123' } });
+
+// Or build the event yourself and dispatch it:
+await bus.dispatch(createEvent({ type: 'user.registered', payload: { userId: 'user-456' } }));
 ```
 
 ## Documentation

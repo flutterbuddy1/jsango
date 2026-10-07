@@ -1,34 +1,32 @@
 # Testing AI Agents & Zero-Cost Fixtures
 
-JSango allows you to test complex LLM agents, tool calls, and workflows deterministically with **zero API costs** and sub-millisecond execution times using `FakeLlmProvider`.
+`FakeLlmProvider` lets you test agents, tool calls and workflows deterministically, with no
+API calls and no cost.
 
 ---
 
 ## Deterministic Testing with FakeLlmProvider
 
+Responses are consumed in order: each `respond()` / `respondWithTool()` answers one model call.
+
 ```typescript
 import { describe, it, expect } from 'vitest';
-import { FakeLlmProvider, agent, tool } from 'jsango';
-import { object, string } from '@jsango/validation';
+import { FakeLlmProvider, agent, tool, object, string } from 'jsango';
 
 describe('Customer Support Agent', () => {
   it('calls lookupOrder tool and answers user', async () => {
-    const fake = new FakeLlmProvider();
-
-    // 1. First model call triggers tool call
-    fake.queueToolCall('lookupOrder', { orderId: 'ord_999' });
-
-    // 2. Second model call provides final answer
-    fake.queueText('Order ord_999 has been shipped and is in transit.');
+    const fake = new FakeLlmProvider()
+      .respondWithTool('lookupOrder', { orderId: 'ord_999' })      // 1st call: use the tool
+      .respond('Order ord_999 has been shipped and is in transit.'); // 2nd call: final answer
 
     let toolExecuted = false;
     const lookupOrder = tool({
       name: 'lookupOrder',
       description: 'Lookup order status',
       schema: object({ orderId: string() }),
-      execute: async ({ orderId }) => {
+      execute: async ({ orderId }: { orderId: string }) => {
         toolExecuted = true;
-        return { status: 'in_transit', tracking: 'TRK_123' };
+        return { orderId, status: 'in_transit' };
       },
     });
 
@@ -39,43 +37,36 @@ describe('Customer Support Agent', () => {
       tools: { lookupOrder },
     });
 
-    const result = await testAgent.run({
-      input: 'Where is my order ord_999?',
-    });
+    const result = await testAgent.run({ input: 'Where is my order ord_999?' });
 
     expect(toolExecuted).toBe(true);
     expect(result.text).toContain('Order ord_999 has been shipped');
     expect(result.toolCalls).toHaveLength(1);
-    expect(result.toolCalls[0].tool).toBe('lookupOrder');
+    expect(result.toolCalls[0]?.name).toBe('lookupOrder');
+    expect(fake.callHistory).toHaveLength(2); // every prompt the model received
   });
 });
 ```
+
+`respond()` also accepts a rule with `match` (string, RegExp or function of the request) to
+answer specific prompts, plus `setDefaultResponse()` for everything else.
 
 ---
 
 ## Running AI Evaluations
 
-JSango includes an evaluation framework to score agent accuracy across test suites:
+`evaluate(name, cases, target)` runs each case against an agent (or any
+`(input) => Promise<string>` function) and scores it:
 
 ```typescript
 import { evaluate } from 'jsango';
 
-const evalResult = await evaluate({
-  name: 'Refund Agent Test Suite',
-  agent: supportAgent,
-  cases: [
-    {
-      input: 'Please cancel order 123',
-      expectedTools: ['cancelOrder'],
-    },
-    {
-      input: 'What is your return policy?',
-      assertions: [
-        (res) => res.text.includes('30 days') || 'Policy must mention 30 days',
-      ],
-    },
-  ],
-});
+const report = await evaluate('Refund agent', [
+  { input: 'Please cancel order 123', expectedTools: ['cancelOrder'] },
+  { input: 'What is your return policy?', expected: /30 days/ },
+  { input: 'Hi', expected: (res) => res.text.length > 0, maxDurationMs: 2000 },
+], supportAgent);
 
-console.log(`Passed: ${evalResult.passed}/${evalResult.total}`);
+console.log(report.passed, report.score, report.errors);
+// passed: every case passed; score: % of passing cases (0-100); errors: failure reasons
 ```

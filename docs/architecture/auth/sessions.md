@@ -5,12 +5,16 @@
 JSango provides a pluggable session abstraction decoupling session storage from runtime execution.
 
 ```typescript
+import type { Session, CreateSessionData } from '@jsango/auth';
+
 export interface ISessionStore {
   get(id: string): Promise<Session | undefined>;
   create(data: CreateSessionData): Promise<Session>;
   update(id: string, data: Partial<Session>): Promise<Session | undefined>;
   delete(id: string): Promise<boolean>;
   touch(id: string, ttlMs?: number): Promise<boolean>;
+  listByIdentity?(identityId: string): Promise<Session[]>;
+  deleteByIdentity?(identityId: string, excludeSessionId?: string): Promise<number>;
 }
 ```
 

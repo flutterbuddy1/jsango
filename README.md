@@ -20,7 +20,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.3.0-green.svg" alt="Version: 1.3.0" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.4.0-green.svg" alt="Version: 1.4.0" /></a>
   <a href="tsconfig.base.json"><img src="https://img.shields.io/badge/TypeScript-Strict%205.8-blue.svg" alt="TypeScript: Strict" /></a>
   <a href="https://flutterbuddy1.github.io/jsango/"><img src="https://img.shields.io/badge/Docs-Landing%20Page-6366f1.svg" alt="Documentation Site" /></a>
 </p>
@@ -144,13 +144,13 @@ await app.listen(3000);
 import { events, jobs, cache } from "jsango";
 
 // 1. Events
-events.on("user.registered", async (user) => {
+events.on<{ id: string; email: string }>("user.registered", async (user) => {
   console.log("Welcome email queued for", user.email);
 });
 await events.emit("user.registered", { id: "1", email: "alex@example.com" });
 
 // 2. Background Jobs
-jobs.define("send-email", async ({ to, subject }) => {
+jobs.register<{ to: string; subject: string }>("send-email", async ({ to, subject }) => {
   // perform async sending...
 });
 await jobs.dispatch("send-email", { to: "alex@example.com", subject: "Welcome!" });

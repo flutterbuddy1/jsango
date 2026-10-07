@@ -1,6 +1,6 @@
 # @jsango/testing
 
-> First-class testing utilities, HTTP client simulator, mock transports, and test assertions for jsango apps.
+> Test context helper for jsango apps. For HTTP tests, call `app.handle()` with an `HttpRequest` to exercise your app in-process.
 
 Part of the **[jsango](https://github.com/flutterbuddy1/jsango)** backend framework for TypeScript.
 
@@ -13,11 +13,22 @@ pnpm add @jsango/testing
 ## Usage
 
 ```typescript
-import { TestClient } from '@jsango/testing';
+import { createTestContext } from '@jsango/testing';
+import { Container } from '@jsango/container';
+import { createApp, HttpRequest } from 'jsango';
 
-const client = new TestClient(app);
-const res = await client.get('/api/users');
-res.assertStatus(200);
+// A per-test context holding an isolated DI container.
+const container = new Container();
+const testCtx = createTestContext(container);
+
+// HTTP tests: call the app in-process with app.handle() (no network, no port).
+const app = createApp();
+app.get('/api/users', () => ({ users: [] }));
+
+const res = await app.handle(new HttpRequest({ method: 'GET', url: '/api/users' }));
+console.log(res.status, res.body); // 200, JSON body
+
+await testCtx.reset();
 ```
 
 ## Documentation

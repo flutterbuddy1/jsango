@@ -30,6 +30,10 @@ Handler (200 OK)
 Public endpoints can inspect the current principal without failing when unauthenticated:
 
 ```typescript
+import { createApp, authenticate } from 'jsango';
+
+const app = createApp();
+
 app.get('/public', handler, {
   middleware: [authenticate({ required: false })],
 });

@@ -13,12 +13,28 @@ pnpm add @jsango/queue
 ## Usage
 
 ```typescript
-import { QueueManager, MemoryQueueDriver, Worker, defineJob } from '@jsango/queue';
+import { QueueManager } from '@jsango/queue';
 
-const SendEmailJob = defineJob<{ email: string }>('send-email');
-const manager = new QueueManager({ default: new MemoryQueueDriver() });
+const manager = new QueueManager({
+  default: 'default',
+  connections: { default: { driver: 'memory' } },
+});
 
-await manager.queue().dispatch(SendEmailJob.create({ email: 'user@test.com' }));
+manager.registry.register<{ email: string }>({
+  type: 'send-email',
+  maxAttempts: 5,
+  retryPolicy: { backoffType: 'exponential', initialDelayMs: 1000 },
+  handler: async ({ payload, attempt, logger }) => {
+    logger.info(`sending to ${payload.email} (attempt ${attempt})`);
+  },
+});
+
+const jobId = await manager.queue().dispatch('send-email', { email: 'user@test.com' });
+await manager.queue().dispatch('send-email', { email: 'later@test.com' }, { delayMs: 60_000 });
+
+const worker = manager.startWorker({ concurrency: 4 }); // polls until stopped
+// on shutdown:
+await manager.close();
 ```
 
 ## Documentation

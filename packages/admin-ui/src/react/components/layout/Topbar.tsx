@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BrandLogo } from './BrandLogo.js';
 import { useAdmin } from '../../context/AdminContext.js';
 import {
   Menu,
@@ -55,7 +56,7 @@ export const Topbar: React.FC = () => {
     <>
       <header className="admin-topbar">
         {/* Left: Mobile Hamburger & Brand */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div className="topbar-left">
           <button
             type="button"
             className="mobile-hamburger-btn chakra-button subtle"
@@ -65,28 +66,23 @@ export const Topbar: React.FC = () => {
             <Menu style={{ width: 18, height: 18 }} />
           </button>
 
-          <a href="#dashboard" className="header-brand" style={{ textDecoration: 'none' }}>
-            <div className="header-brand-badge">JS</div>
-            <div>
+          <a href="#dashboard" className="header-brand" style={{ textDecoration: 'none' }} title={config.title}>
+            <BrandLogo size={28} />
+            <div className="header-brand-text">
               <div className="header-brand-title">{config.title}</div>
-              <div
-                className="header-brand-subtitle"
-                style={{ fontSize: '0.65rem', color: 'var(--chakra-colors-fg-muted)' }}
-              >
-                {config.brandSubtitle}
-              </div>
+              {config.brandSubtitle && <div className="header-brand-subtitle">{config.brandSubtitle}</div>}
             </div>
           </a>
         </div>
 
         {/* Right: Quick Actions & Profile */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <div className="topbar-actions">
           {/* External Site link */}
           <a
             href={config.siteUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="chakra-button subtle"
+            className="chakra-button subtle topbar-site-link"
             style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem' }}
           >
             <ExternalLink style={{ width: 13, height: 13 }} />
@@ -111,6 +107,7 @@ export const Topbar: React.FC = () => {
             >
               <Search style={{ width: 14, height: 14 }} />
               <kbd
+                className="desktop-only-text"
                 style={{
                   fontFamily: 'var(--chakra-fonts-mono)',
                   fontSize: '0.6875rem',
@@ -142,6 +139,7 @@ export const Topbar: React.FC = () => {
           {/* User Avatar linking to Profile */}
           <a
             href="#profile"
+            className="topbar-profile"
             title={`${user.name} (${user.role}) - Manage Profile & 2FA`}
             style={{
               display: 'flex',

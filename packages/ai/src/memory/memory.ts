@@ -39,65 +39,154 @@ export class InMemoryMemoryStore implements MemoryStore {
   }
 }
 
-export interface DatabaseMemoryOptions {
-  tableName?: string | undefined;
-  connection?: any | undefined;
+/**
+ * Anything with jsango DatabaseManager's shape: `query()` for SQL databases, plus
+ * `connection()` / `getDriverName()` so MongoDB can be used too.
+ */
+export interface MemoryDatabase {
+  query(sql: string, params?: readonly unknown[]): Promise<{ rows: readonly Record<string, unknown>[]; rowCount: number }>;
+  getDriverName?(name?: string): string;
+  connection?(name?: string): Promise<{
+    execute?(command: Record<string, unknown>): Promise<{ rows: readonly Record<string, unknown>[]; rowCount: number }>;
+    release(): Promise<void>;
+  }>;
 }
 
-export class DatabaseMemoryStore implements MemoryStore {
-  private inMemoryFallback = new InMemoryMemoryStore();
-  private readonly connection?: any | undefined;
+export interface DatabaseMemoryOptions {
+  /** The application's DatabaseManager (e.g. `db` from src/database.ts). */
+  connection: MemoryDatabase;
+  /** Table / collection name. Default: `ai_memory`. */
+  tableName?: string | undefined;
+  /** Messages kept per conversation (oldest dropped first). Default: 100. */
+  maxMessages?: number | undefined;
+}
 
-  constructor(options: DatabaseMemoryOptions = {}) {
-    this.connection = options.connection;
+/**
+ * Persists conversation history in the application's database (PostgreSQL, MySQL, SQLite or
+ * MongoDB). The table is created on first use.
+ */
+export class DatabaseMemoryStore implements MemoryStore {
+  private readonly db: MemoryDatabase;
+  private readonly table: string;
+  private readonly maxMessages: number;
+  private ready: Promise<void> | undefined;
+
+  constructor(options: DatabaseMemoryOptions) {
+    if (!options?.connection || typeof options.connection.query !== 'function') {
+      throw new Error(
+        "DatabaseMemoryStore requires your DatabaseManager: new DatabaseMemoryStore({ connection: db })."
+      );
+    }
+    if (options.tableName !== undefined && !/^[A-Za-z_][A-Za-z0-9_]*$/.test(options.tableName)) {
+      throw new Error(`Invalid memory table name '${options.tableName}'.`);
+    }
+    this.db = options.connection;
+    this.table = options.tableName ?? 'ai_memory';
+    this.maxMessages = options.maxMessages ?? 100;
+  }
+
+  private get driver(): string {
+    return this.db.getDriverName?.() ?? 'sql';
+  }
+
+  private async mongo<T>(fn: (execute: NonNullable<Awaited<ReturnType<NonNullable<MemoryDatabase['connection']>>>['execute']>) => Promise<T>): Promise<T> {
+    const conn = await this.db.connection!();
+    try {
+      return await fn(conn.execute!.bind(conn));
+    } finally {
+      await conn.release();
+    }
+  }
+
+  private q(name: string): string {
+    return this.driver === 'mysql' ? `\`${name}\`` : `"${name}"`;
+  }
+
+  private ensureTable(): Promise<void> {
+    if (this.driver === 'mongodb') return Promise.resolve();
+    this.ready ??= this.db
+      .query(
+        `CREATE TABLE IF NOT EXISTS ${this.q(this.table)} (` +
+          `${this.q('memory_key')} VARCHAR(255) PRIMARY KEY, ` +
+          `${this.q('messages')} ${this.driver === 'mysql' ? 'LONGTEXT' : 'TEXT'} NOT NULL, ` +
+          `${this.q('updated_at')} VARCHAR(32) NOT NULL)`
+      )
+      .then(() => undefined)
+      .catch((err: unknown) => {
+        this.ready = undefined;
+        throw err;
+      });
+    return this.ready;
   }
 
   public async get(key: string): Promise<LlmMessage[]> {
-    if (this.connection && typeof this.connection.query === 'function') {
-      try {
-        const res = await this.connection.query('SELECT messages FROM ai_memory WHERE key = $1', [key]);
-        if (res.rows?.[0]?.messages) {
-          return JSON.parse(res.rows[0].messages);
-        }
-      } catch {
-        // Fallback
-      }
+    if (this.driver === 'mongodb') {
+      const res = await this.mongo((execute) =>
+        execute({ op: 'find', collection: this.table, filter: { _id: key }, limit: 1 })
+      );
+      return (res.rows[0]?.['messages'] as LlmMessage[] | undefined) ?? [];
     }
-    return this.inMemoryFallback.get(key);
+    await this.ensureTable();
+    const res = await this.db.query(
+      `SELECT ${this.q('messages')} FROM ${this.q(this.table)} WHERE ${this.q('memory_key')} = ?`,
+      [key]
+    );
+    const raw = res.rows[0]?.['messages'];
+    return typeof raw === 'string' ? (JSON.parse(raw) as LlmMessage[]) : [];
   }
 
   public async set(key: string, messages: LlmMessage[]): Promise<void> {
-    if (this.connection && typeof this.connection.query === 'function') {
-      try {
-        const payload = JSON.stringify(messages);
-        await this.connection.query(
-          'INSERT INTO ai_memory (key, messages, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (key) DO UPDATE SET messages = $2, updated_at = NOW()',
-          [key, payload]
-        );
-        return;
-      } catch {
-        // Fallback
-      }
+    const kept = messages.slice(-this.maxMessages);
+    const now = new Date().toISOString();
+    if (this.driver === 'mongodb') {
+      await this.mongo((execute) =>
+        execute({
+          op: 'updateOne',
+          collection: this.table,
+          filter: { _id: key },
+          update: { $set: { messages: kept, updated_at: now } },
+          upsert: true,
+        })
+      );
+      return;
     }
-    await this.inMemoryFallback.set(key, messages);
+    await this.ensureTable();
+    const payload = JSON.stringify(kept);
+    const update = () =>
+      this.db.query(
+        `UPDATE ${this.q(this.table)} SET ${this.q('messages')} = ?, ${this.q('updated_at')} = ? WHERE ${this.q('memory_key')} = ?`,
+        [payload, now, key]
+      );
+    if ((await update()).rowCount > 0) return;
+    try {
+      await this.db.query(
+        `INSERT INTO ${this.q(this.table)} (${this.q('memory_key')}, ${this.q('messages')}, ${this.q('updated_at')}) VALUES (?, ?, ?)`,
+        [key, payload, now]
+      );
+    } catch (err) {
+      // Another request inserted the same conversation first: update it instead.
+      if ((await update()).rowCount === 0) throw err;
+    }
   }
 
   public async clear(key: string): Promise<void> {
-    if (this.connection && typeof this.connection.query === 'function') {
-      try {
-        await this.connection.query('DELETE FROM ai_memory WHERE key = $1', [key]);
-        return;
-      } catch {
-        // Fallback
-      }
+    if (this.driver === 'mongodb') {
+      await this.mongo((execute) => execute({ op: 'deleteOne', collection: this.table, filter: { _id: key } }));
+      return;
     }
-    await this.inMemoryFallback.clear(key);
+    await this.ensureTable();
+    await this.db.query(`DELETE FROM ${this.q(this.table)} WHERE ${this.q('memory_key')} = ?`, [key]);
   }
 }
 
-export function memory(type: 'memory' | 'database' | 'cache' = 'memory'): MemoryStore {
+/**
+ * `memory()` -> in-process memory; `memory('database', { connection: db })` -> persisted.
+ */
+export function memory(type?: 'memory'): MemoryStore;
+export function memory(type: 'database', options: DatabaseMemoryOptions): MemoryStore;
+export function memory(type: 'memory' | 'database' = 'memory', options?: DatabaseMemoryOptions): MemoryStore {
   if (type === 'database') {
-    return new DatabaseMemoryStore();
+    return new DatabaseMemoryStore(options as DatabaseMemoryOptions);
   }
   return new InMemoryMemoryStore();
 }

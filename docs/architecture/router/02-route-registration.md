@@ -19,8 +19,8 @@ router.delete('/users/:id', async (ctx) => HttpResponse.text('', { status: 204 }
 router.head('/health', async (ctx) => HttpResponse.text(''));
 router.options('/auth', async (ctx) => HttpResponse.text(''));
 
-// Generic route registration
-router.route('CUSTOM', '/custom-verb', async (ctx) => HttpResponse.text('custom'));
+// Generic route registration (method must be a standard HttpMethod)
+router.route('GET', '/generic', async (ctx) => HttpResponse.text('generic'));
 ```
 
 ## Route Options
@@ -28,16 +28,20 @@ router.route('CUSTOM', '/custom-verb', async (ctx) => HttpResponse.text('custom'
 Each registration method accepts an optional `RouteOptions` configuration:
 
 ```typescript
+import type { RouteConstraintDefinition } from '@jsango/router';
+
 export interface RouteOptions {
   readonly name?: string | undefined;
-  readonly constraints?: Record<string, RouteConstraintDefinition> | undefined;
   readonly metadata?: Record<string, unknown> | undefined;
+  readonly constraints?: Record<string, RouteConstraintDefinition> | undefined;
+  readonly middleware?: readonly unknown[] | undefined;
 }
 ```
 
 - `name`: Unique identifier for reverse URL generation. Throws `DuplicateRouteNameError` if a name is duplicated.
 - `constraints`: Dictionary of parameter constraints applied to named path parameters.
 - `metadata`: Arbitrary key-value metadata attached to the route, available during route matching and execution.
+- `middleware`: Route-level middleware run before the handler.
 
 ## Path Normalization
 

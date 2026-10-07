@@ -43,3 +43,4 @@ report.md
 
 # Temporary end-to-end test projects
 tests/.tmp-*
+packages/jsango/.doc-snippets-*

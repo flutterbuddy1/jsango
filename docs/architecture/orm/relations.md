@@ -10,6 +10,8 @@
 4. `relations.manyToMany(target, options)`: An association resolved through a join/pivot table.
 
 ```typescript
+import { defineModel, fields, relations } from '@jsango/orm';
+
 export const User = defineModel({
   name: 'User',
   table: 'users',
@@ -78,11 +80,11 @@ Once eager-loaded, related models are accessible directly on model instances:
 
 ```typescript
 // Property access
-const authorPosts = user.posts; // readonly Post[]
-const userProfile = user.profile; // Profile | null
+const authorPosts = user.posts; // readonly Model[]
+const userProfile = user.profile; // Model | null
 
 // Explicit getter
-const author = post.getRelation('user'); // User | null
+const author = post.getRelation<Model | null>('user'); // Model | null | undefined (undefined if not loaded)
 ```
 
 If a relationship was not eager-loaded via `.with()`, property access returns `undefined` and **never triggers an unexpected database query**.

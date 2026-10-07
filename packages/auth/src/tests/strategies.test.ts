@@ -25,7 +25,7 @@ describe('Authentication Strategies & Manager', () => {
 
   describe('BearerTokenAuthenticationStrategy', () => {
     it('authenticates valid bearer token', async () => {
-      const token = await jwt.sign({ sub: 'user-token', roles: ['admin'] });
+      const token = await jwt.sign({ sub: 'user-token', roles: ['admin'] }, { expiresInSeconds: 3600 });
       const req = new HttpRequest({
         method: 'GET',
         url: 'http://localhost/',
@@ -72,7 +72,7 @@ describe('Authentication Strategies & Manager', () => {
     });
 
     it('returns expired_credentials for expired token', async () => {
-      const expiredToken = await jwt.sign({ sub: 'u-1' }, { expiresInSeconds: -60 });
+      const expiredToken = await jwt.sign({ sub: 'u-1' }, { expiresInSeconds: -60 }, { expiresInSeconds: 3600 });
       const req = new HttpRequest({
         method: 'GET',
         url: 'http://localhost/',
@@ -164,7 +164,7 @@ describe('Authentication Strategies & Manager', () => {
     });
 
     it('falls through from session to bearer when session cookie is absent', async () => {
-      const token = await jwt.sign({ sub: 'user-via-bearer' });
+      const token = await jwt.sign({ sub: 'user-via-bearer' }, { expiresInSeconds: 3600 });
       const req = new HttpRequest({
         method: 'GET',
         url: 'http://localhost/',
@@ -180,7 +180,7 @@ describe('Authentication Strategies & Manager', () => {
 
     it('prioritizes session strategy when session cookie is present and valid', async () => {
       const session = await sessionStore.create({ identityId: 'user-via-session' });
-      const token = await jwt.sign({ sub: 'user-via-bearer' });
+      const token = await jwt.sign({ sub: 'user-via-bearer' }, { expiresInSeconds: 3600 });
 
       // Request contains both Session cookie and Bearer token
       const req = new HttpRequest({

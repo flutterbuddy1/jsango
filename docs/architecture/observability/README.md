@@ -8,7 +8,7 @@
 - **Metrics**: Bounded `Counter`, `Gauge`, and `Histogram` with strict label cardinality limits (protection against DoS and memory leaks).
 - **Tracing**: Lightweight `Tracer` and `Span` primitives using monotonic high-resolution timing (`performance.now()`) with context propagation and sampling.
 - **Correlation**: Request ID generation, validation, sanitization, and W3C `traceparent` parsing & propagation.
-- **Health & Diagnostics**: Separated `liveness` and `readiness` health checks, safe public health endpoints, and authenticated runtime diagnostics.
+- **Health & Diagnostics**: A `HealthRegistry` of named checks (critical / non-critical, per-check timeouts), safe public health endpoints, and authenticated runtime diagnostics.
 - **Redaction & PII Protection**: Recursive deep masking of sensitive keys (`password`, `token`, `secret`, `authorization`, `cookie`, etc.) with zero in-place mutation of input objects.
 - **Framework Hooks & Middleware**: Automated HTTP request/response metrics, duration recording, and correlation header management.
 
@@ -22,8 +22,9 @@
 import { StructuredLogger } from '@jsango/observability';
 
 const logger = new StructuredLogger({
-  name: 'order-service',
   minLevel: 'info',
+  format: 'json',
+  context: { service: 'order-service' },
 });
 
 const scopedLogger = logger.withContext({ orderId: 'ord_123', userId: 'usr_456' });
@@ -35,17 +36,21 @@ scopedLogger.info('Processing order payment', { amount: 99.95 });
 ```typescript
 import { MetricRegistry } from '@jsango/observability';
 
-const metrics = new MetricRegistry({ maxCardinalityPerMetric: 1000 });
+// Argument: max label permutations per metric (default 1000)
+const metrics = new MetricRegistry(1000);
 const requestCounter = metrics.counter('http.requests.total', 'HTTP request count', [
   'method',
   'status',
 ]);
-requestCounter.inc({ method: 'GET', status: '200' });
+// inc(amount = 1, labels = {})
+requestCounter.inc(1, { method: 'GET', status: '200' });
 
+// histogram(name, description, buckets?, labelNames?)
 const latencyHist = metrics.histogram(
   'http.request.duration',
   'Request latency ms',
-  [5, 10, 25, 50, 100, 500]
+  [5, 10, 25, 50, 100, 500],
+  ['route']
 );
 latencyHist.observe(23.4, { route: '/users' });
 ```
@@ -55,17 +60,23 @@ latencyHist.observe(23.4, { route: '/users' });
 ```typescript
 import { Tracer } from '@jsango/observability';
 
-const tracer = new Tracer({ serviceName: 'user-api' });
+const tracer = new Tracer({ sampleRate: 1 });
 
-await tracer.trace('user.fetch', async (span) => {
+// withSpan() starts a span, sets status 'ok' (or records the exception) and ends it
+await tracer.withSpan('user.fetch', async (span) => {
   span.setAttribute('user.id', '123');
   // Monotonic execution timing
 });
+
+// Manual spans
+const span = tracer.startSpan('cache.lookup', { kind: 'internal' });
+span.end();
 ```
 
 ### 4. Health Checks & Diagnostic Handlers
 
 ```typescript
+import { Router } from '@jsango/router';
 import {
   HealthRegistry,
   createHealthHandler,
@@ -73,12 +84,22 @@ import {
   createDiagnosticsHandler,
 } from '@jsango/observability';
 
-const health = new HealthRegistry();
-health.register('db', async () => checkDbConnection(), { critical: true, timeoutMs: 3000 });
+const router = new Router();
+const isOperator = (ctx) => ctx.request.headers.get('x-ops-token') === process.env.OPS_TOKEN;
 
-router.get('/health', createHealthHandler(health));
-router.get('/health/live', createHealthHandler(health, { checkType: 'liveness' }));
-router.get('/health/ready', createHealthHandler(health, { checkType: 'readiness' }));
+// Liveness: process is up (no dependencies)
+const liveness = new HealthRegistry();
+liveness.register('process', () => true);
+
+// Readiness: dependencies are reachable
+const readiness = new HealthRegistry();
+readiness.register('db', async () => checkDbConnection(), { critical: true, timeoutMs: 3000 });
+
+router.get('/health/live', createHealthHandler(liveness));
+router.get('/health/ready', createHealthHandler(readiness, { isAuthorized: isOperator }));
+
+const diagnostics = new DiagnosticsProvider();
+router.get('/diagnostics', createDiagnosticsHandler(diagnostics, { isAuthorized: isOperator }));
 ```
 
 ---

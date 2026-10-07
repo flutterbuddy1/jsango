@@ -54,7 +54,7 @@ export function renderDashboardView(props: DashboardViewProps): string {
 
   const widgetCardsHtml = widgets
     .map((w) => {
-      const widgetData = data[w.id];
+      const widgetData = data[w.id ?? ''];
       const widthClass =
         w.width === 'full'
           ? 'col-span-1 lg:col-span-4'

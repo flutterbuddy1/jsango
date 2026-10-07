@@ -18,6 +18,11 @@ The cookie module provides secure parsing of incoming `Cookie` headers and robus
 ## Example Usage
 
 ```typescript
+import { parseCookies, type HttpRequest, type HttpResponse } from '@jsango/http';
+
+declare const request: HttpRequest;
+declare const response: HttpResponse;
+
 // Parsing request cookies
 const cookies = parseCookies(request.headers.get('cookie'));
 const token = cookies['session_id'];

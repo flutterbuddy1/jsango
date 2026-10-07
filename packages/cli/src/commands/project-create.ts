@@ -5,9 +5,8 @@ import type { CommandContext } from '../public/context.js';
 import { ExitCode } from '../public/types.js';
 import { DestructiveOperationError, UsageError } from '../public/errors.js';
 import { ProjectDiscovery } from '../internal/project.js';
+import { FRAMEWORK_VERSION } from './version.js';
 
-/** Framework version written into generated package.json files. */
-const FRAMEWORK_VERSION = '1.3.0';
 
 export class ProjectCreateCommand extends BaseCommand {
   public readonly name = 'create';

@@ -78,7 +78,22 @@ server {
 
 ## 3. Graceful Shutdown & Process Management
 
-`jsango` applications listen for `SIGTERM` and `SIGINT` signals to gracefully close active HTTP sockets, drain database connection pools, acknowledge active queue worker leases, and notify WebSocket clients before process termination.
+Handle `SIGTERM` and `SIGINT` in your entry point to shut down gracefully. Projects scaffolded with `jsango create` already do this for the database; extend the handler for the HTTP server and other subsystems:
+
+```typescript
+import { createApp, getDatabaseManager } from 'jsango';
+
+const app = createApp();
+const server = await app.listen(3000);
+
+const shutdown = async () => {
+  await server.close(10_000); // stop accepting connections, wait for in-flight requests
+  await getDatabaseManager().close(); // drain database connection pools
+  process.exit(0);
+};
+process.once('SIGINT', shutdown);
+process.once('SIGTERM', shutdown);
+```
 
 ### PM2 Ecosystem Example (`ecosystem.config.cjs`)
 
@@ -104,7 +119,7 @@ module.exports = {
 
 ## 4. Health Checks & Kubernetes Probes
 
-`jsango` provides standardized endpoints for orchestrators:
+Register these endpoints with `HealthRegistry` and `createHealthHandler()` from `@jsango/observability` (see the [Observability architecture](../architecture/observability/README.md)); they are not mounted automatically:
 
 - **Liveness Probe (`/health/live`)**: Returns HTTP `200` if the Node.js event loop is operational.
 - **Readiness Probe (`/health/ready`)**: Returns HTTP `200` if all critical subsystem checks (database pools, cache, queue drivers) are connected and ready to accept traffic.

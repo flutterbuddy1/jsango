@@ -13,11 +13,28 @@ pnpm add @jsango/admin-server
 ## Usage
 
 ```typescript
-import { mountAdminApi, AdminCrudService } from '@jsango/admin-server';
+import { AdminServer, type IAdminQueryAdapter } from '@jsango/admin-server';
+import { AdminRegistry } from '@jsango/admin-core';
+import { AdminPermissionChecker } from '@jsango/admin-auth';
+import { AdminAuditLogger, InMemoryAuditStore } from '@jsango/admin-audit';
 import { Router } from '@jsango/router';
 
+// Bridges the admin to your data layer: implement list/findById/create/update/delete.
+declare const queryAdapter: IAdminQueryAdapter;
+
+const registry = new AdminRegistry();
+registry.register(User); // an ORM model, or an AdminResource
+
+const admin = new AdminServer({
+  registry,
+  queryAdapter,
+  permissions: new AdminPermissionChecker(),
+  audit: new AdminAuditLogger({ store: new InMemoryAuditStore() }),
+  prefix: '/admin/api/v1',
+});
+
 const router = new Router();
-mountAdminApi(router, adminRegistry, crudService, { prefix: '/admin/api' });
+admin.mount(router);
 ```
 
 ## Documentation

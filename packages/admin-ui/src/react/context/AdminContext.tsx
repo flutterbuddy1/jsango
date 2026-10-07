@@ -49,6 +49,7 @@ export interface AdminResource {
   pluralLabel: string;
   navigationGroup?: string;
   navigationIcon?: string;
+  navigationOrder?: number;
   listDisplay?: string[];
   searchFields?: string[];
   listFilter?: string[];
@@ -68,11 +69,25 @@ export interface ToastMessage {
 export interface AdminConfig {
   title: string;
   brandSubtitle: string;
+  /** Logo image URL (shown in the header and on the login page). */
+  logoUrl?: string;
+  /** Letters shown in the logo badge when there is no logoUrl. Defaults to the title's initials. */
+  logoText?: string;
   siteUrl: string;
   apiBasePath: string;
   defaultTheme: 'light' | 'dark' | 'system';
   enableCommandPalette?: boolean;
   enableTwoFactor?: boolean;
+}
+
+export interface AdminCustomPage {
+  id: string;
+  path: string;
+  label: string;
+  description?: string;
+  navigationGroup?: string;
+  navigationIcon?: string;
+  navigationOrder?: number;
 }
 
 export interface BreadcrumbItem {
@@ -96,6 +111,8 @@ interface AdminContextValue {
   user: AdminUser;
   setUser: React.Dispatch<React.SetStateAction<AdminUser>>;
   resources: AdminResource[];
+  /** Custom pages registered with `new AdminPage(...)`. */
+  pages: AdminCustomPage[];
   activeResource: AdminResource | null;
   route: string;
   setRoute: (r: string) => void;
@@ -133,7 +150,9 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({
 }) => {
   const mergedConfig: AdminConfig = {
     title: userConfig?.title || 'JSango Administration',
-    brandSubtitle: userConfig?.brandSubtitle || 'Enterprise Admin Control',
+    brandSubtitle: userConfig?.brandSubtitle ?? 'Enterprise Admin Control',
+    ...(userConfig?.logoUrl ? { logoUrl: userConfig.logoUrl } : {}),
+    ...(userConfig?.logoText ? { logoText: userConfig.logoText } : {}),
     siteUrl: userConfig?.siteUrl || '/',
     apiBasePath: (userConfig?.apiBasePath || (userConfig as any)?.apiPrefix || '/api/admin').replace(/\/$/, ''),
     defaultTheme: userConfig?.defaultTheme || 'dark',
@@ -157,11 +176,11 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   const [user, setUser] = useState<AdminUser>({
-    id: initialUser?.id || 'usr-admin-01',
-    name: initialUser?.name || 'System Administrator',
-    email: initialUser?.email || 'admin@jsango.dev',
-    role: initialUser?.role || 'Superuser',
-    isSuperuser: initialUser?.isSuperuser ?? true,
+    id: initialUser?.id || '',
+    name: initialUser?.name || '',
+    email: initialUser?.email || '',
+    role: initialUser?.role || '',
+    isSuperuser: initialUser?.isSuperuser ?? false,
     avatarUrl: initialUser?.avatarUrl,
     lastLoginAt: initialUser?.lastLoginAt || new Date().toISOString(),
   });
@@ -276,6 +295,10 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({
         throw new Error(errMessage);
       }
 
+      // Unwrap the admin API envelope `{ ok: true, data }`.
+      if (body && typeof body === 'object' && body.ok === true && 'data' in body) {
+        return (body.data ?? {}) as T;
+      }
       return (body ?? {}) as T;
     },
     [mergedConfig.apiBasePath, authToken]
@@ -300,10 +323,10 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({
         setAuthToken(data.token);
         setUser({
           id: data.user.id,
-          name: data.user.name || 'System Administrator',
+          name: data.user.name || email,
           email: data.user.email || email,
-          role: data.user.role || 'Superuser',
-          isSuperuser: data.user.isSuperuser ?? true,
+          role: data.user.role || 'Staff',
+          isSuperuser: data.user.isSuperuser ?? false,
         });
         setIsAuthenticated(true);
         return { ok: true, token: data.token, user: data.user };
@@ -341,10 +364,10 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({
         if (userData) {
           setUser({
             id: userData.id,
-            name: userData.name || userData.username || 'System Administrator',
-            email: userData.email || userData.username || 'admin@jsango.dev',
-            role: userData.roles?.[0] || 'Superuser',
-            isSuperuser: userData.isSuperuser ?? true,
+            name: userData.name || userData.username || userData.id,
+            email: userData.email || '',
+            role: userData.isSuperuser ? 'Superuser' : userData.roles?.[0] || 'Staff',
+            isSuperuser: userData.isSuperuser ?? false,
           });
           setIsAuthenticated(true);
         }
@@ -367,8 +390,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({
         const fullResources: AdminResource[] = await Promise.all(
           rawResources.map(async (r: any) => {
             try {
-              const schemaRes = await fetchApi<any>(`/resources/${r.id}/schema`);
-              const schema = schemaRes?.data?.schema || schemaRes?.schema || {};
+              const schema = r.schema || (await fetchApi<any>(`/resources/${r.id}/schema`))?.schema || {};
               const fields: AdminResourceField[] = (schema.fields || []).map((f: any) => ({
                 name: f.name,
                 label: f.label || f.name,
@@ -421,9 +443,14 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({
     }
   }, [fetchApi]);
 
+  const [pages, setPages] = useState<AdminCustomPage[]>([]);
   useEffect(() => {
+    if (!isAuthenticated) return;
     refreshResources();
-  }, [refreshResources]);
+    fetchApi<{ pages: AdminCustomPage[] }>('/pages')
+      .then((res) => setPages(res.pages ?? []))
+      .catch(() => setPages([]));
+  }, [isAuthenticated, refreshResources, fetchApi]);
 
   // Determine active resource from route (e.g. #changelist/products -> products)
   const activeResourceId = route.startsWith('#changelist/')
@@ -448,6 +475,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({
         user,
         setUser,
         resources,
+        pages,
         activeResource,
         route,
         setRoute,

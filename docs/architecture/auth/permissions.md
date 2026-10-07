@@ -18,6 +18,8 @@ export interface PermissionDefinition {
 `PermissionRegistry` centralizes registered permissions across packages and plugins.
 
 ```typescript
+import { PermissionRegistry } from '@jsango/auth';
+
 const registry = new PermissionRegistry();
 registry.register({ name: 'users.read', description: 'Read user records' });
 ```

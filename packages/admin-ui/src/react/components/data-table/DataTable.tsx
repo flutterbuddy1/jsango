@@ -23,16 +23,24 @@ export interface DataTableProps {
 }
 
 export const DataTable: React.FC<DataTableProps> = ({ resource }) => {
-  const { fetchApi, showToast, setRoute } = useAdmin();
+  const { fetchApi, showToast, setRoute, config } = useAdmin();
 
   const [records, setRecords] = useState<any[]>([]);
-  const [totalRecords, setTotalRecords] = useState(0);
+  /** null when the resource skips exact counts (exactCount: false). */
+  const [totalRecords, setTotalRecords] = useState<number | null>(0);
+  const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Table Query State
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(resource.listPerPage || 25);
   const [searchQuery, setSearchQuery] = useState('');
+  // Query the server 300ms after typing stops, not on every keystroke.
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
   const [sortBy, setSortBy] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
@@ -51,39 +59,40 @@ export const DataTable: React.FC<DataTableProps> = ({ resource }) => {
       ? resource.listDisplay
       : resource.fields.map((f) => f.name).slice(0, 5);
 
+  /** Search, sort and filters as a query string (shared by the list and CSV export). */
+  const queryString = useCallback(() => {
+    const params = new URLSearchParams();
+    if (debouncedSearch) params.set('search', debouncedSearch);
+    if (sortBy) {
+      params.set('sort', sortBy);
+      params.set('sortDirection', sortDir);
+    }
+    for (const [k, v] of Object.entries(activeFilters)) {
+      if (v !== '' && v !== undefined && v !== null) params.set(`filter_${k}`, String(v));
+    }
+    return params;
+  }, [debouncedSearch, sortBy, sortDir, activeFilters]);
+
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
+      const params = queryString();
       params.set('page', page.toString());
       params.set('pageSize', pageSize.toString());
-      if (searchQuery.trim()) {
-        params.set('search', searchQuery.trim());
-      }
-      if (sortBy) {
-        params.set('sort', sortBy);
-        params.set('sortDirection', sortDir);
-      }
-      for (const [k, v] of Object.entries(activeFilters)) {
-        if (v !== '' && v !== undefined && v !== null) {
-          params.set(`filter_${k}`, String(v));
-        }
-      }
 
       const res = await fetchApi<any>(`/resources/${resource.id}?${params.toString()}`);
       const dataObj = res?.data || res || {};
       const items = dataObj.items || dataObj.records || (Array.isArray(dataObj) ? dataObj : []);
-      const total = dataObj.total ?? dataObj.totalRecords ?? items.length;
-
       setRecords(items);
-      setTotalRecords(total);
+      setTotalRecords(dataObj.total === null ? null : (dataObj.total ?? items.length));
+      setHasMore(Boolean(dataObj.hasMore));
       setSelectedIds(new Set());
     } catch (err: any) {
       showToast(err.message || 'Failed to load records', 'error');
     } finally {
       setLoading(false);
     }
-  }, [resource.id, page, pageSize, searchQuery, sortBy, sortDir, activeFilters, fetchApi, showToast]);
+  }, [resource.id, page, pageSize, queryString, fetchApi, showToast]);
 
   useEffect(() => {
     loadData();
@@ -132,12 +141,11 @@ export const DataTable: React.FC<DataTableProps> = ({ resource }) => {
   const handleBulkDelete = async () => {
     if (!confirm(`Are you sure you want to delete ${selectedIds.size} selected records?`)) return;
     try {
-      await Promise.all(
-        Array.from(selectedIds).map((id) =>
-          fetchApi(`/resources/${resource.id}/${id}`, { method: 'DELETE' })
-        )
-      );
-      showToast(`${selectedIds.size} records deleted successfully`);
+      const res = await fetchApi<{ result: { deleted: number } }>(`/resources/${resource.id}/bulk/delete`, {
+        method: 'POST',
+        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      });
+      showToast(`${res.result?.deleted ?? selectedIds.size} records deleted`);
       loadData();
     } catch (err: any) {
       showToast(err.message, 'error');
@@ -181,22 +189,18 @@ export const DataTable: React.FC<DataTableProps> = ({ resource }) => {
     }
   };
 
-  // Export CSV
-  const handleExportCsv = () => {
-    if (records.length === 0) return;
-    const headers = columns.join(',');
-    const rows = records.map((r) =>
-      columns.map((col) => `"${String(r[col] ?? '').replace(/"/g, '""')}"`).join(',')
-    );
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers, ...rows].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `${resource.id}_export_${Date.now()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showToast(`Exported ${records.length} records to CSV`);
+  // Export CSV: the server streams every matching row (not just this page) in batches.
+  const handleExportCsv = async () => {
+    try {
+      const { url } = await fetchApi<{ url: string }>(`/resources/${resource.id}/export`, {
+        method: 'POST',
+        body: JSON.stringify({ query: queryString().toString() }),
+      });
+      window.location.assign(`${config.apiBasePath}${url}`);
+      showToast('Export started');
+    } catch (err: any) {
+      showToast(err.message || 'Export failed', 'error');
+    }
   };
 
   // Handle CSV File Upload
@@ -260,7 +264,7 @@ export const DataTable: React.FC<DataTableProps> = ({ resource }) => {
     }
   };
 
-  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
+  const totalPages = totalRecords === null ? null : Math.max(1, Math.ceil(totalRecords / pageSize));
 
   return (
     <div>
@@ -349,7 +353,12 @@ export const DataTable: React.FC<DataTableProps> = ({ resource }) => {
             <Filter style={{ width: 14, height: 14, color: 'var(--chakra-colors-fg-muted)' }} />
             {resource.listFilter.map((fName) => {
               const fieldDef = resource.fields.find((f) => f.name === fName);
-              if (!fieldDef || !fieldDef.choices) return null;
+              const filterDef = (resource as any).filters?.find((f: any) => (f.field || f.name) === fName);
+              const choices: Array<{ label: string; value: string | number }> | undefined =
+                filterDef?.choices ??
+                fieldDef?.choices ??
+                (fieldDef?.type === 'boolean' ? [{ label: 'Yes', value: 'true' }, { label: 'No', value: 'false' }] : undefined);
+              if (!fieldDef || !choices) return null;
               return (
                 <select
                   key={fName}
@@ -362,7 +371,7 @@ export const DataTable: React.FC<DataTableProps> = ({ resource }) => {
                   }}
                 >
                   <option value="">All {fieldDef.label}</option>
-                  {fieldDef.choices.map((c) => (
+                  {choices.map((c) => (
                     <option key={String(c.value)} value={String(c.value)}>
                       {c.label}
                     </option>
@@ -570,7 +579,8 @@ export const DataTable: React.FC<DataTableProps> = ({ resource }) => {
           }}
         >
           <div>
-            Showing <strong>{records.length}</strong> of <strong>{totalRecords}</strong> {resource.pluralLabel.toLowerCase()}
+            Showing <strong>{records.length}</strong>
+            {totalRecords !== null && <> of <strong>{totalRecords.toLocaleString()}</strong></>} {resource.pluralLabel.toLowerCase()}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -603,13 +613,13 @@ export const DataTable: React.FC<DataTableProps> = ({ resource }) => {
                 <ChevronLeft style={{ width: 14, height: 14 }} />
               </button>
               <span>
-                Page {page} of {totalPages}
+                Page {page.toLocaleString()}{totalPages !== null && ` of ${totalPages.toLocaleString()}`}
               </span>
               <button
                 type="button"
                 className="chakra-button subtle"
                 style={{ padding: '0.3rem 0.5rem' }}
-                disabled={page >= totalPages}
+                disabled={totalPages === null ? !hasMore : page >= totalPages}
                 onClick={() => setPage(page + 1)}
               >
                 <ChevronRight style={{ width: 14, height: 14 }} />

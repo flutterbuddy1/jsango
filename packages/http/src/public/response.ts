@@ -162,7 +162,7 @@ export class HttpResponse {
     });
   }
 
-  public static redirect(url: string, status = HttpStatus.FOUND): HttpResponse {
+  public static redirect(url: string, status: number = HttpStatus.FOUND): HttpResponse {
     const headers = new HttpHeaders({
       location: url,
     });

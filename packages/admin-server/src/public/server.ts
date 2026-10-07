@@ -1,10 +1,13 @@
+import * as crypto from 'node:crypto';
 import type { IRouter, RouteHandler } from '@jsango/router';
 import type { HttpRequest, RequestContext } from '@jsango/http';
 import { HttpResponse, HttpStatus } from '@jsango/http';
-import { type Identity, UserIdentity, TotpService } from '@jsango/auth';
-import type { AdminRegistry } from '@jsango/admin-core';
+import { type Identity, type Auth, UserIdentity, TotpService, TooManyAttemptsError } from '@jsango/auth';
+import type { AdminRegistry, AdminResource } from '@jsango/admin-core';
 import {
+  ActivityWidget,
   AdminAuthorizationError,
+  AdminDashboard,
   AdminItemNotFoundError,
   AdminResourceNotFoundError,
   AdminActionError,
@@ -17,82 +20,77 @@ import { parseListQuery, sendJson, sendError, extractIpAddress } from './http-he
 import type { IAdminQueryAdapter } from './types.js';
 
 export interface AdminCredentialsOptions {
-  /**
-   * Super admin username for login.
-   * @default 'admin' or process.env.JSANGO_ADMIN_USER
-   */
+  /** Super admin username. Default `JSANGO_ADMIN_USER` or the part before @ of the email. */
   readonly username?: string | undefined;
-  /**
-   * Super admin email address.
-   * @default 'admin@jsango.dev' or process.env.JSANGO_ADMIN_EMAIL
-   */
+  /** Super admin email. Default `JSANGO_ADMIN_EMAIL` or 'admin@jsango.dev'. */
   readonly email?: string | undefined;
   /**
-   * Super admin password.
-   * @default 'admin123' or process.env.JSANGO_ADMIN_PASSWORD
+   * Super admin password. Default `JSANGO_ADMIN_PASSWORD`. Without one, the development default
+   * 'admin123' is used and login is refused in production.
    */
   readonly password?: string | undefined;
-  /**
-   * Super admin display name.
-   * @default 'System Administrator'
-   */
+  /** Display name. */
   readonly name?: string | undefined;
 }
 
 export interface AdminServerOptions {
-  /**
-   * Admin registry containing all registered resources and pages.
-   */
   readonly registry: AdminRegistry;
-  /**
-   * ORM query adapter used by the CRUD service layer.
-   */
   readonly queryAdapter: IAdminQueryAdapter;
-  /**
-   * Permission checker used to enforce access control.
-   */
   readonly permissions: AdminPermissionChecker;
-  /**
-   * Audit logger for recording all admin mutations.
-   */
   readonly audit: AdminAuditLogger;
-  /**
-   * URL prefix for all admin routes.
-   * Default: '/admin/api/v1'.
-   */
+  /** URL prefix for all admin API routes. Default '/admin/api/v1'. */
   readonly prefix?: string | undefined;
-  /**
-   * Custom credentials for the super admin account.
-   */
+  /** The built-in super admin account (used when `authKit` is not set). */
   readonly credentials?: AdminCredentialsOptions | undefined;
-  /**
-   * Alias for credentials.
-   */
+  /** Alias for credentials. */
   readonly auth?: AdminCredentialsOptions | undefined;
   /**
-   * Callback to extract the actor's Identity from a request.
-   * Inject from the auth middleware or session.
+   * Sign in to the admin with your application's users (`createAuth()`): passwords, lockout and
+   * two-factor login come from your auth setup. Users need the `admin`/`staff` role, the
+   * `admin.access` permission or `isSuperuser` to enter.
    */
+  readonly authKit?: Auth<any> | undefined;
+  /** Lifetime of an admin login. Default 8 hours. */
+  readonly sessionTtlSeconds?: number | undefined;
+  /** Extra checks shown on the System page, e.g. `{ redis: () => redis.ping() }`. */
+  readonly healthChecks?: Readonly<Record<string, () => unknown>> | undefined;
+  /** Resolves the identity for requests that don't carry an admin session token. */
   readonly resolveIdentity?:
     ((req: HttpRequest) => Promise<Identity | undefined> | Identity | undefined) | undefined;
 }
 
+interface AdminSession {
+  readonly id: string;
+  readonly identity: Identity;
+  readonly createdAt: number;
+  lastActive: number;
+  readonly device: string;
+  readonly ip: string;
+}
+
+const DEFAULT_PASSWORD = 'admin123';
+const MAX_LOGIN_FAILURES = 5;
+const LOCKOUT_MS = 15 * 60 * 1000;
+
+const sha256 = (value: string) => crypto.createHash('sha256').update(value).digest('hex');
+const safeEqual = (a: string, b: string) => crypto.timingSafeEqual(Buffer.from(sha256(a)), Buffer.from(sha256(b)));
+
 /**
- * Registers all Admin HTTP API routes onto the provided router instance.
+ * Registers the Admin HTTP API on a router (relative to the prefix):
  *
- * Route structure (relative to prefix):
- *
- *   GET    /resources                          — list registered resources
- *   GET    /resources/:resourceId/schema       — resource schema
- *   GET    /resources/:resourceId              — list items
- *   POST   /resources/:resourceId              — create item
- *   GET    /resources/:resourceId/:id          — retrieve item
- *   PATCH  /resources/:resourceId/:id          — update item
- *   DELETE /resources/:resourceId/:id          — delete item
- *   POST   /resources/:resourceId/:id/restore  — restore soft-deleted item
- *   POST   /resources/:resourceId/:id/actions/:actionId   — row action
- *   POST   /resources/:resourceId/bulk/:actionId          — bulk action
- *   GET    /audit                              — query audit log
+ *   POST   /auth/login | /auth/logout            GET /auth/me | /auth/profile
+ *   POST   /auth/password | /auth/2fa/{setup,verify,disable}
+ *   GET    /auth/sessions                        DELETE /auth/sessions/:id
+ *   GET    /dashboard | /dashboard/widgets/:widgetId
+ *   GET    /pages | /pages/:pageId | /pages/:pageId/widgets/:widgetId
+ *   GET    /system/health
+ *   GET    /resources | /resources/:resourceId/schema
+ *   POST   /resources/:resourceId/export (one-time URL) → GET .../export?ticket= (CSV stream)
+ *   GET    /resources/:resourceId                POST /resources/:resourceId
+ *   GET    /resources/:resourceId/:id            PATCH | DELETE /resources/:resourceId/:id
+ *   POST   /resources/:resourceId/:id/restore    POST /resources/:resourceId/:id/actions/:actionId
+ *   POST   /resources/:resourceId/bulk/:actionId (built-in: `delete`)
+ *   GET    /audit
  */
 export class AdminServer {
   private readonly registry: AdminRegistry;
@@ -100,57 +98,41 @@ export class AdminServer {
   private readonly permissions: AdminPermissionChecker;
   private readonly audit: AdminAuditLogger;
   private readonly prefix: string;
-  private readonly resolveIdentity: (req: HttpRequest) => Promise<Identity | undefined>;
-  private readonly totp: TotpService;
-  private adminEmail: string;
-  private adminUsername: string;
+  private readonly authKit: Auth<any> | undefined;
+  private readonly resolver: AdminServerOptions['resolveIdentity'];
+  private readonly sessionTtlMs: number;
+  private readonly healthChecks: Readonly<Record<string, () => unknown>>;
+  private readonly totp = new TotpService();
+  private readonly adminEmail: string;
+  private readonly adminUsername: string;
   private adminPassword: string;
-  private adminName: string;
-  private readonly activeTokens = new Map<string, { identity: Identity; createdAt: number }>();
-  private readonly twoFactorStore = new Map<
-    string,
-    { secret: string; backupCodes: string[]; isEnabled: boolean }
-  >();
-  private readonly pending2faSecrets = new Map<string, string>();
-  private readonly sessionsStore = new Map<
-    string,
-    {
-      id: string;
-      identityId: string;
-      device: string;
-      ip: string;
-      location: string;
-      createdAt: number;
-      lastActive: number;
-    }
-  >();
+  private readonly passwordConfigured: boolean;
+  private readonly adminName: string;
+  /** Keyed by sha256(token): a leaked memory dump doesn't reveal usable tokens. */
+  private readonly sessions = new Map<string, AdminSession>();
+  private readonly loginFailures = new Map<string, { count: number; resetAt: number }>();
+  private readonly twoFactor = new Map<string, { secret: string; backupCodes: string[] }>();
+  private readonly pending2fa = new Map<string, string>();
+  private readonly fallbackDashboard: AdminDashboard;
+  private readonly exportTickets = new Map<string, { identity: Identity; resourceId: string; expiresAt: number }>();
 
   constructor(options: AdminServerOptions) {
     this.registry = options.registry;
     this.permissions = options.permissions;
     this.audit = options.audit;
     this.prefix = options.prefix ?? '/admin/api/v1';
-    this.totp = new TotpService();
+    this.authKit = options.authKit;
+    this.resolver = options.resolveIdentity;
+    this.sessionTtlMs = (options.sessionTtlSeconds ?? 8 * 3600) * 1000;
+    this.healthChecks = options.healthChecks ?? {};
 
     const creds = options.credentials ?? options.auth;
-    this.adminEmail =
-      creds?.email ??
-      process.env.JSANGO_ADMIN_EMAIL ??
-      process.env.JSANGO_ADMIN_USER ??
-      process.env.ADMIN_EMAIL ??
-      process.env.ADMIN_USERNAME ??
-      'admin@jsango.dev';
-    this.adminUsername =
-      creds?.username ??
-      process.env.JSANGO_ADMIN_USER ??
-      process.env.ADMIN_USERNAME ??
-      (this.adminEmail.includes('@') ? this.adminEmail.split('@')[0] : this.adminEmail) ??
-      'admin';
-    this.adminPassword =
-      creds?.password ??
-      process.env.JSANGO_ADMIN_PASSWORD ??
-      process.env.ADMIN_PASSWORD ??
-      'admin123';
+    const env = process.env;
+    this.adminEmail = creds?.email ?? env['JSANGO_ADMIN_EMAIL'] ?? env['ADMIN_EMAIL'] ?? 'admin@jsango.dev';
+    this.adminUsername = creds?.username ?? env['JSANGO_ADMIN_USER'] ?? env['ADMIN_USERNAME'] ?? this.adminEmail.split('@')[0]!;
+    const password = creds?.password ?? env['JSANGO_ADMIN_PASSWORD'] ?? env['ADMIN_PASSWORD'];
+    this.passwordConfigured = Boolean(password);
+    this.adminPassword = password ?? DEFAULT_PASSWORD;
     this.adminName = creds?.name ?? 'System Administrator';
 
     this.crud = new AdminCrudService({
@@ -159,1011 +141,628 @@ export class AdminServer {
       audit: options.audit,
     });
 
-    const resolver = options.resolveIdentity;
-    this.resolveIdentity = async (req: HttpRequest) => {
-      const authHeader = req.headers.get('authorization') || '';
-      if (authHeader.startsWith('Bearer ')) {
-        const token = authHeader.replace('Bearer ', '').trim();
-        const active = this.activeTokens.get(token);
-        if (active) {
-          return active.identity;
-        }
-      }
-      if (resolver) {
-        return resolver(req);
-      }
-      return undefined;
-    };
+    // Shown when the app registers no dashboard widgets: real recent admin activity.
+    this.fallbackDashboard = new AdminDashboard([
+      new ActivityWidget({
+        id: 'recent-activity',
+        title: 'Recent admin activity',
+        width: 'full',
+        getActivity: async () => {
+          const page = await this.audit.query({ limit: 10, offset: 0 });
+          return page.entries.map((e) => ({
+            id: e.id,
+            title: `${e.actor?.email ?? e.actor?.username ?? e.actor?.id ?? 'system'} ${e.action.replace('_', ' ')} ${e.resourceLabel ?? e.resourceId}${e.objectRepresentation ? ` "${e.objectRepresentation}"` : ''}`,
+            subtitle: e.ipAddress,
+            timestamp: e.timestamp.getTime(),
+            icon: e.action,
+          }));
+        },
+      }),
+    ]);
   }
 
-  /**
-   * Mounts all Admin routes onto the given router.
-   * Call this during application bootstrap after the registry is populated.
-   */
   public mount(router: IRouter): void {
     const p = this.prefix;
 
-    // Auth & Profile & 2FA & Sessions
-    router.post(`${p}/auth/login`, this.handleLogin());
-    router.post(`${p}/auth/logout`, this.handleLogout());
-    router.get(`${p}/auth/me`, this.handleGetAuthMe());
-    router.get(`${p}/auth/profile`, this.handleGetProfile());
-    router.post(`${p}/auth/password`, this.handleUpdatePassword());
-    router.post(`${p}/auth/2fa/setup`, this.handleSetup2fa());
-    router.post(`${p}/auth/2fa/verify`, this.handleVerify2fa());
-    router.post(`${p}/auth/2fa/disable`, this.handleDisable2fa());
-    router.get(`${p}/auth/sessions`, this.handleListSessions());
-    router.delete(`${p}/auth/sessions/:sessionId`, this.handleDeleteSession());
-    router.post(`${p}/auth/sessions/terminate-others`, this.handleTerminateOtherSessions());
+    router.post(`${p}/auth/login`, this.route((ctx) => this.login(ctx)));
+    router.post(`${p}/auth/logout`, this.route((ctx) => this.logout(ctx)));
+    router.get(`${p}/auth/me`, this.authed((_ctx, identity) => this.me(identity)));
+    router.get(`${p}/auth/profile`, this.authed((_ctx, identity) => this.profile(identity)));
+    router.post(`${p}/auth/password`, this.authed((ctx, identity) => this.changePassword(ctx, identity)));
+    router.post(`${p}/auth/2fa/setup`, this.authed((_ctx, identity) => this.setup2fa(identity)));
+    router.post(`${p}/auth/2fa/verify`, this.authed((ctx, identity) => this.verify2fa(ctx, identity)));
+    router.post(`${p}/auth/2fa/disable`, this.authed((ctx, identity) => this.disable2fa(ctx, identity)));
+    router.get(`${p}/auth/sessions`, this.authed((ctx, identity) => this.listSessions(ctx, identity)));
+    router.delete(`${p}/auth/sessions/:sessionId`, this.authed((ctx, identity) => this.deleteSession(ctx, identity)));
+    router.post(`${p}/auth/sessions/terminate-others`, this.authed((ctx, identity) => this.terminateOthers(ctx, identity)));
 
-    // Dashboard
-    router.get(`${p}/dashboard`, this.handleGetDashboard());
+    router.get(`${p}/dashboard`, this.admin((_ctx, identity) => sendJson(this.boardJson(this.dashboard(), identity))));
+    router.get(`${p}/dashboard/widgets/:widgetId`, this.admin((ctx, identity) => this.widgetData(ctx, this.dashboard(), identity)));
+    router.get(`${p}/pages`, this.admin((_ctx, identity) => sendJson({ pages: this.visiblePages(identity).map((pg) => pg.toJSON()) })));
+    router.get(`${p}/pages/:pageId`, this.admin((ctx, identity) => {
+      const page = this.page(ctx, identity);
+      return sendJson({ page: page.toJSON(), ...this.boardJson(page.dashboard, identity) });
+    }));
+    router.get(`${p}/pages/:pageId/widgets/:widgetId`, this.admin((ctx, identity) => this.widgetData(ctx, this.page(ctx, identity).dashboard, identity)));
+    router.get(`${p}/system/health`, this.admin(() => this.health()));
 
-    // Custom Pages
-    router.get(`${p}/pages`, this.handleListPages());
-    router.get(`${p}/pages/:pageId`, this.handleGetPage());
+    router.get(`${p}/resources`, this.admin((_ctx, identity) => this.listResources(identity)));
+    router.get(`${p}/resources/:resourceId/schema`, this.resource((_ctx, r, identity) => sendJson({ schema: this.crud.getSchema(r, identity) })));
+    // Export: POST returns a one-time download URL (valid 60s), so the browser can stream the
+    // file natively without putting the session token in a URL.
+    router.post(`${p}/resources/:resourceId/export`, this.resource(async (ctx, r, identity) => {
+      const ticket = crypto.randomBytes(24).toString('base64url');
+      this.exportTickets.set(ticket, { identity, resourceId: r.id, expiresAt: Date.now() + 60_000 });
+      const params = new URLSearchParams(String((await this.body(ctx))['query'] ?? ''));
+      params.set('ticket', ticket);
+      return sendJson({ url: `/resources/${encodeURIComponent(r.id)}/export?${params}` });
+    }));
+    router.get(`${p}/resources/:resourceId/export`, this.route(async (ctx) => {
+      const ticketId = ctx.request.query.get('ticket') ?? '';
+      const ticket = this.exportTickets.get(ticketId);
+      this.exportTickets.delete(ticketId);
+      for (const [id, t] of this.exportTickets) if (t.expiresAt < Date.now()) this.exportTickets.delete(id);
+      const resource = this.registry.getResource(this.param(ctx, 'resourceId'));
+      if (!ticket || ticket.expiresAt < Date.now() || !resource || resource.id !== ticket.resourceId) {
+        return sendError(401, 'ERR_ADMIN_UNAUTHORIZED', 'Download link expired. Start the export again.');
+      }
+      return this.exportCsv(ctx, resource, ticket.identity);
+    }));
+    router.get(`${p}/resources/:resourceId`, this.resource(async (ctx, r, identity) => sendJson(await this.crud.list(r, parseListQuery(ctx.request), identity))));
+    router.post(`${p}/resources/:resourceId`, this.resource(async (ctx, r, identity) =>
+      sendJson({ item: await this.crud.create(r, await this.body(ctx), identity, this.reqContext(ctx)) }, HttpStatus.CREATED)));
+    router.get(`${p}/resources/:resourceId/:id`, this.resource(async (ctx, r, identity) => sendJson({ item: await this.crud.detail(r, this.param(ctx, 'id'), identity) })));
+    router.patch(`${p}/resources/:resourceId/:id`, this.resource(async (ctx, r, identity) =>
+      sendJson({ item: await this.crud.update(r, this.param(ctx, 'id'), await this.body(ctx), identity, this.reqContext(ctx)) })));
+    router.delete(`${p}/resources/:resourceId/:id`, this.resource(async (ctx, r, identity) => {
+      await this.crud.delete(r, this.param(ctx, 'id'), identity, this.reqContext(ctx));
+      return sendJson(null, HttpStatus.NO_CONTENT);
+    }));
+    router.post(`${p}/resources/:resourceId/:id/restore`, this.resource(async (ctx, r, identity) =>
+      sendJson({ item: await this.crud.restore(r, this.param(ctx, 'id'), identity, this.reqContext(ctx)) })));
+    router.post(`${p}/resources/:resourceId/:id/actions/:actionId`, this.resource(async (ctx, r, identity) => {
+      const input = await ctx.request.body.json<unknown>().catch(() => undefined);
+      const result = await this.crud.executeAction(r, this.param(ctx, 'actionId'), this.param(ctx, 'id'), input, identity, this.reqContext(ctx));
+      return sendJson({ result });
+    }));
+    router.post(`${p}/resources/:resourceId/bulk/:actionId`, this.resource(async (ctx, r, identity) => {
+      const body = await this.body(ctx);
+      if (!Array.isArray(body['ids'])) return sendError(400, 'ERR_ADMIN_VALIDATION', '"ids" must be an array.');
+      const result = await this.crud.executeBulkAction(r, this.param(ctx, 'actionId'), body['ids'] as (string | number)[], body['input'], identity, this.reqContext(ctx));
+      return sendJson({ result });
+    }));
 
-    // System Health
-    router.get(`${p}/system/health`, this.handleGetHealth());
-
-    // Resource list
-    router.get(`${p}/resources`, this.handleListResources());
-
-    // Resource schema
-    router.get(`${p}/resources/:resourceId/schema`, this.handleGetSchema());
-
-    // CRUD
-    router.get(`${p}/resources/:resourceId`, this.handleList());
-    router.post(`${p}/resources/:resourceId`, this.handleCreate());
-    router.get(`${p}/resources/:resourceId/:id`, this.handleDetail());
-    router.patch(`${p}/resources/:resourceId/:id`, this.handleUpdate());
-    router.delete(`${p}/resources/:resourceId/:id`, this.handleDelete());
-
-    // Soft-delete restore
-    router.post(`${p}/resources/:resourceId/:id/restore`, this.handleRestore());
-
-    // Row actions
-    router.post(`${p}/resources/:resourceId/:id/actions/:actionId`, this.handleAction());
-
-    // Bulk actions
-    router.post(`${p}/resources/:resourceId/bulk/:actionId`, this.handleBulkAction());
-
-    // Audit log
-    router.get(`${p}/audit`, this.handleAuditQuery());
+    router.get(`${p}/audit`, this.admin(async (ctx) => {
+      const qs = ctx.request.query;
+      const limit = Math.min(Math.max(parseInt(qs.get('limit') ?? '50', 10) || 50, 1), 200);
+      return sendJson(
+        await this.audit.query({
+          resourceId: qs.get('resourceId') ?? undefined,
+          action: (qs.get('action') as never) ?? undefined,
+          actorId: qs.get('actorId') ?? undefined,
+          fromDate: qs.get('fromDate') ? new Date(qs.get('fromDate')!) : undefined,
+          toDate: qs.get('toDate') ? new Date(qs.get('toDate')!) : undefined,
+          limit,
+          offset: Math.max(parseInt(qs.get('offset') ?? '0', 10) || 0, 0),
+        })
+      );
+    }));
   }
 
   // ------------------------------------------------------------------
-  // Route Handlers
+  // Route wrappers
   // ------------------------------------------------------------------
 
-  private handleListResources(): RouteHandler {
+  private route(fn: (ctx: RequestContext) => Promise<HttpResponse> | HttpResponse): RouteHandler {
     return async (ctx: RequestContext) => {
-      const req = ctx.request;
-      const identity = await this.resolveIdentity(req);
-      if (!this.permissions.canAccessAdmin(identity)) {
-        return sendError(403, 'ERR_ADMIN_FORBIDDEN', 'Admin access denied.');
+      try {
+        return await fn(ctx);
+      } catch (err) {
+        return this.handleError(err);
+      }
+    };
+  }
+
+  /** Any signed-in identity. */
+  private authed(fn: (ctx: RequestContext, identity: Identity) => Promise<HttpResponse> | HttpResponse): RouteHandler {
+    return this.route(async (ctx) => {
+      const identity = await this.resolveIdentity(ctx);
+      if (!identity) return sendError(401, 'ERR_ADMIN_UNAUTHORIZED', 'Not authenticated.');
+      return fn(ctx, identity);
+    });
+  }
+
+  /** Signed in and allowed into the admin. */
+  private admin(fn: (ctx: RequestContext, identity: Identity) => Promise<HttpResponse> | HttpResponse): RouteHandler {
+    return this.route(async (ctx) => {
+      const identity = await this.resolveIdentity(ctx);
+      if (!identity) return sendError(401, 'ERR_ADMIN_UNAUTHORIZED', 'Not authenticated.');
+      if (!this.permissions.canAccessAdmin(identity)) return sendError(403, 'ERR_ADMIN_FORBIDDEN', 'Admin access denied.');
+      return fn(ctx, identity);
+    });
+  }
+
+  private resource(fn: (ctx: RequestContext, resource: AdminResource, identity: Identity) => Promise<HttpResponse> | HttpResponse): RouteHandler {
+    return this.admin((ctx, identity) => {
+      const id = this.param(ctx, 'resourceId');
+      const resource = this.registry.getResource(id);
+      if (!resource) return sendError(404, 'ERR_ADMIN_RESOURCE_NOT_FOUND', `Resource "${id}" not found.`);
+      return fn(ctx, resource, identity);
+    });
+  }
+
+  private param(ctx: RequestContext, name: string): string {
+    return (ctx.request.params as Record<string, string>)[name] ?? '';
+  }
+
+  private async body(ctx: RequestContext): Promise<Record<string, unknown>> {
+    const body = await ctx.request.body.json<unknown>().catch(() => undefined);
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      throw new AdminValidationError({ message: 'Expected a JSON object body.', errors: [] });
+    }
+    return body as Record<string, unknown>;
+  }
+
+  private reqContext(ctx: RequestContext) {
+    return { ipAddress: this.ip(ctx), userAgent: ctx.request.headers.get('user-agent') ?? undefined };
+  }
+
+  private ip(ctx: RequestContext): string {
+    return extractIpAddress(ctx.request) ?? ctx.request.ip ?? 'unknown';
+  }
+
+  // ------------------------------------------------------------------
+  // Identity & sessions
+  // ------------------------------------------------------------------
+
+  private bearer(ctx: RequestContext): string | undefined {
+    return /^Bearer\s+(\S+)$/i.exec(ctx.request.headers.get('authorization') ?? '')?.[1];
+  }
+
+  private currentSession(ctx: RequestContext): { key: string; session: AdminSession } | undefined {
+    const token = this.bearer(ctx);
+    if (!token) return undefined;
+    const key = sha256(token);
+    const session = this.sessions.get(key);
+    if (!session) return undefined;
+    if (Date.now() - session.createdAt > this.sessionTtlMs) {
+      this.sessions.delete(key);
+      return undefined;
+    }
+    return { key, session };
+  }
+
+  private async resolveIdentity(ctx: RequestContext): Promise<Identity | undefined> {
+    const current = this.currentSession(ctx);
+    if (current) {
+      current.session.lastActive = Date.now();
+      return current.session.identity;
+    }
+    if (this.authKit) {
+      const result = await this.authKit.authenticate(ctx);
+      if (result.status === 'authenticated') return result.identity;
+    }
+    return this.resolver ? this.resolver(ctx.request) : undefined;
+  }
+
+  private startSession(ctx: RequestContext, identity: Identity): string {
+    const token = crypto.randomBytes(32).toString('base64url');
+    this.sessions.set(sha256(token), {
+      id: crypto.randomUUID(),
+      identity,
+      createdAt: Date.now(),
+      lastActive: Date.now(),
+      device: parseDeviceFromUserAgent(ctx.request.headers.get('user-agent') ?? ''),
+      ip: this.ip(ctx),
+    });
+    return token;
+  }
+
+  private sessionsOf(identityId: string): Array<[string, AdminSession]> {
+    return [...this.sessions].filter(([, s]) => s.identity.id === identityId && Date.now() - s.createdAt <= this.sessionTtlMs);
+  }
+
+  // ------------------------------------------------------------------
+  // Login
+  // ------------------------------------------------------------------
+
+  private lockedOut(keys: string[]): boolean {
+    return keys.some((k) => {
+      const entry = this.loginFailures.get(k);
+      if (entry && entry.resetAt < Date.now()) this.loginFailures.delete(k);
+      return (this.loginFailures.get(k)?.count ?? 0) >= (k.startsWith('ip:') ? MAX_LOGIN_FAILURES * 4 : MAX_LOGIN_FAILURES);
+    });
+  }
+
+  private recordFailure(keys: string[]): void {
+    for (const k of keys) {
+      const entry = this.loginFailures.get(k) ?? { count: 0, resetAt: Date.now() + LOCKOUT_MS };
+      entry.count++;
+      this.loginFailures.set(k, entry);
+    }
+  }
+
+  private async login(ctx: RequestContext): Promise<HttpResponse> {
+    const body = await this.body(ctx);
+    const login = String(body['email'] ?? body['username'] ?? '').trim();
+    const password = String(body['password'] ?? '');
+    const totpCode = typeof body['totpCode'] === 'string' ? body['totpCode'].trim() : '';
+    if (!login || !password) {
+      return sendError(400, 'ERR_VALIDATION', 'Please provide both email/username and password.');
+    }
+
+    let identity: Identity;
+    let profile: { email: string; name: string };
+
+    if (this.authKit) {
+      try {
+        let result = await this.authKit.login(login, password, ctx);
+        if (result.mfaRequired) {
+          if (!totpCode) return sendJson({ ok: false, requires2fa: true, message: 'Enter the 6-digit code from your authenticator app.' });
+          result = await this.authKit.verifyMfa(result.mfaToken, totpCode).catch((err: unknown) => {
+            throw err instanceof TooManyAttemptsError ? err : new AdminValidationError({ message: 'Invalid two-factor code.', errors: [] });
+          });
+        }
+        const user = result.user as Record<string, unknown>;
+        identity = this.authKit.identityOf(result.user);
+        profile = { email: String(user['email'] ?? login), name: String(user['name'] ?? user['username'] ?? user['email'] ?? login) };
+      } catch (err) {
+        if (err instanceof TooManyAttemptsError) return sendError(429, 'ERR_TOO_MANY_ATTEMPTS', 'Too many failed attempts. Try again later.');
+        if (err instanceof AdminValidationError) return sendError(400, 'ERR_INVALID_2FA', err.message);
+        return sendError(401, 'ERR_INVALID_CREDENTIALS', 'Invalid email/username or password.');
+      }
+    } else {
+      if (!this.passwordConfigured && process.env['NODE_ENV'] === 'production') {
+        return sendError(503, 'ERR_ADMIN_NOT_CONFIGURED', 'Admin login is disabled: set JSANGO_ADMIN_PASSWORD or use admin({ auth: createAuth(...) }).');
+      }
+      const keys = [`user:${login.toLowerCase()}`, `ip:${this.ip(ctx)}`];
+      if (this.lockedOut(keys)) return sendError(429, 'ERR_TOO_MANY_ATTEMPTS', 'Too many failed attempts. Try again later.');
+
+      const userOk = [this.adminEmail, this.adminUsername].some((u) => u.toLowerCase() === login.toLowerCase());
+      const passwordOk = safeEqual(password, this.adminPassword);
+      if (!userOk || !passwordOk) {
+        this.recordFailure(keys);
+        return sendError(401, 'ERR_INVALID_CREDENTIALS', 'Invalid email/username or password.');
       }
 
-      const resources = this.registry.getAllResources().map((r) => ({
+      const tfa = this.twoFactor.get('admin');
+      if (tfa) {
+        if (!totpCode) return sendJson({ ok: false, requires2fa: true, message: 'Enter the 6-digit code from your authenticator app.' });
+        const backup = this.totp.verifyAndConsumeBackupCode(totpCode, tfa.backupCodes);
+        if (!this.totp.verifyToken(totpCode, tfa.secret, { window: 1 }) && !backup.valid) {
+          this.recordFailure(keys);
+          return sendError(400, 'ERR_INVALID_2FA', 'Invalid two-factor code.');
+        }
+        if (backup.valid) tfa.backupCodes = backup.remainingCodes;
+      }
+      for (const k of keys) this.loginFailures.delete(k);
+
+      identity = new UserIdentity({
+        id: 'admin',
+        isSuperuser: true,
+        roles: ['admin', 'superuser'],
+        permissions: ['admin.access', 'admin.*'],
+        metadata: { username: this.adminUsername, email: this.adminEmail, name: this.adminName },
+      });
+      profile = { email: this.adminEmail, name: this.adminName };
+    }
+
+    if (!this.permissions.canAccessAdmin(identity)) {
+      return sendError(403, 'ERR_ADMIN_FORBIDDEN', 'This account does not have admin access.');
+    }
+    if (!(identity.metadata as Record<string, unknown> | undefined)?.['email']) {
+      identity = new UserIdentity({
+        id: identity.id,
+        roles: [...identity.roles],
+        permissions: [...identity.permissions],
+        tenantId: identity.tenantId,
+        isSuperuser: identity.isSuperuser,
+        metadata: { ...identity.metadata, ...profile },
+      });
+    }
+
+    const token = this.startSession(ctx, identity);
+    await this.audit.log('login', {
+      resourceId: 'auth',
+      objectId: identity.id,
+      actor: { id: identity.id, email: profile.email },
+      ...this.reqContext(ctx),
+    });
+    return sendJson({
+      ok: true,
+      token,
+      expiresIn: Math.floor(this.sessionTtlMs / 1000),
+      user: {
+        id: identity.id,
+        email: profile.email,
+        name: profile.name,
+        role: identity.isSuperuser ? 'Superuser' : (identity.roles[0] ?? 'Staff'),
+        isSuperuser: identity.isSuperuser,
+      },
+      message: 'Login successful.',
+    });
+  }
+
+  private async logout(ctx: RequestContext): Promise<HttpResponse> {
+    const current = this.currentSession(ctx);
+    if (current) {
+      this.sessions.delete(current.key);
+      await this.audit.log('logout', {
+        resourceId: 'auth',
+        objectId: current.session.identity.id,
+        actor: { id: current.session.identity.id },
+        ...this.reqContext(ctx),
+      });
+    }
+    return sendJson({ ok: true, message: 'Logged out successfully.' });
+  }
+
+  private me(identity: Identity): HttpResponse {
+    const meta = (identity.metadata ?? {}) as Record<string, unknown>;
+    return sendJson({
+      user: {
+        id: identity.id,
+        username: typeof meta['username'] === 'string' ? meta['username'] : (meta['email'] ?? identity.id),
+        email: meta['email'],
+        name: meta['name'],
+        roles: identity.roles,
+        permissions: identity.permissions,
+        isSuperuser: identity.isSuperuser,
+      },
+      canAccessAdmin: this.permissions.canAccessAdmin(identity),
+    });
+  }
+
+  private profile(identity: Identity): HttpResponse {
+    const meta = (identity.metadata ?? {}) as Record<string, unknown>;
+    const tfa = this.authKit ? undefined : this.twoFactor.get(identity.id);
+    return sendJson({
+      user: {
+        id: identity.id,
+        name: meta['name'] ?? identity.id,
+        email: meta['email'] ?? '',
+        role: identity.isSuperuser ? 'Superuser' : (identity.roles[0] ?? 'Staff'),
+        isSuperuser: identity.isSuperuser,
+      },
+      managedByApp: Boolean(this.authKit),
+      is2faEnabled: Boolean(tfa),
+      hasBackupCodes: (tfa?.backupCodes.length ?? 0) > 0,
+    });
+  }
+
+  /** Password and 2FA of the built-in account; app users manage theirs through the app. */
+  private builtInOnly(identity: Identity): HttpResponse | undefined {
+    if (this.authKit || identity.id !== 'admin') {
+      return sendError(400, 'ERR_ADMIN_MANAGED_BY_APP', 'This account is managed by your application. Change it there.');
+    }
+    return undefined;
+  }
+
+  private async changePassword(ctx: RequestContext, identity: Identity): Promise<HttpResponse> {
+    const blocked = this.builtInOnly(identity);
+    if (blocked) return blocked;
+    const body = await this.body(ctx);
+    const current = String(body['currentPassword'] ?? '');
+    const next = String(body['newPassword'] ?? '');
+    if (!safeEqual(current, this.adminPassword)) return sendError(400, 'ERR_ADMIN_VALIDATION', 'Current password is incorrect.');
+    if (next.length < 12) return sendError(400, 'ERR_ADMIN_VALIDATION', 'New password must be at least 12 characters long.');
+
+    this.adminPassword = next;
+    // Sign out every other session of this account.
+    const currentKey = this.currentSession(ctx)?.key;
+    for (const [key] of this.sessionsOf(identity.id)) if (key !== currentKey) this.sessions.delete(key);
+
+    await this.audit.log('update', {
+      resourceId: 'auth_security',
+      objectId: identity.id,
+      actor: { id: identity.id },
+      changes: [{ field: 'password', before: '***', after: '***' }],
+      ...this.reqContext(ctx),
+    });
+    return sendJson({
+      ok: true,
+      message: 'Password updated. It lasts until the server restarts: set JSANGO_ADMIN_PASSWORD to make it permanent.',
+    });
+  }
+
+  private setup2fa(identity: Identity): HttpResponse {
+    const blocked = this.builtInOnly(identity);
+    if (blocked) return blocked;
+    const { secret, uri } = this.totp.generateSecret({ issuer: 'JSango Admin', accountName: this.adminEmail });
+    this.pending2fa.set(identity.id, secret);
+    return sendJson({ secret, uri });
+  }
+
+  private async verify2fa(ctx: RequestContext, identity: Identity): Promise<HttpResponse> {
+    const blocked = this.builtInOnly(identity);
+    if (blocked) return blocked;
+    const secret = this.pending2fa.get(identity.id);
+    if (!secret) return sendError(400, 'ERR_ADMIN_2FA', 'No pending 2FA setup found. Please restart 2FA setup.');
+    const code = String((await this.body(ctx))['code'] ?? '').trim();
+    if (!this.totp.verifyToken(code, secret, { window: 1 })) {
+      return sendError(400, 'ERR_ADMIN_INVALID_TOTP', 'Invalid 6-digit code. Check your authenticator app and retry.');
+    }
+    const backupCodes = this.totp.generateBackupCodes(8);
+    this.twoFactor.set(identity.id, { secret, backupCodes: [...backupCodes] });
+    this.pending2fa.delete(identity.id);
+    await this.audit.log('update', {
+      resourceId: 'auth_security',
+      objectId: identity.id,
+      actor: { id: identity.id },
+      changes: [{ field: 'twoFactor', before: false, after: true }],
+      ...this.reqContext(ctx),
+    });
+    return sendJson({ ok: true, is2faEnabled: true, backupCodes, message: 'Two-factor authentication enabled.' });
+  }
+
+  private async disable2fa(ctx: RequestContext, identity: Identity): Promise<HttpResponse> {
+    const blocked = this.builtInOnly(identity);
+    if (blocked) return blocked;
+    if (!safeEqual(String((await this.body(ctx))['password'] ?? ''), this.adminPassword)) {
+      return sendError(400, 'ERR_ADMIN_VALIDATION', 'Password is incorrect.');
+    }
+    this.twoFactor.delete(identity.id);
+    this.pending2fa.delete(identity.id);
+    await this.audit.log('update', {
+      resourceId: 'auth_security',
+      objectId: identity.id,
+      actor: { id: identity.id },
+      changes: [{ field: 'twoFactor', before: true, after: false }],
+      ...this.reqContext(ctx),
+    });
+    return sendJson({ ok: true, is2faEnabled: false, message: 'Two-factor authentication disabled.' });
+  }
+
+  private listSessions(ctx: RequestContext, identity: Identity): HttpResponse {
+    const currentKey = this.currentSession(ctx)?.key;
+    const sessions = this.sessionsOf(identity.id)
+      .sort(([a], [b]) => (a === currentKey ? -1 : b === currentKey ? 1 : 0))
+      .map(([key, s]) => ({
+        id: s.id,
+        device: s.device,
+        ip: s.ip,
+        location: s.ip === '127.0.0.1' || s.ip === '::1' ? 'Local' : '',
+        lastActive: key === currentKey ? 'Active now' : formatRelativeTime(s.lastActive),
+        isCurrent: key === currentKey,
+        createdAt: new Date(s.createdAt).toISOString(),
+      }));
+    return sendJson({ sessions });
+  }
+
+  private async deleteSession(ctx: RequestContext, identity: Identity): Promise<HttpResponse> {
+    const sessionId = this.param(ctx, 'sessionId');
+    const entry = this.sessionsOf(identity.id).find(([, s]) => s.id === sessionId);
+    if (!entry) return sendError(404, 'ERR_NOT_FOUND', 'Session not found.');
+    this.sessions.delete(entry[0]);
+    await this.audit.log('delete', {
+      resourceId: 'auth_security',
+      objectId: sessionId,
+      actor: { id: identity.id },
+      changes: [{ field: 'session', before: sessionId, after: null }],
+      ...this.reqContext(ctx),
+    });
+    return sendJson({ ok: true, message: 'Session revoked.' });
+  }
+
+  private async terminateOthers(ctx: RequestContext, identity: Identity): Promise<HttpResponse> {
+    const currentKey = this.currentSession(ctx)?.key;
+    for (const [key] of this.sessionsOf(identity.id)) if (key !== currentKey) this.sessions.delete(key);
+    await this.audit.log('delete', {
+      resourceId: 'auth_security',
+      objectId: identity.id,
+      actor: { id: identity.id },
+      changes: [{ field: 'otherSessions', before: true, after: null }],
+      ...this.reqContext(ctx),
+    });
+    return sendJson({ ok: true, message: 'All other sessions have been signed out.' });
+  }
+
+  // ------------------------------------------------------------------
+  // Dashboard & pages
+  // ------------------------------------------------------------------
+
+  private dashboard(): AdminDashboard {
+    return this.registry.dashboard.getWidgets().length > 0 ? this.registry.dashboard : this.fallbackDashboard;
+  }
+
+  private boardJson(board: AdminDashboard, identity: Identity) {
+    return { widgets: board.visibleTo(identity).map((w) => w.toJSON()) };
+  }
+
+  private async widgetData(ctx: RequestContext, board: AdminDashboard, identity: Identity): Promise<HttpResponse> {
+    const widget = board.getWidget(this.param(ctx, 'widgetId'));
+    if (!widget || !widget.isVisibleTo(identity)) return sendError(404, 'ERR_NOT_FOUND', 'Widget not found.');
+    try {
+      return sendJson({ data: await widget.load({ identity }) });
+    } catch {
+      return sendError(500, 'ERR_ADMIN_WIDGET', `Widget "${widget.title}" failed to load.`);
+    }
+  }
+
+  private visiblePages(identity: Identity) {
+    return this.registry
+      .getAllPages()
+      .filter((pg) => !pg.permission || identity.isSuperuser || identity.hasPermission(pg.permission));
+  }
+
+  private page(ctx: RequestContext, identity: Identity) {
+    const id = this.param(ctx, 'pageId');
+    const page = this.visiblePages(identity).find((pg) => pg.id === id || pg.path === id);
+    if (!page) throw new AdminResourceNotFoundError(id);
+    return page;
+  }
+
+  // ------------------------------------------------------------------
+  // Resources & system
+  // ------------------------------------------------------------------
+
+  private async listResources(identity: Identity): Promise<HttpResponse> {
+    const all = this.registry.getAllResources();
+    const allowed = await Promise.all(all.map((r) => this.permissions.canViewResource(identity, r)));
+    const resources = all
+      .filter((_, i) => allowed[i])
+      .map((r) => ({
         id: r.id,
         label: r.label,
         pluralLabel: r.pluralLabel,
         navigationGroup: r.navigationGroup,
         navigationIcon: r.navigationIcon,
         navigationOrder: r.navigationOrder,
+        schema: this.crud.getSchema(r, identity), // inline, so the UI needs one request, not N+1
       }));
-
-      return sendJson({ resources });
-    };
+    return sendJson({ resources });
   }
 
-  private handleGetSchema(): RouteHandler {
-    return async (ctx: RequestContext) => {
-      const req = ctx.request;
-      try {
-        const { resourceId } = req.params as { resourceId: string };
-        const identity = await this.resolveIdentity(req);
-        const resource = this.registry.getResource(resourceId);
-
-        if (!resource) {
-          return sendError(
-            404,
-            'ERR_ADMIN_RESOURCE_NOT_FOUND',
-            `Resource "${resourceId}" not found.`
-          );
-        }
-
-        const schema = this.crud.getSchema(resource, identity);
-        return sendJson({ schema });
-      } catch (err: unknown) {
-        return this.handleError(err);
-      }
-    };
+  private async exportCsv(ctx: RequestContext, resource: AdminResource, identity: Identity): Promise<HttpResponse> {
+    const rows = await this.crud.exportCsv(resource, parseListQuery(ctx.request), identity, this.reqContext(ctx));
+    const encoder = new TextEncoder();
+    const bytes = (async function* () {
+      for await (const chunk of rows) yield encoder.encode(chunk);
+    })();
+    const stamp = new Date().toISOString().slice(0, 10);
+    return HttpResponse.stream(bytes, {
+      headers: {
+        'content-type': 'text/csv; charset=utf-8',
+        'content-disposition': `attachment; filename="${resource.id}-${stamp}.csv"`,
+        'cache-control': 'no-store',
+      },
+    });
   }
 
-  private handleList(): RouteHandler {
-    return async (ctx: RequestContext) => {
-      const req = ctx.request;
-      try {
-        const { resourceId } = req.params as { resourceId: string };
-        const identity = await this.resolveIdentity(req);
-        const resource = this.registry.getResource(resourceId);
-
-        if (!resource) {
-          return sendError(
-            404,
-            'ERR_ADMIN_RESOURCE_NOT_FOUND',
-            `Resource "${resourceId}" not found.`
-          );
+  private async health(): Promise<HttpResponse> {
+    const checks = Object.entries(this.healthChecks);
+    const results = await Promise.all(
+      checks.map(async ([name, check]) => {
+        const started = Date.now();
+        try {
+          const detail = await Promise.race([
+            Promise.resolve().then(check),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Timed out after 5s')), 5000).unref?.()),
+          ]);
+          return [name, { status: 'up', label: name, subtext: describe(detail) ?? `OK in ${Date.now() - started} ms` }] as const;
+        } catch (err) {
+          return [name, { status: 'down', label: name, subtext: err instanceof Error ? err.message : String(err) }] as const;
         }
-
-        const query = parseListQuery(req);
-        const result = await this.crud.list(resource, query, identity, {
-          ipAddress: extractIpAddress(req),
-          userAgent: req.headers.get('user-agent') ?? undefined,
-        });
-
-        return sendJson(result);
-      } catch (err: unknown) {
-        return this.handleError(err);
-      }
-    };
-  }
-
-  private handleCreate(): RouteHandler {
-    return async (ctx: RequestContext) => {
-      const req = ctx.request;
-      try {
-        const { resourceId } = req.params as { resourceId: string };
-        const identity = await this.resolveIdentity(req);
-        const resource = this.registry.getResource(resourceId);
-
-        if (!resource) {
-          return sendError(
-            404,
-            'ERR_ADMIN_RESOURCE_NOT_FOUND',
-            `Resource "${resourceId}" not found.`
-          );
-        }
-
-        const body = await req.body.json<Record<string, unknown>>();
-        const item = await this.crud.create(resource, body, identity, {
-          ipAddress: extractIpAddress(req),
-          userAgent: req.headers.get('user-agent') ?? undefined,
-        });
-
-        return sendJson({ item }, HttpStatus.CREATED);
-      } catch (err: unknown) {
-        return this.handleError(err);
-      }
-    };
-  }
-
-  private handleDetail(): RouteHandler {
-    return async (ctx: RequestContext) => {
-      const req = ctx.request;
-      try {
-        const { resourceId, id } = req.params as { resourceId: string; id: string };
-        const identity = await this.resolveIdentity(req);
-        const resource = this.registry.getResource(resourceId);
-
-        if (!resource) {
-          return sendError(
-            404,
-            'ERR_ADMIN_RESOURCE_NOT_FOUND',
-            `Resource "${resourceId}" not found.`
-          );
-        }
-
-        const item = await this.crud.detail(resource, id, identity);
-        return sendJson({ item });
-      } catch (err: unknown) {
-        return this.handleError(err);
-      }
-    };
-  }
-
-  private handleUpdate(): RouteHandler {
-    return async (ctx: RequestContext) => {
-      const req = ctx.request;
-      try {
-        const { resourceId, id } = req.params as { resourceId: string; id: string };
-        const identity = await this.resolveIdentity(req);
-        const resource = this.registry.getResource(resourceId);
-
-        if (!resource) {
-          return sendError(
-            404,
-            'ERR_ADMIN_RESOURCE_NOT_FOUND',
-            `Resource "${resourceId}" not found.`
-          );
-        }
-
-        const body = await req.body.json<Record<string, unknown>>();
-        const item = await this.crud.update(resource, id, body, identity, {
-          ipAddress: extractIpAddress(req),
-          userAgent: req.headers.get('user-agent') ?? undefined,
-        });
-
-        return sendJson({ item });
-      } catch (err: unknown) {
-        return this.handleError(err);
-      }
-    };
-  }
-
-  private handleDelete(): RouteHandler {
-    return async (ctx: RequestContext) => {
-      const req = ctx.request;
-      try {
-        const { resourceId, id } = req.params as { resourceId: string; id: string };
-        const identity = await this.resolveIdentity(req);
-        const resource = this.registry.getResource(resourceId);
-
-        if (!resource) {
-          return sendError(
-            404,
-            'ERR_ADMIN_RESOURCE_NOT_FOUND',
-            `Resource "${resourceId}" not found.`
-          );
-        }
-
-        await this.crud.delete(resource, id, identity, {
-          ipAddress: extractIpAddress(req),
-          userAgent: req.headers.get('user-agent') ?? undefined,
-        });
-
-        return sendJson(null, HttpStatus.NO_CONTENT);
-      } catch (err: unknown) {
-        return this.handleError(err);
-      }
-    };
-  }
-
-  private handleRestore(): RouteHandler {
-    return async (ctx: RequestContext) => {
-      const req = ctx.request;
-      try {
-        const { resourceId, id } = req.params as { resourceId: string; id: string };
-        const identity = await this.resolveIdentity(req);
-        const resource = this.registry.getResource(resourceId);
-
-        if (!resource) {
-          return sendError(
-            404,
-            'ERR_ADMIN_RESOURCE_NOT_FOUND',
-            `Resource "${resourceId}" not found.`
-          );
-        }
-
-        const item = await this.crud.restore(resource, id, identity, {
-          ipAddress: extractIpAddress(req),
-          userAgent: req.headers.get('user-agent') ?? undefined,
-        });
-
-        return sendJson({ item });
-      } catch (err: unknown) {
-        return this.handleError(err);
-      }
-    };
-  }
-
-  private handleAction(): RouteHandler {
-    return async (ctx: RequestContext) => {
-      const req = ctx.request;
-      try {
-        const { resourceId, id, actionId } = req.params as {
-          resourceId: string;
-          id: string;
-          actionId: string;
-        };
-        const identity = await this.resolveIdentity(req);
-        const resource = this.registry.getResource(resourceId);
-
-        if (!resource) {
-          return sendError(
-            404,
-            'ERR_ADMIN_RESOURCE_NOT_FOUND',
-            `Resource "${resourceId}" not found.`
-          );
-        }
-
-        const body = await req.body.json<unknown>().catch(() => undefined);
-        const result = await this.crud.executeAction(resource, actionId, id, body, identity, {
-          ipAddress: extractIpAddress(req),
-          userAgent: req.headers.get('user-agent') ?? undefined,
-        });
-
-        return sendJson({ result });
-      } catch (err: unknown) {
-        return this.handleError(err);
-      }
-    };
-  }
-
-  private handleBulkAction(): RouteHandler {
-    return async (ctx: RequestContext) => {
-      const req = ctx.request;
-      try {
-        const { resourceId, actionId } = req.params as { resourceId: string; actionId: string };
-        const identity = await this.resolveIdentity(req);
-        const resource = this.registry.getResource(resourceId);
-
-        if (!resource) {
-          return sendError(
-            404,
-            'ERR_ADMIN_RESOURCE_NOT_FOUND',
-            `Resource "${resourceId}" not found.`
-          );
-        }
-
-        const body = await req.body
-          .json<{ ids: (string | number)[]; input?: unknown }>()
-          .catch(() => ({ ids: [] as (string | number)[], input: undefined }));
-
-        if (!Array.isArray(body.ids)) {
-          return sendError(400, 'ERR_ADMIN_VALIDATION', '"ids" must be an array.');
-        }
-
-        const result = await this.crud.executeBulkAction(
-          resource,
-          actionId,
-          body.ids,
-          body.input,
-          identity,
-          {
-            ipAddress: extractIpAddress(req),
-            userAgent: req.headers.get('user-agent') ?? undefined,
-          }
-        );
-
-        return sendJson({ result });
-      } catch (err: unknown) {
-        return this.handleError(err);
-      }
-    };
-  }
-
-  private handleAuditQuery(): RouteHandler {
-    return async (ctx: RequestContext) => {
-      const req = ctx.request;
-      try {
-        const identity = await this.resolveIdentity(req);
-        if (!this.permissions.canAccessAdmin(identity)) {
-          return sendError(403, 'ERR_ADMIN_FORBIDDEN', 'Admin access denied.');
-        }
-
-        const qs = req.query;
-        const page = await this.audit.query({
-          resourceId: qs.get('resourceId') ?? undefined,
-          action: (qs.get('action') as never) ?? undefined,
-          actorId: qs.get('actorId') ?? undefined,
-          fromDate: qs.get('fromDate') ? new Date(qs.get('fromDate')!) : undefined,
-          toDate: qs.get('toDate') ? new Date(qs.get('toDate')!) : undefined,
-          limit: parseInt(qs.get('limit') ?? '50', 10),
-          offset: parseInt(qs.get('offset') ?? '0', 10),
-        });
-
-        return sendJson(page);
-      } catch (err: unknown) {
-        return this.handleError(err);
-      }
-    };
-  }
-
-  private handleLogin(): RouteHandler {
-    return async (ctx: RequestContext) => {
-      const req = ctx.request;
-      try {
-        const body = await req.body.json<{
-          email?: string;
-          username?: string;
-          password?: string;
-          totpCode?: string;
-        }>();
-
-        const inputUser = (body.email || body.username || '').trim().toLowerCase();
-        const inputPass = (body.password || '').trim();
-
-        if (!inputUser || !inputPass) {
-          return sendError(
-            400,
-            'ERR_VALIDATION',
-            'Please provide both email/username and password.'
-          );
-        }
-
-        // Check configured super admin or staff
-        const isSuperuserMatch =
-          (inputUser === this.adminEmail.toLowerCase() ||
-            inputUser === this.adminUsername.toLowerCase() ||
-            inputUser === 'admin@jsango.dev' ||
-            inputUser === 'admin') &&
-          inputPass === this.adminPassword;
-
-        const isStaffMatch =
-          (inputUser === 'staff@jsango.dev' || inputUser === 'staff') &&
-          inputPass === 'staff123';
-
-        if (!isSuperuserMatch && !isStaffMatch) {
-          return sendError(401, 'ERR_INVALID_CREDENTIALS', 'Invalid email/username or password.');
-        }
-
-        const isSuper = isSuperuserMatch;
-        const userId = isSuper ? 'usr-admin-01' : 'usr-staff-01';
-        const role = isSuper ? 'Superuser' : 'Staff';
-        const name = isSuper ? this.adminName : 'Sarah Connor';
-        const userEmail = isSuper ? this.adminEmail : 'staff@jsango.dev';
-
-        // Check if 2FA is active
-        const tfa = this.twoFactorStore.get(userId);
-        if (tfa?.isEnabled) {
-          if (!body.totpCode) {
-            return sendJson({
-              ok: false,
-              requires2fa: true,
-              message:
-                'Two-Factor Authentication is required. Please enter your 6-digit authenticator code.',
-            });
-          }
-
-          const cleanCode = body.totpCode.trim();
-          const isTotpValid = this.totp.verifyToken(cleanCode, tfa.secret);
-          let isBackupValid = false;
-          if (!isTotpValid && tfa.backupCodes.length > 0) {
-            const consumed = this.totp.verifyAndConsumeBackupCode(cleanCode, tfa.backupCodes);
-            if (consumed.valid) {
-              isBackupValid = true;
-              this.twoFactorStore.set(userId, {
-                ...tfa,
-                backupCodes: consumed.remainingCodes,
-              });
-            }
-          }
-
-          if (!isTotpValid && !isBackupValid) {
-            return sendError(400, 'ERR_INVALID_2FA', 'Invalid Two-Factor authenticator code.');
-          }
-        }
-
-        // Create authentication token
-        const token = 'adm_tok_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
-        const identity = new UserIdentity({
-          id: userId,
-          isSuperuser: isSuper,
-          roles: isSuper ? ['admin', 'staff', 'superuser'] : ['staff'],
-          permissions: ['admin.access', 'admin.*', '*'],
-          metadata: {
-            username: inputUser,
-            email: userEmail,
-            name,
-          },
-        });
-
-        this.activeTokens.set(token, { identity, createdAt: Date.now() });
-
-        // Record session
-        const ip = extractIpAddress(req) || '127.0.0.1';
-        const ua = req.headers.get('user-agent') ?? '';
-        const currentDevice = parseDeviceFromUserAgent(ua);
-        const sessId = 'sess_' + Math.random().toString(36).slice(2, 9);
-        this.sessionsStore.set(sessId, {
-          id: sessId,
-          identityId: userId,
-          device: `${currentDevice} (Current)`,
-          ip,
-          location:
-            ip === '127.0.0.1' || ip === '::1' ? 'Local Development Server' : 'Secure Admin Portal',
-          createdAt: Date.now(),
-          lastActive: Date.now(),
-        });
-
-        await this.audit.log('login', {
-          resourceId: 'auth',
-          objectId: userId,
-          actor: { id: userId },
-          ipAddress: ip,
-          userAgent: ua,
-        });
-
-        return sendJson({
-          ok: true,
-          token,
-          user: {
-            id: userId,
-            email: userEmail,
-            name,
-            role,
-            isSuperuser: isSuper,
-          },
-          message: 'Login successful.',
-        });
-      } catch (err: unknown) {
-        return this.handleError(err);
-      }
-    };
-  }
-
-  private handleLogout(): RouteHandler {
-    return async (ctx: RequestContext) => {
-      const req = ctx.request;
-      try {
-        const authHeader = req.headers.get('authorization') || '';
-        if (authHeader.startsWith('Bearer ')) {
-          const token = authHeader.replace('Bearer ', '').trim();
-          const active = this.activeTokens.get(token);
-          if (active) {
-            await this.audit.log('logout', {
-              resourceId: 'auth',
-              objectId: active.identity.id,
-              actor: { id: active.identity.id },
-              ipAddress: extractIpAddress(req),
-              userAgent: req.headers.get('user-agent') ?? undefined,
-            });
-            this.activeTokens.delete(token);
-          }
-        }
-        return sendJson({ ok: true, message: 'Logged out successfully.' });
-      } catch (err: unknown) {
-        return this.handleError(err);
-      }
-    };
-  }
-
-  private handleGetAuthMe(): RouteHandler {
-    return async (ctx: RequestContext) => {
-      const req = ctx.request;
-      try {
-        const identity = await this.resolveIdentity(req);
-        if (!identity) {
-          return sendError(401, 'ERR_ADMIN_UNAUTHORIZED', 'Not authenticated.');
-        }
-        const canAccess = this.permissions.canAccessAdmin(identity);
-        const idProps = identity as unknown as Record<string, unknown>;
-        return sendJson({
-          user: {
-            id: identity.id,
-            username: typeof idProps['username'] === 'string' ? idProps['username'] : identity.id,
-            roles: identity.roles,
-            permissions: identity.permissions,
-            isSuperuser:
-              typeof idProps['isSuperuser'] === 'boolean' ? idProps['isSuperuser'] : false,
-          },
-          canAccessAdmin: canAccess,
-        });
-      } catch (err: unknown) {
-        return this.handleError(err);
-      }
-    };
-  }
-
-  private handleGetProfile(): RouteHandler {
-    return async (ctx: RequestContext) => {
-      const req = ctx.request;
-      try {
-        const identity = await this.resolveIdentity(req);
-        if (!identity) {
-          return sendError(401, 'ERR_ADMIN_UNAUTHORIZED', 'Not authenticated.');
-        }
-        const idProps = identity as unknown as Record<string, unknown>;
-        const tfa = this.twoFactorStore.get(identity.id);
-        const isSuper = identity.isSuperuser;
-        return sendJson({
-          user: {
-            id: identity.id,
-            name:
-              typeof idProps['name'] === 'string'
-                ? idProps['name']
-                : isSuper
-                  ? this.adminName
-                  : 'Sarah Connor',
-            email:
-              typeof idProps['email'] === 'string'
-                ? idProps['email']
-                : isSuper
-                  ? this.adminEmail
-                  : 'staff@jsango.dev',
-            role: identity.roles[0] ?? (identity.isSuperuser ? 'Superuser' : 'Staff'),
-            isSuperuser: identity.isSuperuser,
-          },
-          is2faEnabled: tfa?.isEnabled ?? false,
-          hasBackupCodes: (tfa?.backupCodes?.length ?? 0) > 0,
-        });
-      } catch (err: unknown) {
-        return this.handleError(err);
-      }
-    };
-  }
-
-  private handleUpdatePassword(): RouteHandler {
-    return async (ctx: RequestContext) => {
-      const req = ctx.request;
-      try {
-        const identity = await this.resolveIdentity(req);
-        if (!identity) {
-          return sendError(401, 'ERR_ADMIN_UNAUTHORIZED', 'Not authenticated.');
-        }
-        const body = await req.body.json<{ currentPassword?: string; newPassword?: string }>();
-        if (!body.newPassword || body.newPassword.length < 4) {
-          return sendError(
-            400,
-            'ERR_ADMIN_VALIDATION',
-            'New password must be at least 4 characters long.'
-          );
-        }
-
-        // Update in-memory password for the superuser
-        if (identity.isSuperuser || identity.id === 'usr-admin-01') {
-          this.adminPassword = body.newPassword;
-        }
-
-        await this.audit.log('update', {
-          resourceId: 'auth_security',
-          objectId: identity.id,
-          actor: { id: identity.id },
-          ipAddress: extractIpAddress(req),
-          userAgent: req.headers.get('user-agent') ?? undefined,
-          changes: [{ field: 'password', before: '***', after: '***' }],
-        });
-
-        return sendJson({ ok: true, message: 'Administrator password updated successfully.' });
-      } catch (err: unknown) {
-        return this.handleError(err);
-      }
-    };
-  }
-
-  private handleSetup2fa(): RouteHandler {
-    return async (ctx: RequestContext) => {
-      const req = ctx.request;
-      try {
-        const identity = await this.resolveIdentity(req);
-        if (!identity) {
-          return sendError(401, 'ERR_ADMIN_UNAUTHORIZED', 'Not authenticated.');
-        }
-        const idProps = identity as unknown as Record<string, unknown>;
-        const email = typeof idProps['email'] === 'string' ? idProps['email'] : 'admin@jsango.dev';
-        const setup = this.totp.generateSecret({
-          issuer: 'JSango Admin',
-          accountName: email,
-        });
-        this.pending2faSecrets.set(identity.id, setup.secret);
-        return sendJson({
-          secret: setup.secret,
-          uri: setup.uri,
-          qrCodeUrl: setup.qrCodeUrl,
-        });
-      } catch (err: unknown) {
-        return this.handleError(err);
-      }
-    };
-  }
-
-  private handleVerify2fa(): RouteHandler {
-    return async (ctx: RequestContext) => {
-      const req = ctx.request;
-      try {
-        const identity = await this.resolveIdentity(req);
-        if (!identity) {
-          return sendError(401, 'ERR_ADMIN_UNAUTHORIZED', 'Not authenticated.');
-        }
-        const body = await req.body.json<{ code?: string; secret?: string }>();
-        const secret = body.secret || this.pending2faSecrets.get(identity.id);
-        if (!secret) {
-          return sendError(
-            400,
-            'ERR_ADMIN_2FA',
-            'No pending 2FA setup found. Please restart 2FA setup.'
-          );
-        }
-
-        const cleanCode = (body.code ?? '').trim();
-        if (!this.totp.verifyToken(cleanCode, secret)) {
-          return sendError(
-            400,
-            'ERR_ADMIN_INVALID_TOTP',
-            'Invalid 6-digit authenticator code. Please check your authenticator application and retry.'
-          );
-        }
-
-        const backupCodes = this.totp.generateBackupCodes(8);
-        this.twoFactorStore.set(identity.id, {
-          secret,
-          backupCodes,
-          isEnabled: true,
-        });
-        this.pending2faSecrets.delete(identity.id);
-
-        await this.audit.log('update', {
-          resourceId: 'auth_security',
-          objectId: identity.id,
-          actor: { id: identity.id },
-          ipAddress: extractIpAddress(req),
-          userAgent: req.headers.get('user-agent') ?? undefined,
-          changes: [{ field: 'twoFactor', before: false, after: true }],
-        });
-
-        return sendJson({
-          ok: true,
-          is2faEnabled: true,
-          backupCodes,
-          message: 'Two-Factor Authentication activated successfully.',
-        });
-      } catch (err: unknown) {
-        return this.handleError(err);
-      }
-    };
-  }
-
-  private handleDisable2fa(): RouteHandler {
-    return async (ctx: RequestContext) => {
-      const req = ctx.request;
-      try {
-        const identity = await this.resolveIdentity(req);
-        if (!identity) {
-          return sendError(401, 'ERR_ADMIN_UNAUTHORIZED', 'Not authenticated.');
-        }
-        this.twoFactorStore.delete(identity.id);
-        this.pending2faSecrets.delete(identity.id);
-
-        await this.audit.log('update', {
-          resourceId: 'auth_security',
-          objectId: identity.id,
-          actor: { id: identity.id },
-          ipAddress: extractIpAddress(req),
-          userAgent: req.headers.get('user-agent') ?? undefined,
-          changes: [{ field: 'twoFactor', before: true, after: false }],
-        });
-
-        return sendJson({
-          ok: true,
-          is2faEnabled: false,
-          message: 'Two-Factor Authentication has been disabled.',
-        });
-      } catch (err: unknown) {
-        return this.handleError(err);
-      }
-    };
-  }
-
-  private handleListSessions(): RouteHandler {
-    return async (ctx: RequestContext) => {
-      const req = ctx.request;
-      try {
-        const identity = await this.resolveIdentity(req);
-        if (!identity) {
-          return sendError(401, 'ERR_ADMIN_UNAUTHORIZED', 'Not authenticated.');
-        }
-
-        const ip = extractIpAddress(req) || '127.0.0.1';
-        const ua = req.headers.get('user-agent') ?? '';
-        const currentDevice = parseDeviceFromUserAgent(ua);
-
-        let userSessions = Array.from(this.sessionsStore.values()).filter(
-          (s) => s.identityId === identity.id
-        );
-
-        if (userSessions.length === 0) {
-          const currentSess = {
-            id: 'sess_1',
-            identityId: identity.id,
-            device: `${currentDevice} (Current)`,
-            ip,
-            location:
-              ip === '127.0.0.1' || ip === '::1'
-                ? 'Local Development Server'
-                : 'Secure Admin Portal',
-            createdAt: Date.now() - 1000 * 60 * 30,
-            lastActive: Date.now(),
-          };
-          const otherSess = {
-            id: 'sess_2',
-            identityId: identity.id,
-            device: 'Safari on iPhone 16 Pro',
-            ip: '192.168.1.45',
-            location: 'Internal Network',
-            createdAt: Date.now() - 1000 * 60 * 60 * 3,
-            lastActive: Date.now() - 1000 * 60 * 60 * 3,
-          };
-          this.sessionsStore.set(currentSess.id, currentSess);
-          this.sessionsStore.set(otherSess.id, otherSess);
-          userSessions = [currentSess, otherSess];
-        }
-
-        return sendJson({
-          sessions: userSessions.map((s, idx) => ({
-            id: s.id,
-            device: s.device,
-            ip: s.ip,
-            location: s.location,
-            lastActive: idx === 0 ? 'Active now' : formatRelativeTime(s.lastActive),
-            isCurrent: idx === 0,
-            createdAt: new Date(s.createdAt).toISOString(),
-          })),
-        });
-      } catch (err: unknown) {
-        return this.handleError(err);
-      }
-    };
-  }
-
-  private handleDeleteSession(): RouteHandler {
-    return async (ctx: RequestContext) => {
-      const req = ctx.request;
-      try {
-        const identity = await this.resolveIdentity(req);
-        if (!identity) {
-          return sendError(401, 'ERR_ADMIN_UNAUTHORIZED', 'Not authenticated.');
-        }
-        const { sessionId } = req.params as { sessionId: string };
-        const session = this.sessionsStore.get(sessionId);
-        if (session && session.identityId === identity.id) {
-          this.sessionsStore.delete(sessionId);
-        }
-
-        await this.audit.log('delete', {
-          resourceId: 'auth_security',
-          objectId: sessionId,
-          actor: { id: identity.id },
-          ipAddress: extractIpAddress(req),
-          userAgent: req.headers.get('user-agent') ?? undefined,
-          changes: [{ field: 'sessionTerminated', before: sessionId, after: null }],
-        });
-
-        return sendJson({ ok: true, message: 'Session revoked successfully.' });
-      } catch (err: unknown) {
-        return this.handleError(err);
-      }
-    };
-  }
-
-  private handleTerminateOtherSessions(): RouteHandler {
-    return async (ctx: RequestContext) => {
-      const req = ctx.request;
-      try {
-        const identity = await this.resolveIdentity(req);
-        if (!identity) {
-          return sendError(401, 'ERR_ADMIN_UNAUTHORIZED', 'Not authenticated.');
-        }
-        const sessions = Array.from(this.sessionsStore.entries()).filter(
-          ([_, s]) => s.identityId === identity.id
-        );
-        for (let i = 1; i < sessions.length; i++) {
-          const entry = sessions[i];
-          if (entry) {
-            this.sessionsStore.delete(entry[0]);
-          }
-        }
-
-        await this.audit.log('delete', {
-          resourceId: 'auth_security',
-          objectId: identity.id,
-          actor: { id: identity.id },
-          ipAddress: extractIpAddress(req),
-          userAgent: req.headers.get('user-agent') ?? undefined,
-          changes: [{ field: 'terminatedOtherSessions', before: true, after: null }],
-        });
-
-        return sendJson({ ok: true, message: 'All other active sessions have been terminated.' });
-      } catch (err: unknown) {
-        return this.handleError(err);
-      }
-    };
-  }
-
-  private handleGetDashboard(): RouteHandler {
-    return async (ctx: RequestContext) => {
-      const req = ctx.request;
-      try {
-        const identity = await this.resolveIdentity(req);
-        if (!this.permissions.canAccessAdmin(identity)) {
-          return sendError(403, 'ERR_ADMIN_FORBIDDEN', 'Admin access denied.');
-        }
-        const widgets = this.registry.dashboard.getWidgets().map((w) => w.toJSON());
-        const data = await this.registry.dashboard.getDashboardData({ identity });
-        return sendJson({ widgets, data });
-      } catch (err: unknown) {
-        return this.handleError(err);
-      }
-    };
-  }
-
-  private handleListPages(): RouteHandler {
-    return async (ctx: RequestContext) => {
-      const req = ctx.request;
-      try {
-        const identity = await this.resolveIdentity(req);
-        if (!this.permissions.canAccessAdmin(identity)) {
-          return sendError(403, 'ERR_ADMIN_FORBIDDEN', 'Admin access denied.');
-        }
-        const pages = this.registry.getAllPages().map((p) => p.toJSON());
-        return sendJson({ pages });
-      } catch (err: unknown) {
-        return this.handleError(err);
-      }
-    };
-  }
-
-  private handleGetPage(): RouteHandler {
-    return async (ctx: RequestContext) => {
-      const req = ctx.request;
-      try {
-        const identity = await this.resolveIdentity(req);
-        if (!this.permissions.canAccessAdmin(identity)) {
-          return sendError(403, 'ERR_ADMIN_FORBIDDEN', 'Admin access denied.');
-        }
-        const { pageId } = req.params as { pageId: string };
-        const page = this.registry.getPage(pageId);
-        if (!page) {
-          return sendError(404, 'ERR_NOT_FOUND', `Page "${pageId}" not found.`);
-        }
-        return sendJson({
-          page: page.toJSON(),
-        });
-      } catch (err: unknown) {
-        return this.handleError(err);
-      }
-    };
-  }
-
-  private handleGetHealth(): RouteHandler {
-    return async (ctx: RequestContext) => {
-      const req = ctx.request;
-      try {
-        const identity = await this.resolveIdentity(req);
-        if (!this.permissions.canAccessAdmin(identity)) {
-          return sendError(403, 'ERR_ADMIN_FORBIDDEN', 'Admin access denied.');
-        }
-
-        const mem =
-          typeof process.memoryUsage === 'function'
-            ? process.memoryUsage()
-            : { rss: 0, heapTotal: 0, heapUsed: 0, external: 0 };
-
-        const health = {
-          status: 'healthy',
-          timestamp: new Date().toISOString(),
-          uptime: typeof process.uptime === 'function' ? Math.floor(process.uptime()) : 0,
-          memory: {
-            rss: mem.rss ?? 0,
-            heapTotal: mem.heapTotal ?? 0,
-            heapUsed: mem.heapUsed ?? 0,
-            external: mem.external ?? 0,
-          },
-          nodeVersion: process.version ?? 'unknown',
-          platform: typeof process.platform === 'string' ? process.platform : 'unknown',
-          arch: typeof process.arch === 'string' ? process.arch : 'unknown',
-          pid: typeof process.pid === 'number' ? process.pid : 0,
-          resourcesCount: this.registry.getAllResources().length,
-          pagesCount: this.registry.getAllPages().length,
-          services: {
-            database: {
-              status: 'up',
-              label: 'ORM Database Connection',
-              subtext: 'SQLite / Postgres Active & Connected',
-            },
-            router: {
-              status: 'up',
-              label: 'HTTP Kernel & Router',
-              subtext: 'High-performance Trie Matcher Running',
-            },
-            auth: {
-              status: 'up',
-              label: 'Security & RBAC Guard',
-              subtext: 'Password Hashing & 2FA Enforced',
-            },
-            audit: {
-              status: 'up',
-              label: 'Audit Mutation Store',
-              subtext: 'Capturing Admin Changes & Revisions',
-            },
-          },
-        };
-        return sendJson({ health });
-      } catch (err: unknown) {
-        return this.handleError(err);
-      }
-    };
+      })
+    );
+    const services = Object.fromEntries(results);
+    const mem = process.memoryUsage();
+    return sendJson({
+      health: {
+        status: results.every(([, r]) => r.status === 'up') ? 'healthy' : 'degraded',
+        timestamp: new Date().toISOString(),
+        uptime: Math.floor(process.uptime()),
+        memory: { rss: mem.rss, heapTotal: mem.heapTotal, heapUsed: mem.heapUsed, external: mem.external },
+        nodeVersion: process.version,
+        platform: process.platform,
+        arch: process.arch,
+        pid: process.pid,
+        resourcesCount: this.registry.getAllResources().length,
+        pagesCount: this.registry.getAllPages().length,
+        activeSessions: this.sessions.size,
+        services,
+      },
+    });
   }
 
   // ------------------------------------------------------------------
@@ -1171,52 +770,29 @@ export class AdminServer {
   // ------------------------------------------------------------------
 
   private handleError(err: unknown): HttpResponse {
-    if (err instanceof AdminAuthorizationError) {
-      return sendError(403, 'ERR_ADMIN_FORBIDDEN', err.message);
-    }
-    if (err instanceof AdminItemNotFoundError || err instanceof AdminResourceNotFoundError) {
-      return sendError(404, 'ERR_NOT_FOUND', err.message);
-    }
-    if (err instanceof AdminValidationError) {
-      return sendError(422, 'ERR_ADMIN_VALIDATION', err.message);
-    }
-    if (err instanceof AdminActionError) {
-      return sendError(400, 'ERR_ADMIN_ACTION', err.message);
-    }
-
-    // Unknown error — log internally but return a safe 500
-    void err;
+    if (err instanceof AdminAuthorizationError) return sendError(403, 'ERR_ADMIN_FORBIDDEN', err.message);
+    if (err instanceof AdminItemNotFoundError || err instanceof AdminResourceNotFoundError) return sendError(404, 'ERR_NOT_FOUND', err.message);
+    if (err instanceof AdminValidationError) return sendError(422, 'ERR_ADMIN_VALIDATION', err.message);
+    if (err instanceof AdminActionError) return sendError(400, 'ERR_ADMIN_ACTION', err.message);
     return sendError(500, 'ERR_INTERNAL', 'An internal error occurred.');
   }
 }
 
+function describe(detail: unknown): string | undefined {
+  if (detail === undefined || detail === null || typeof detail === 'boolean') return undefined;
+  return typeof detail === 'string' ? detail : JSON.stringify(detail).slice(0, 200);
+}
+
 function parseDeviceFromUserAgent(ua: string): string {
-  if (!ua) return 'Web Browser on Desktop';
-  if (ua.includes('iPhone') || ua.includes('iPad')) return 'Safari on iOS';
-  if (ua.includes('Android')) return 'Chrome on Android';
-  if (ua.includes('Macintosh') || ua.includes('Mac OS')) {
-    if (ua.includes('Chrome')) return 'Chrome on macOS';
-    if (ua.includes('Safari')) return 'Safari on macOS';
-    if (ua.includes('Firefox')) return 'Firefox on macOS';
-    return 'Desktop on macOS';
-  }
-  if (ua.includes('Windows')) {
-    if (ua.includes('Chrome')) return 'Chrome on Windows';
-    if (ua.includes('Edge')) return 'Edge on Windows';
-    if (ua.includes('Firefox')) return 'Firefox on Windows';
-    return 'Desktop on Windows';
-  }
-  if (ua.includes('Linux')) return 'Browser on Linux';
-  return 'Web Browser';
+  const browser = /Edg\//.test(ua) ? 'Edge' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'Browser';
+  const os = /iPhone|iPad/.test(ua) ? 'iOS' : /Android/.test(ua) ? 'Android' : /Mac OS/.test(ua) ? 'macOS' : /Windows/.test(ua) ? 'Windows' : /Linux/.test(ua) ? 'Linux' : '';
+  return os ? `${browser} on ${os}` : browser;
 }
 
 function formatRelativeTime(ts: number): string {
-  const diffMs = Date.now() - ts;
-  const mins = Math.floor(diffMs / (1000 * 60));
+  const mins = Math.floor((Date.now() - ts) / 60000);
   if (mins < 1) return 'Active now';
   if (mins < 60) return `${mins}m ago`;
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  return hours < 24 ? `${hours}h ago` : `${Math.floor(hours / 24)}d ago`;
 }

@@ -51,6 +51,8 @@ Rather than introducing heavy external dependencies (such as `generic-pool`), we
 Each database driver declares its capabilities via strongly typed flags:
 
 ```typescript
+import type { IsolationLevel } from '@jsango/database';
+
 export interface DatabaseCapabilities {
   readonly supportsTransactions: boolean;
   readonly supportsSavepoints: boolean;

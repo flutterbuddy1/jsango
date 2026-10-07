@@ -18,7 +18,9 @@ The `CommandRegistry` manages command registration, lookup, aliases, and namespa
 ## Public API
 
 ```typescript
-export class CommandRegistry {
+import type { ICommand } from '@jsango/cli';
+
+export declare class CommandRegistry {
   register(command: ICommand): this;
   registerAll(commands: readonly ICommand[]): this;
   unregister(name: string): boolean;

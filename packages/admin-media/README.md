@@ -15,8 +15,23 @@ pnpm add @jsango/admin-media
 ```typescript
 import { AdminMediaManager, InMemoryMediaStorage } from '@jsango/admin-media';
 
-const storage = new InMemoryMediaStorage();
-const media = new AdminMediaManager(storage, { maxSizeBytes: 5 * 1024 * 1024 });
+const media = new AdminMediaManager({
+  storage: new InMemoryMediaStorage(), // implement IMediaStorage for disk/S3/GCS
+  validation: {
+    maxSizeBytes: 5 * 1024 * 1024,
+    allowedMimeTypes: ['image/*'],
+    allowedExtensions: ['jpg', 'png'],
+  },
+});
+
+// Throws (code ERR_ADMIN_MEDIA_VALIDATION) if the file breaks a rule.
+const file = await media.upload({
+  content: new Uint8Array([0x89, 0x50, 0x4e, 0x47]),
+  originalName: 'avatar.png',
+  mimeType: 'image/png',
+  prefix: 'avatars',
+});
+const url = await media.url(file.key);
 ```
 
 ## Documentation

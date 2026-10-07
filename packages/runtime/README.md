@@ -13,9 +13,13 @@ pnpm add @jsango/runtime
 ## Usage
 
 ```typescript
-import { NodeRuntimeAdapter } from '@jsango/runtime';
+import { createRuntimeAdapter, detectRuntime } from '@jsango/runtime';
 
-const runtime = new NodeRuntimeAdapter();
+const runtime = createRuntimeAdapter();
+console.log(detectRuntime(), runtime.name, runtime.version); // 'node' | 'bun' | 'unknown'
+
+const port = runtime.getEnv('PORT') ?? '3000';
+const root = runtime.cwd();
 ```
 
 ## Documentation

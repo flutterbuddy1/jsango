@@ -21,6 +21,9 @@ Middleware 1 (After)
 Middleware can be defined as an asynchronous function or as a class implementing `IMiddleware`:
 
 ```typescript
+import { HttpResponse, type RequestContext } from '@jsango/http';
+import type { MiddlewareHandler, IMiddleware, NextFunction } from '@jsango/middleware';
+
 // Functional Middleware
 const loggerMiddleware: MiddlewareHandler = async (ctx, next) => {
   const start = Date.now();

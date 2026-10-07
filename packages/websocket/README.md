@@ -13,11 +13,26 @@ pnpm add @jsango/websocket
 ## Usage
 
 ```typescript
-import { RoomManager, LocalTransport } from '@jsango/websocket';
+import { NodeWebSocketAdapter } from '@jsango/websocket';
 
-const rooms = new RoomManager();
-const transport = new LocalTransport();
-transport.publish('chat-room', { text: 'Hello!' });
+const ws = new NodeWebSocketAdapter({
+  port: 8080,
+  path: '/ws',
+  allowAnonymous: true,
+  limits: { maxMessageSizeBytes: 64 * 1024, maxRoomsPerConnection: 10 },
+  heartbeat: { enabled: true, pingIntervalMs: 30_000 },
+});
+await ws.start();
+
+// Clients send JSON frames: { "type": "chat.join", "payload": { "room": "lobby" } }
+ws.manager.on<{ room: string }>('chat.join', async (ctx, message) => {
+  await ws.manager.joinRoom(ctx.connectionId, message.payload.room);
+  await ctx.reply('chat.joined', { room: message.payload.room });
+});
+
+ws.manager.on<{ room: string; text: string }>('chat.message', async (ctx, message) => {
+  await ws.manager.broadcast(message.payload.room, { type: 'chat.message', payload: { text: message.payload.text } });
+});
 ```
 
 ## Documentation

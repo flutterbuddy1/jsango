@@ -2,7 +2,7 @@ import type { HttpRequest, RequestContext } from '@jsango/http';
 import { AnonymousIdentity, UserIdentity } from '../identity.js';
 import type { AuthenticationResult, IAuthenticationStrategy, Identity } from '../types.js';
 import type { JwtService, JwtPayload } from './jwt.js';
-import { TokenExpiredError } from '../errors.js';
+import { InvalidCredentialsError, TokenExpiredError } from '../errors.js';
 
 export interface ITokenVerifier {
   verifyToken(token: string): Promise<Identity | undefined>;
@@ -13,22 +13,36 @@ export class JwtTokenVerifier implements ITokenVerifier {
   private readonly identityResolver?:
     ((payload: JwtPayload) => Promise<Identity> | Identity) | undefined;
 
+  private readonly allowNonExpiring: boolean;
+
   public constructor(options: {
     jwt: JwtService;
     identityResolver?: (payload: JwtPayload) => Promise<Identity> | Identity;
+    /** Accept tokens without an `exp` claim. Default false. */
+    allowNonExpiring?: boolean;
   }) {
     this.jwt = options.jwt;
     this.identityResolver = options.identityResolver;
+    this.allowNonExpiring = options.allowNonExpiring ?? false;
   }
 
   public async verifyToken(token: string): Promise<Identity | undefined> {
     const payload = await this.jwt.verify(token);
 
+    // Tokens that never expire cannot be revoked by time; refuse them unless explicitly allowed.
+    if (typeof payload.exp !== 'number' && !this.allowNonExpiring) {
+      throw new InvalidCredentialsError('JWT has no expiry (exp).');
+    }
+
     if (this.identityResolver) {
       return this.identityResolver(payload);
     }
 
-    const sub = payload.sub ?? (payload['id'] as string | undefined) ?? 'anonymous';
+    const sub = payload.sub ?? (payload['id'] as string | undefined);
+    if (!sub) {
+      // Never authenticate a token that does not say who it is.
+      return undefined;
+    }
     const roles = Array.isArray(payload['roles']) ? (payload['roles'] as string[]) : [];
     const permissions = Array.isArray(payload['permissions'])
       ? (payload['permissions'] as string[])

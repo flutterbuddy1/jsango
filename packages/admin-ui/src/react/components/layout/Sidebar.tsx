@@ -12,6 +12,7 @@ import {
   FileText,
   Layers,
   Package,
+  ExternalLink,
 } from 'lucide-react';
 
 const ICON_MAP: Record<string, React.FC<{ style?: React.CSSProperties }>> = {
@@ -29,11 +30,16 @@ const ICON_MAP: Record<string, React.FC<{ style?: React.CSSProperties }>> = {
 };
 
 export const Sidebar: React.FC = () => {
-  const { resources, route, setRoute, isMobileSidebarOpen, setMobileSidebarOpen } = useAdmin();
+  const { config, resources, pages, route, setRoute, isMobileSidebarOpen, setMobileSidebarOpen } = useAdmin();
+  const byOrder = (a: { navigationOrder?: number | undefined }, b: { navigationOrder?: number | undefined }) => (a.navigationOrder ?? 0) - (b.navigationOrder ?? 0);
+
+  // Custom pages, grouped by navigationGroup
+  const pageGroups: Record<string, typeof pages> = {};
+  for (const pg of [...pages].sort(byOrder)) (pageGroups[pg.navigationGroup || 'Pages'] ??= []).push(pg);
 
   // Group resources by navigationGroup
   const groups: Record<string, typeof resources> = {};
-  for (const r of resources) {
+  for (const r of [...resources].sort(byOrder)) {
     const groupName = r.navigationGroup || 'Models';
     if (!groups[groupName]) groups[groupName] = [];
     groups[groupName].push(r);
@@ -73,6 +79,25 @@ export const Sidebar: React.FC = () => {
             </span>
           </a>
         </div>
+
+        {Object.entries(pageGroups).map(([groupName, items]) => (
+          <div key={`pages-${groupName}`}>
+            <div className="nav-group-heading">{groupName}</div>
+            {items.map((pg) => (
+              <a
+                key={pg.id}
+                href={`#page/${encodeURIComponent(pg.id)}`}
+                className={`nav-link-item ${route === `#page/${encodeURIComponent(pg.id)}` ? 'active' : ''}`}
+                onClick={() => setMobileSidebarOpen(false)}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  {renderIcon(pg.navigationIcon || 'layout-dashboard')}
+                  <span>{pg.label}</span>
+                </span>
+              </a>
+            ))}
+          </div>
+        ))}
 
         {/* Dynamic Model Groups */}
         {Object.entries(groups).map(([groupName, items]) => (
@@ -141,7 +166,13 @@ export const Sidebar: React.FC = () => {
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Cpu style={{ width: 15, height: 15 }} />
-              <span>System Diagnostics</span>
+              <span>System</span>
+            </span>
+          </a>
+          <a href={config.siteUrl} target="_blank" rel="noopener noreferrer" className="nav-link-item mobile-only">
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <ExternalLink style={{ width: 15, height: 15 }} />
+              <span>View site</span>
             </span>
           </a>
         </div>

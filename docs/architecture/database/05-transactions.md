@@ -17,29 +17,46 @@ Attempting to commit, rollback, query, or create savepoints on a completed trans
 The recommended API is `connection.transaction()`:
 
 ```typescript
-const result = await db.transaction(async (tx) => {
+import { DatabaseManager } from '@jsango/database';
+
+const db = new DatabaseManager({
+  default: 'main',
+  connections: { main: { driver: 'sqlite', filename: './app.db' } },
+});
+
+const conn = await db.connection();
+const result = await conn.transaction(async (tx) => {
   await tx.query('INSERT INTO orders (user_id, total) VALUES (?, ?)', [1, 99.5]);
   await tx.query('UPDATE accounts SET balance = balance - ? WHERE id = ?', [99.5, 1]);
   return { status: 'ordered' };
+});
+await conn.release();
+
+// Shortcut: DatabaseManager.transaction() acquires and releases the default connection for you
+await db.transaction(async (tx) => {
+  await tx.query('DELETE FROM carts WHERE user_id = ?', [1]);
 });
 ```
 
 - If the callback resolves, `tx.commit()` is automatically invoked.
 - If the callback throws an error, `tx.rollback()` is automatically invoked, and the original error is rethrown.
-- The underlying connection is guaranteed to be released back to the pool in a `finally` block.
+- With `DatabaseManager.transaction()`, the underlying connection is guaranteed to be released back to the pool in a `finally` block; with `connection.transaction()` you release the connection yourself.
 
 ## Savepoints
 
 Nested work within a transaction is handled through named savepoints:
 
 ```typescript
-await tx.savepoint('my_savepoint');
-try {
-  await tx.query('INSERT INTO logs (message) VALUES (?)', ['Tentative log']);
-} catch {
-  await tx.rollbackTo('my_savepoint');
-}
-await tx.commit();
+await db.transaction(async (tx) => {
+  await tx.savepoint('my_savepoint');
+  try {
+    await tx.query('INSERT INTO logs (message) VALUES (?)', ['Tentative log']);
+    await tx.releaseSavepoint('my_savepoint');
+  } catch {
+    await tx.rollbackTo('my_savepoint');
+  }
+  // committed automatically when the callback resolves
+});
 ```
 
 ## Isolation Levels

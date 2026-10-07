@@ -14,23 +14,25 @@ pnpm install
 ## Quick Example
 
 ```typescript
-import { Application } from 'jsango';
-import { defineModel, fields } from 'jsango';
+import { createApp, defineModel, fields, DatabaseManager, databaseConfigFromEnv, setDatabaseManager } from 'jsango';
 
 export const User = defineModel({
   name: 'User',
   table: 'users',
   fields: {
-    id: fields.uuid({ primaryKey: true }),
+    id: fields.uuid({ primaryKey: true, defaultValue: () => crypto.randomUUID() }),
     email: fields.string({ unique: true }),
   },
 });
 
-const app = new Application();
+// Reads DATABASE_URL (or DATABASE_* variables); without it models use an in-memory database.
+setDatabaseManager(new DatabaseManager(databaseConfigFromEnv()));
 
-app.get('/api/users', async (ctx) => {
+const app = createApp();
+
+app.get('/api/users', async () => {
   const users = await User.query().get();
-  return ctx.response.json(users);
+  return { users }; // plain objects are sent as JSON
 });
 
 await app.listen(3000, '0.0.0.0');

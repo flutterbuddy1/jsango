@@ -1,72 +1,81 @@
 # AI Memory in JSango
 
-JSango provides unified short-term and long-term memory management for AI Agents with multi-tenant and user-level isolation.
+An agent with `memory` remembers the conversation between `run()` calls. History is stored per
+**tenant + user + conversation**, so two users never see each other's messages, even if they
+use the same `conversationId`.
 
 ---
 
 ## In-Memory Store
 
-For testing, serverless scripts, or short-lived sessions:
+For tests, scripts and single-process apps:
 
 ```typescript
 import { agent, InMemoryMemoryStore } from 'jsango';
 
-const memory = new InMemoryMemoryStore();
-
 const assistant = agent({
   name: 'ChatAssistant',
   instructions: 'Help users with their questions.',
-  memory,
+  memory: new InMemoryMemoryStore(50), // keeps the last 50 messages per conversation
 });
 
-// Run with conversation ID
-const res1 = await assistant.run({
+await assistant.run({
   input: 'My name is Alice.',
-  conversationId: 'session_123',
+  context: { conversationId: 'session_123', user: { id: 'user_456' }, tenantId: 'acme' },
 });
 
-const res2 = await assistant.run({
+const res = await assistant.run({
   input: 'What is my name?',
-  conversationId: 'session_123',
+  context: { conversationId: 'session_123', user: { id: 'user_456' }, tenantId: 'acme' },
 });
-// res2.text => "Your name is Alice."
+// res.text => "Your name is Alice."
 ```
 
----
-
-## Scoped User & Tenant Memory
-
-Memory entries can be segmented by `userId`, `tenantId`, and `agentId` to prevent cross-tenant and cross-user data leakage.
-
-```typescript
-await memory.append('session_123', {
-  role: 'user',
-  content: 'Sensitive customer note',
-  userId: 'user_456',
-  tenantId: 'tenant_789',
-});
-
-const history = await memory.get('session_123', {
-  userId: 'user_456',
-  tenantId: 'tenant_789',
-  limit: 20,
-});
-```
+`memory: true` is shorthand for a new `InMemoryMemoryStore`. Without a `conversationId`, each
+user (and tenant) gets a single `default` conversation.
 
 ---
 
 ## Database Memory Store
 
-For production applications, persist conversation messages into PostgreSQL / MySQL / SQLite using the `DatabaseMemoryStore`:
+To keep conversations across restarts and multiple servers, store them in your database
+(PostgreSQL, MySQL, SQLite or MongoDB). The `ai_memory` table (or collection) is created on
+first use.
 
 ```typescript
 import { DatabaseMemoryStore, agent } from 'jsango';
-
-const dbMemory = new DatabaseMemoryStore();
+import { db } from './database.js'; // your DatabaseManager
 
 export const persistentAgent = agent({
   name: 'SupportAgent',
   instructions: 'Production assistant',
-  memory: dbMemory,
+  memory: new DatabaseMemoryStore({ connection: db, maxMessages: 100 }),
 });
+```
+
+Options: `connection` (required), `tableName` (default `ai_memory`), and `maxMessages`
+(default 100; the oldest messages are dropped first).
+
+---
+
+## Custom Stores
+
+Any object with `get(key)`, `set(key, messages)` and `clear(key)` works as `memory`, for example
+a Redis-backed store:
+
+```typescript
+import type { MemoryStore, LlmMessage } from 'jsango';
+
+class RedisMemory implements MemoryStore {
+  constructor(private readonly redis: { get(k: string): Promise<string | null>; set(k: string, v: string): Promise<unknown>; del(k: string): Promise<unknown> }) {}
+  async get(key: string): Promise<LlmMessage[]> {
+    return JSON.parse((await this.redis.get(`mem:${key}`)) ?? '[]');
+  }
+  async set(key: string, messages: LlmMessage[]): Promise<void> {
+    await this.redis.set(`mem:${key}`, JSON.stringify(messages));
+  }
+  async clear(key: string): Promise<void> {
+    await this.redis.del(`mem:${key}`);
+  }
+}
 ```

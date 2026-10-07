@@ -53,7 +53,7 @@ Ensure all relation queries use explicit `.with()` declarations:
 
 ```typescript
 // Correct:
-const users = await User.query().with('posts').all();
+const users = await User.query().with('posts').get();
 
 // Deprecated / Prohibited:
 // user.posts (implicit property access query)

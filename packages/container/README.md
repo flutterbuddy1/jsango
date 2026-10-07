@@ -15,11 +15,20 @@ pnpm add @jsango/container
 ```typescript
 import { Container } from '@jsango/container';
 
-const container = new Container();
-container.singleton('UserService', UserService);
+class Database {}
+class UserService {
+  constructor(public readonly db: Database) {}
+}
 
-const scope = container.createScope();
-const svc = scope.resolve('UserService');
+const container = new Container();
+container.registerSingleton(Database, () => new Database());
+container.registerScoped('UserService', (c) => new UserService(c.resolve(Database)));
+container.registerTransient('requestId', () => crypto.randomUUID());
+
+const scope = container.createScope(); // e.g. one per request
+const svc = scope.resolve<UserService>('UserService');
+
+await scope.dispose();
 ```
 
 ## Documentation

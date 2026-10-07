@@ -1,434 +1,131 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useAdmin } from '../context/AdminContext.js';
-import {
-  Cpu,
-  Server,
-  RefreshCw,
-  CheckCircle2,
-  HardDrive,
-  Clock,
-  Layers,
-  ShieldCheck,
-  Zap,
-} from 'lucide-react';
+import { RefreshCw, CheckCircle2, XCircle } from 'lucide-react';
 
 interface SystemHealthData {
-  status: string;
+  status: 'healthy' | 'degraded';
   timestamp: string;
   uptime: number;
-  memory: {
-    rss: number;
-    heapTotal: number;
-    heapUsed: number;
-    external: number;
-  };
+  memory: { rss: number; heapTotal: number; heapUsed: number; external: number };
   nodeVersion: string;
   platform: string;
   arch: string;
   pid: number;
   resourcesCount: number;
   pagesCount: number;
-  services: Record<
-    string,
-    {
-      status: string;
-      label?: string;
-      subtext?: string;
-    }
-  >;
+  activeSessions: number;
+  services: Record<string, { status: 'up' | 'down'; label: string; subtext?: string }>;
 }
 
+const muted = 'var(--chakra-colors-fg-muted)';
+
 function formatBytes(bytes: number): string {
-  if (!bytes || bytes === 0) return '0 MB';
-  const mb = bytes / (1024 * 1024);
-  return `${mb.toFixed(1)} MB`;
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let i = 0;
+  let v = bytes;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i++;
+  }
+  return `${v.toFixed(1)} ${units[i]}`;
 }
 
 function formatUptime(seconds: number): string {
-  if (!seconds || seconds <= 0) return '< 1m';
-  const days = Math.floor(seconds / (3600 * 24));
-  const hrs = Math.floor((seconds % (3600 * 24)) / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
-
-  const parts: string[] = [];
-  if (days > 0) parts.push(`${days}d`);
-  if (hrs > 0) parts.push(`${hrs}h`);
-  if (mins > 0) parts.push(`${mins}m`);
-  parts.push(`${secs}s`);
-  return parts.join(' ');
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return d > 0 ? `${d}d ${h}h ${m}m` : h > 0 ? `${h}h ${m}m` : `${m}m ${seconds % 60}s`;
 }
 
+/** Live process stats plus the app's health checks (database and any `healthChecks`). */
 export const SystemDiagnosticsView: React.FC = () => {
-  const { setBreadcrumbs, showToast, fetchApi, resources } = useAdmin();
+  const { setBreadcrumbs, showToast, fetchApi } = useAdmin();
   const [health, setHealth] = useState<SystemHealthData | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const loadDiagnostics = useCallback(async (isManual = false) => {
-    setIsLoading(true);
+  const load = useCallback(async () => {
+    setLoading(true);
     try {
       const res = await fetchApi<{ health: SystemHealthData }>('/system/health');
-      if (res && res.health) {
-        setHealth(res.health);
-        setLastRefreshed(new Date());
-        if (isManual) {
-          showToast('System diagnostics refreshed successfully');
-        }
-      }
+      setHealth(res.health);
     } catch (err: any) {
-      if (isManual) {
-        showToast(err.message || 'Failed to fetch diagnostics', 'error');
-      }
+      showToast(err.message || 'Failed to fetch diagnostics', 'error');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }, [fetchApi, showToast]);
 
   useEffect(() => {
-    setBreadcrumbs([{ label: 'Platform' }, { label: 'System Diagnostics' }]);
-    loadDiagnostics(false);
-  }, [setBreadcrumbs, loadDiagnostics]);
+    setBreadcrumbs([{ label: 'Platform' }, { label: 'System' }]);
+    load();
+  }, [setBreadcrumbs, load]);
 
-  const uptimeStr = health?.uptime !== undefined ? formatUptime(health.uptime) : 'Active';
-  const heapUsedStr = health?.memory?.heapUsed ? formatBytes(health.memory.heapUsed) : '38.4 MB';
-  const heapTotalStr = health?.memory?.heapTotal ? formatBytes(health.memory.heapTotal) : '64.0 MB';
-  const rssStr = health?.memory?.rss ? formatBytes(health.memory.rss) : '72.1 MB';
-  const nodeVer = health?.nodeVersion || (typeof process !== 'undefined' ? process.version : 'Node.js');
-  const platformArch = health ? `${health.platform} (${health.arch})` : 'macOS / Linux';
-  const modelsCount = health?.resourcesCount ?? resources.length;
+  const services = Object.entries(health?.services ?? {});
+  const stats: Array<[string, string]> = health
+    ? [
+        ['Status', health.status === 'healthy' ? 'Healthy' : 'Degraded'],
+        ['Uptime', formatUptime(health.uptime)],
+        ['Node.js', health.nodeVersion],
+        ['Platform', `${health.platform} (${health.arch})`],
+        ['Process ID', String(health.pid)],
+        ['Heap used / total', `${formatBytes(health.memory.heapUsed)} / ${formatBytes(health.memory.heapTotal)}`],
+        ['Resident memory', formatBytes(health.memory.rss)],
+        ['Models / pages', `${health.resourcesCount} / ${health.pagesCount}`],
+        ['Active admin sessions', String(health.activeSessions)],
+      ]
+    : [];
 
   return (
-    <div style={{ maxWidth: 1040, margin: '0 auto' }}>
-      {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '1.5rem',
-          flexWrap: 'wrap',
-          gap: '1rem',
-        }}
-      >
+    <div style={{ maxWidth: 1040 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.025em' }}>
-              System Diagnostics & Health
-            </h1>
-            <span className="chakra-badge teal" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
-              All Systems Operational
-            </span>
-          </div>
-          <div style={{ fontSize: '0.8125rem', color: 'var(--chakra-colors-fg-muted)', marginTop: 4 }}>
-            Live runtime vitals, memory footprint, process stats, and framework subsystem integrity.
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>System</h1>
+          <div style={{ fontSize: '0.8125rem', color: muted }}>
+            {health ? `Checked ${new Date(health.timestamp).toLocaleTimeString()}` : 'Runtime vitals and health checks.'}
           </div>
         </div>
-
-        <button
-          type="button"
-          className="chakra-button subtle"
-          disabled={isLoading}
-          onClick={() => loadDiagnostics(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem' }}
-        >
-          <RefreshCw style={{ width: 14, height: 14, animation: isLoading ? 'spin 1s linear infinite' : 'none' }} />
-          <span>{isLoading ? 'Running Checks...' : 'Run Diagnostics'}</span>
+        <button type="button" className="chakra-button subtle" onClick={load} disabled={loading}>
+          <RefreshCw style={{ width: 14, height: 14, animation: loading ? 'spin 1s linear infinite' : 'none' }} />
+          {loading ? 'Checking…' : 'Run checks'}
         </button>
       </div>
 
-      {/* Metrics Row */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '1rem',
-          marginBottom: '1.5rem',
-        }}
-      >
-        {/* Metric 1: Engine Runtime */}
-        <div className="chakra-card" style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
-          <div
-            style={{
-              width: 42,
-              height: 42,
-              borderRadius: 10,
-              background: 'var(--chakra-colors-brand-subtle)',
-              color: 'var(--chakra-colors-brand-solid)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Cpu style={{ width: 20, height: 20 }} />
-          </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--chakra-colors-fg-muted)', fontWeight: 600 }}>
-              Runtime Engine
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+        <div className="chakra-card">
+          <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.75rem' }}>Process</h2>
+          {stats.map(([label, value]) => (
+            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', padding: '0.45rem 0', borderBottom: '1px solid var(--chakra-colors-border-subtle)', fontSize: '0.8125rem' }}>
+              <span style={{ color: muted }}>{label}</span>
+              <span style={{ fontWeight: 600, fontFamily: 'var(--chakra-fonts-mono)' }}>{value}</span>
             </div>
-            <div style={{ fontSize: '1.125rem', fontWeight: 800 }}>Node {nodeVer}</div>
-          </div>
+          ))}
+          {!health && <div style={{ color: muted, fontSize: '0.8125rem' }}>{loading ? 'Loading…' : 'No data.'}</div>}
         </div>
 
-        {/* Metric 2: Process Uptime */}
-        <div className="chakra-card" style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
-          <div
-            style={{
-              width: 42,
-              height: 42,
-              borderRadius: 10,
-              background: 'rgba(16, 185, 129, 0.15)',
-              color: '#10b981',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Clock style={{ width: 20, height: 20 }} />
-          </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--chakra-colors-fg-muted)', fontWeight: 600 }}>
-              Process Uptime
+        <div className="chakra-card">
+          <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.75rem' }}>Health checks</h2>
+          {services.length === 0 && (
+            <div style={{ color: muted, fontSize: '0.8125rem' }}>
+              No checks configured. The database is checked automatically once one is configured; add your own with
+              app.admin({'{'} healthChecks: {'{'} redis: () =&gt; redis.ping() {'}'} {'}'}).
             </div>
-            <div style={{ fontSize: '1.125rem', fontWeight: 800, color: '#10b981' }}>{uptimeStr}</div>
-          </div>
-        </div>
-
-        {/* Metric 3: Memory RSS */}
-        <div className="chakra-card" style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
-          <div
-            style={{
-              width: 42,
-              height: 42,
-              borderRadius: 10,
-              background: 'rgba(14, 165, 233, 0.15)',
-              color: '#0ea5e9',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <HardDrive style={{ width: 20, height: 20 }} />
-          </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--chakra-colors-fg-muted)', fontWeight: 600 }}>
-              Memory Footprint (RSS)
+          )}
+          {services.map(([name, svc]) => (
+            <div key={name} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', padding: '0.5rem 0', borderBottom: '1px solid var(--chakra-colors-border-subtle)' }}>
+              {svc.status === 'up' ? (
+                <CheckCircle2 style={{ width: 16, height: 16, color: '#1baf7a', flexShrink: 0, marginTop: 2 }} aria-hidden />
+              ) : (
+                <XCircle style={{ width: 16, height: 16, color: '#e34948', flexShrink: 0, marginTop: 2 }} aria-hidden />
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>{svc.label}</div>
+                {svc.subtext && <div style={{ fontSize: '0.75rem', color: muted, wordBreak: 'break-word' }}>{svc.subtext}</div>}
+              </div>
+              <span className={`chakra-badge ${svc.status === 'up' ? 'teal' : 'red'}`}>{svc.status === 'up' ? 'Up' : 'Down'}</span>
             </div>
-            <div style={{ fontSize: '1.125rem', fontWeight: 800 }}>{rssStr}</div>
-          </div>
-        </div>
-
-        {/* Metric 4: Registered Resources */}
-        <div className="chakra-card" style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
-          <div
-            style={{
-              width: 42,
-              height: 42,
-              borderRadius: 10,
-              background: 'rgba(168, 85, 247, 0.15)',
-              color: '#a855f7',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Layers style={{ width: 20, height: 20 }} />
-          </div>
-          <div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--chakra-colors-fg-muted)', fontWeight: 600 }}>
-              Active Models
-            </div>
-            <div style={{ fontSize: '1.125rem', fontWeight: 800 }}>{modelsCount} Registered</div>
-          </div>
+          ))}
         </div>
       </div>
-
-      {/* Main Grid: Process Details & Subsystems */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: '1.25rem',
-          marginBottom: '1.5rem',
-        }}
-      >
-        {/* Card 1: Process Vitals */}
-        <div className="chakra-card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, marginBottom: '1.25rem' }}>
-            <Zap style={{ width: 18, height: 18, color: 'var(--chakra-colors-brand-fg)' }} />
-            <span>Process & Runtime Vitals</span>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem', fontSize: '0.8125rem' }}>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                borderBottom: '1px solid var(--chakra-colors-border-subtle)',
-                paddingBottom: 8,
-              }}
-            >
-              <span style={{ color: 'var(--chakra-colors-fg-muted)' }}>Node.js / V8 Runtime</span>
-              <span style={{ fontWeight: 600, fontFamily: 'var(--chakra-fonts-mono)' }}>{nodeVer}</span>
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                borderBottom: '1px solid var(--chakra-colors-border-subtle)',
-                paddingBottom: 8,
-              }}
-            >
-              <span style={{ color: 'var(--chakra-colors-fg-muted)' }}>Operating System / Arch</span>
-              <span style={{ fontWeight: 600 }}>{platformArch}</span>
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                borderBottom: '1px solid var(--chakra-colors-border-subtle)',
-                paddingBottom: 8,
-              }}
-            >
-              <span style={{ color: 'var(--chakra-colors-fg-muted)' }}>Process ID (PID)</span>
-              <span style={{ fontWeight: 600, fontFamily: 'var(--chakra-fonts-mono)' }}>
-                {health?.pid || 'Main Kernel'}
-              </span>
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                borderBottom: '1px solid var(--chakra-colors-border-subtle)',
-                paddingBottom: 8,
-              }}
-            >
-              <span style={{ color: 'var(--chakra-colors-fg-muted)' }}>V8 Heap Used / Total</span>
-              <span style={{ fontWeight: 600, fontFamily: 'var(--chakra-fonts-mono)' }}>
-                {heapUsedStr} / {heapTotalStr}
-              </span>
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                borderBottom: '1px solid var(--chakra-colors-border-subtle)',
-                paddingBottom: 8,
-              }}
-            >
-              <span style={{ color: 'var(--chakra-colors-fg-muted)' }}>Resident Set Size (RSS)</span>
-              <span style={{ fontWeight: 600, fontFamily: 'var(--chakra-fonts-mono)' }}>{rssStr}</span>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: 'var(--chakra-colors-fg-muted)' }}>Event Loop Response</span>
-              <span style={{ fontWeight: 700, color: '#10b981' }}>&lt; 0.5 ms (Optimal)</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 2: Subsystem Integrity */}
-        <div className="chakra-card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, marginBottom: '1.25rem' }}>
-            <Server style={{ width: 18, height: 18, color: 'var(--chakra-colors-brand-fg)' }} />
-            <span>Subsystem Integrity</span>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem', fontSize: '0.8125rem' }}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                borderBottom: '1px solid var(--chakra-colors-border-subtle)',
-                paddingBottom: 8,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <CheckCircle2 style={{ width: 16, height: 16, color: '#10b981' }} />
-                <div>
-                  <div style={{ fontWeight: 600 }}>SQLite / Postgres ORM</div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--chakra-colors-fg-muted)' }}>
-                    Database connection pool active & healthy
-                  </div>
-                </div>
-              </div>
-              <span className="chakra-badge teal">Operational</span>
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                borderBottom: '1px solid var(--chakra-colors-border-subtle)',
-                paddingBottom: 8,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <CheckCircle2 style={{ width: 16, height: 16, color: '#10b981' }} />
-                <div>
-                  <div style={{ fontWeight: 600 }}>HTTP Kernel & Router</div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--chakra-colors-fg-muted)' }}>
-                    Compiled Radix/Trie matching engine
-                  </div>
-                </div>
-              </div>
-              <span className="chakra-badge teal">Operational</span>
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                borderBottom: '1px solid var(--chakra-colors-border-subtle)',
-                paddingBottom: 8,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <ShieldCheck style={{ width: 16, height: 16, color: '#10b981' }} />
-                <div>
-                  <div style={{ fontWeight: 600 }}>Security Guard & 2FA</div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--chakra-colors-fg-muted)' }}>
-                    RBAC permissions & TOTP engine ready
-                  </div>
-                </div>
-              </div>
-              <span className="chakra-badge teal">Enforced</span>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <CheckCircle2 style={{ width: 16, height: 16, color: '#10b981' }} />
-                <div>
-                  <div style={{ fontWeight: 600 }}>Audit Mutation Store</div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--chakra-colors-fg-muted)' }}>
-                    Logging record mutations & revisions
-                  </div>
-                </div>
-              </div>
-              <span className="chakra-badge teal">Recording</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {lastRefreshed && (
-        <div style={{ textAlign: 'right', fontSize: '0.75rem', color: 'var(--chakra-colors-fg-muted)' }}>
-          Last checked: {lastRefreshed.toLocaleTimeString()}
-        </div>
-      )}
     </div>
   );
 };

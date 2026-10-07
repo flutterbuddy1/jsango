@@ -9,6 +9,8 @@ The `IHttpServer` interface defines the contract for listening, processing reque
 ## Contract
 
 ```typescript
+import type { RequestContext, HttpResponse } from '@jsango/http';
+
 export interface ServerAddress {
   readonly port: number;
   readonly host: string;

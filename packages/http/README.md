@@ -13,9 +13,22 @@ pnpm add @jsango/http
 ## Usage
 
 ```typescript
-import { HttpResponse, HttpRequest, RequestContext } from '@jsango/http';
+import { HttpRequest, HttpResponse, HttpStatus, RequestContext } from '@jsango/http';
 
-const response = HttpResponse.json({ success: true }, 200);
+const request = new HttpRequest({
+  method: 'POST',
+  url: '/api/users?page=2',
+  headers: { 'content-type': 'application/json', cookie: 'session=abc' },
+  body: JSON.stringify({ email: 'user@test.com' }),
+});
+const ctx = new RequestContext({ request });
+
+const page = ctx.request.query.get('page'); // '2'
+const session = ctx.request.cookies['session']; // 'abc'
+const body = await ctx.request.json<{ email: string }>();
+
+const response = HttpResponse.json({ success: true, email: body.email }, { status: HttpStatus.CREATED });
+response.setCookie('seen', '1', { httpOnly: true, sameSite: 'Lax' });
 ```
 
 ## Documentation

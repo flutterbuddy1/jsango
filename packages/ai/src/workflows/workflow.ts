@@ -58,9 +58,13 @@ export class Workflow {
     return this;
   }
 
+  /**
+   * Runs one of `branches`, chosen by the key `condition` returns. A boolean result picks the
+   * `true` / `false` branch: `.branch('review', (s) => s.risky, { true: legalAgent, false: fastAgent })`.
+   */
   public branch(
     name: string,
-    condition: (state: Record<string, any>) => string | Promise<string>,
+    condition: (state: Record<string, any>) => string | boolean | Promise<string | boolean>,
     branches: Record<string, StepHandler | Workflow>
   ): this {
     this.steps.push({
@@ -86,6 +90,14 @@ export class Workflow {
       maxIterations,
     });
     return this;
+  }
+
+  /** Alias of execute(), matching `agent.run()`. */
+  public run(
+    initialState: any = {},
+    options?: { signal?: AbortSignal; onEvent?: (event: AgentEvent) => void }
+  ): Promise<WorkflowResult> {
+    return this.execute(initialState, options);
   }
 
   public async execute(

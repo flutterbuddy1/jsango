@@ -6,29 +6,30 @@
 
 ---
 
-## Scoped Transactions via DatabaseManager
+## Scoped Transactions via `transaction()`
 
-Transactions are managed using the scoped callback pattern:
+Transactions are managed using the scoped callback pattern. Every model operation inside the callback (including nested async calls) automatically runs on the transaction, so `tx` does not need to be passed around:
 
 ```typescript
-import { getDatabaseManager } from '@jsango/orm';
+import { defineModel, fields, transaction } from '@jsango/orm';
 
-const db = getDatabaseManager()!;
+const Account = defineModel('Account', {
+  id: fields.id(),
+  balance: fields.decimal(),
+});
 
-await db.transaction(async (tx) => {
-  // Save model inside transaction
-  const sender = await Account.query().using(tx).find(1);
-  const recipient = await Account.query().using(tx).find(2);
+await transaction(async () => {
+  const sender = await Account.findOrFail(1);
+  const recipient = await Account.findOrFail(2);
 
-  sender.balance -= 100;
-  recipient.balance += 100;
-
-  await sender.save({ connection: tx });
-  await recipient.save({ connection: tx });
+  await sender.decrement('balance', 100);
+  await recipient.increment('balance', 100);
 
   // If an error is thrown, the transaction automatically rolls back!
 });
 ```
+
+The transaction object is still passed to the callback when you want to be explicit (`Account.query().using(tx)`, `model.save({ connection: tx })`). Use `transaction(cb, { connection: 'analytics' })` for a non-default connection. Note that `DatabaseManager.transaction()` is a lower-level API that does **not** make the transaction ambient for models.
 
 ---
 
@@ -37,7 +38,11 @@ await db.transaction(async (tx) => {
 Queries can be bound to any active transaction or specific connection using `.using(...)`:
 
 ```typescript
-const posts = await Post.query().using(tx).where('status', 'draft').get();
+import { transaction } from '@jsango/orm';
+
+await transaction(async (tx) => {
+  const posts = await Post.query().using(tx).where('status', 'draft').get();
+});
 ```
 
 ---
@@ -46,8 +51,8 @@ const posts = await Post.query().using(tx).where('status', 'draft').get();
 
 When operations run without an explicit connection, the ORM automatically acquires a connection from the model's configured pool and guarantees that it is released in a `finally` block:
 
-```typescript
-// Internally executed by QueryBuilder and Model:
+```text
+// Internally executed by QueryBuilder and Model (simplified):
 const conn = await manager.connection(metadata.connection);
 try {
   return await conn.query(sql, params);

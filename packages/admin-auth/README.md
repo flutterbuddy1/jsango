@@ -14,9 +14,16 @@ pnpm add @jsango/admin-auth
 
 ```typescript
 import { AdminPermissionChecker } from '@jsango/admin-auth';
+import { AdminResource } from '@jsango/admin-core';
+import { UserIdentity } from '@jsango/auth';
 
-const checker = new AdminPermissionChecker();
-const allowed = checker.canAccessResource(identity, resource, 'create');
+const checker = new AdminPermissionChecker({ staffRole: 'admin' });
+const resource = new AdminResource({ modelName: 'User' });
+const identity = new UserIdentity({ id: '1', roles: ['admin'] });
+
+checker.canAccessAdmin(identity); // true: has the staff role
+const allowed = await checker.canCreate(identity, resource);
+const canSeeEmail = checker.canViewField(identity, resource, 'email');
 ```
 
 ## Documentation

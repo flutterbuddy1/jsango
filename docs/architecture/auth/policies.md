@@ -5,6 +5,8 @@
 Policies govern permissions on specific entities and instances:
 
 ```typescript
+import type { Identity, AuthContext, PolicyResult } from '@jsango/auth';
+
 export interface IPolicy<TResource = unknown> {
   readonly name: string;
   can(
@@ -21,6 +23,13 @@ export interface IPolicy<TResource = unknown> {
 `BasePolicy<TResource>` automatically dispatches calls to methods matching action names (e.g. `view()`, `create()`, `update()`, `delete()`):
 
 ```typescript
+import { BasePolicy, type Identity } from '@jsango/auth';
+
+interface Article {
+  isPublished: boolean;
+  authorId: string;
+}
+
 class ArticlePolicy extends BasePolicy<Article> {
   public readonly name = 'ArticlePolicy';
 

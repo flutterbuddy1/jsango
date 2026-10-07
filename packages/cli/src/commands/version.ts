@@ -1,8 +1,12 @@
+import { createRequire } from 'node:module';
 import { BaseCommand } from '../public/command.js';
 import type { CommandContext } from '../public/context.js';
 import { ExitCode } from '../public/types.js';
 
-export const FRAMEWORK_VERSION = '1.0.0';
+/** The installed @jsango/cli version (package.json ships in every npm tarball). */
+export const FRAMEWORK_VERSION: string = (
+  createRequire(import.meta.url)('../../package.json') as { version: string }
+).version;
 
 export class VersionCommand extends BaseCommand {
   public readonly name = 'version';

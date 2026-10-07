@@ -156,7 +156,9 @@ export interface AgentRunResult<T = string> {
 }
 
 export interface AgentConfig {
-  name: string;
+  /** Used in events, traces and errors. Defaults to 'agent'. */
+  name?: string | undefined;
+  provider?: ILlmProvider | undefined;
   model?: string | undefined;
   instructions?: string | ((ctx: AgentContext) => string | Promise<string>) | undefined;
   tools?: Record<string, ToolDefinition | ((...args: any[]) => any)> | undefined;

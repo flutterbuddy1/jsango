@@ -26,6 +26,8 @@ Under no circumstances should database passwords or secret connection strings ap
 Replaces the password portion of database URLs with asterisks:
 
 ```typescript
+import { maskConnectionString } from '@jsango/database';
+
 maskConnectionString('postgres://admin:secret123@db.prod:5432/app');
 // => 'postgres://admin:********@db.prod:5432/app'
 ```

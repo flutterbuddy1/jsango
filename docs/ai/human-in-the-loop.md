@@ -30,13 +30,12 @@ export const refundTool = tool({
 
 ## Handling Approval Pauses
 
-When an agent invokes an approval-gated tool:
-1. The tool execution is intercepted.
-2. The agent status transitions to `paused` or emits a `human.approval_required` event.
-3. An `ApprovalRequiredError` or pending approval payload is returned with the tool name and arguments.
+When the model calls an approval-gated tool, the agent does **not** run it. `run()` returns
+with `status: 'paused'` and an `approvalRequest`, and emits an `approval.required` event:
 
 ```typescript
-import { agent, isApprovalRequiredError } from 'jsango';
+import { agent, ToolExecutor } from 'jsango';
+import { refundTool } from './tools/refund.js'; // the tool defined above
 
 const supportAgent = agent({
   name: 'SupportAgent',
@@ -44,17 +43,20 @@ const supportAgent = agent({
   tools: { refundTool },
 });
 
-try {
-  const result = await supportAgent.run({
-    input: 'Please refund $50 for invoice inv_123',
-  });
-} catch (err) {
-  if (isApprovalRequiredError(err)) {
-    console.log(`Approval required for tool: ${err.toolName}`);
-    console.log(`Arguments:`, err.toolArgs);
-    
-    // Resume after administrator review:
-    // await supportAgent.resume(err.runId, { approved: true });
-  }
+const result = await supportAgent.run({ input: 'Please refund $50 for invoice inv_123' });
+
+if (result.status === 'paused' && result.approvalRequest) {
+  const { approvalId, toolName, input } = result.approvalRequest;
+  // Store it and show it to a reviewer (e.g. in your admin panel)...
+  await approvals.save({ approvalId, toolName, input });
 }
+
+// Later, once a reviewer approved it, execute the tool explicitly:
+const outcome = await ToolExecutor.execute({
+  tool: refundTool,
+  arguments: approvedRequest.input,
+  approvalGranted: true,
+  context: { user: reviewer },
+});
+console.log(outcome.output);
 ```

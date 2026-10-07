@@ -9,7 +9,9 @@ The `HttpRequest` class represents an incoming HTTP request in a platform-indepe
 ## API Reference
 
 ```typescript
-export class HttpRequest {
+import type { HttpMethod, HttpQuery, HttpHeaders, HttpBody } from '@jsango/http';
+
+export declare class HttpRequest {
   public readonly method: HttpMethod;
   public readonly url: URL;
   public readonly pathname: string;
@@ -26,10 +28,10 @@ export class HttpRequest {
   public get contentType(): string;
   public get contentLength(): number | null;
 
-  public async json<T = unknown>(): Promise<T>;
-  public async text(): Promise<string>;
-  public async bytes(): Promise<Uint8Array>;
-  public async formData(): Promise<Record<string, string | string[]>>;
+  public json<T = unknown>(): Promise<T>;
+  public text(): Promise<string>;
+  public bytes(): Promise<Uint8Array>;
+  public formData(): Promise<Record<string, string | string[]>>;
 }
 ```
 

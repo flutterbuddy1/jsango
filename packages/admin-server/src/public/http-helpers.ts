@@ -16,9 +16,9 @@ export function parseListQuery(req: HttpRequest): AdminListQuery {
 
   // Collect filter_* params into a Record
   const filters: Record<string, unknown> = {};
-  for (const [key, value] of qs.entries()) {
+  for (const [key] of qs.entries()) {
     if (key.startsWith('filter_')) {
-      filters[key.slice(7)] = value;
+      filters[key.slice(7)] = qs.get(key); // entries() yields value arrays; take the first value
     }
   }
 

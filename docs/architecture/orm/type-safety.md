@@ -11,19 +11,23 @@
 When a model is defined via `defineModel`, TypeScript maps field definitions into concrete attribute types:
 
 ```typescript
+import { defineModel, fields, type InferModelAttributes } from '@jsango/orm';
+
+const userFields = {
+  id: fields.integer({ primaryKey: true, autoIncrement: true }),
+  name: fields.string(),
+  email: fields.string({ nullable: true }),
+  role: fields.string({ default: 'user' }),
+  score: fields.float({ default: 0 }),
+};
+
 const User = defineModel({
   name: 'User',
   table: 'users',
-  fields: {
-    id: fields.integer({ primaryKey: true, autoIncrement: true }),
-    name: fields.string(),
-    email: fields.string({ nullable: true }),
-    role: fields.string({ default: 'user' }),
-    score: fields.float({ default: 0 }),
-  },
+  fields: userFields,
 });
 
-type UserAttributes = InferModelAttributes<typeof User.metadata.fields>;
+type UserAttributes = InferModelAttributes<typeof userFields>;
 // Resulting type:
 // {
 //   id: number;
@@ -38,22 +42,17 @@ type UserAttributes = InferModelAttributes<typeof User.metadata.fields>;
 
 ## Creation Attribute Inference (`InferCreationAttributes`)
 
-When creating records via `User.create(...)`, TypeScript distinguishes between required fields and optional fields:
-
-- Fields with `default` values are optional.
-- Fields with `autoIncrement: true` are optional.
-- Fields with `nullable: true` are optional.
-- All other fields are strictly required.
+When creating records via `User.create(...)`, every known field is type-checked against its inferred type, but **all fields are optional** at compile time (`InferCreationAttributes` maps each field to `T | undefined`). Missing required (non-nullable, no default) columns are rejected by the database at runtime, not by the compiler.
 
 ```typescript
-// Valid: required fields provided
+// Valid
 await User.create({ name: 'Alice' });
 
 // Valid: optional fields overridden
 await User.create({ name: 'Bob', email: 'bob@example.com', role: 'admin' });
 
-// Compile-time Error: Property 'name' is missing in type '{}'
-// await User.create({});
+// Compile-time Error: Type 'number' is not assignable to type 'string'
+// await User.create({ name: 42 });
 ```
 
 ---
@@ -64,11 +63,11 @@ Queries return typed model instances:
 
 ```typescript
 const user = await User.find(1);
-// user is typed as UserInstance | null
+// user is typed as ModelInstance<typeof userFields> | null
 
 const firstUser = await User.findOrFail(1);
-// firstUser is typed as UserInstance (throws 404 if not found)
+// firstUser is typed as ModelInstance<typeof userFields> (throws ModelNotFoundError if not found)
 
 const users = await User.query().get();
-// users is typed as readonly UserInstance[]
+// users is typed as readonly ModelInstance<typeof userFields>[]
 ```

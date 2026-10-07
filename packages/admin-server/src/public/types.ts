@@ -14,10 +14,13 @@ export interface AdminListQuery {
 
 export interface AdminListResult<T = Record<string, unknown>> {
   readonly items: readonly T[];
-  readonly total: number;
+  /** `null` when the resource disables exact counts (`exactCount: false`). */
+  readonly total: number | null;
   readonly page: number;
   readonly pageSize: number;
-  readonly totalPages: number;
+  readonly totalPages: number | null;
+  /** Whether a next page exists. */
+  readonly hasMore?: boolean | undefined;
 }
 
 export interface AdminRequestContext {
@@ -40,7 +43,8 @@ export interface AdminCrudOptions {
  */
 export interface IAdminQueryAdapter {
   /**
-   * Returns a paginated list of records for the given resource.
+   * Returns a paginated list of records. The query is already validated: `sort` and `filters`
+   * only reference allowed fields, and `pageSize` is within the resource's maximum.
    */
   list(options: {
     readonly modelName: string;
@@ -51,7 +55,39 @@ export interface IAdminQueryAdapter {
     readonly defaultSortDirection: AdminSortDirection;
     readonly pageSize: number;
     readonly maxPageSize: number;
+    /** Columns to load (list columns plus the primary key); load everything when absent. */
+    readonly columns?: readonly string[] | undefined;
+    /** When false, skip COUNT(*) and return `total: null` with `hasMore`. Default true. */
+    readonly exactCount?: boolean | undefined;
   }): Promise<AdminListResult>;
+
+  /**
+   * Streams every matching record in batches (CSV export). Should use keyset pagination so it
+   * stays fast on tables with millions of rows.
+   */
+  stream?(options: {
+    readonly modelName: string;
+    readonly query: AdminListQuery;
+    readonly searchFields: readonly string[];
+    readonly primaryKey: string;
+    readonly columns?: readonly string[] | undefined;
+    readonly batchSize: number;
+  }): AsyncIterable<readonly Record<string, unknown>[]>;
+
+  /** Loads several records by primary key in one query. */
+  findMany?(options: {
+    readonly modelName: string;
+    readonly ids: readonly (string | number)[];
+    readonly primaryKey: string;
+  }): Promise<Record<string, unknown>[]>;
+
+  /** Deletes several records by primary key in one query; returns the number deleted. */
+  deleteMany?(options: {
+    readonly modelName: string;
+    readonly ids: readonly (string | number)[];
+    readonly primaryKey: string;
+    readonly soft?: boolean | undefined;
+  }): Promise<number>;
 
   /**
    * Returns a single record by primary key, or null.

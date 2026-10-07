@@ -58,8 +58,11 @@ describe('project template', () => {
     expect(pkg.scripts.makemigrations).toBe('jsango migrate:generate');
   });
 
-  it('type-checks against the jsango package', () => {
-    const files = ['src/index.ts', 'src/database.ts', 'src/models/user.ts', 'jsango.config.ts'].map((f) =>
+  it('type-checks against the jsango package (including make:admin output)', async () => {
+    const generated = await cli(PROJECT, 'make:admin', 'Product');
+    expect(generated.code).toBe(0);
+    expect(generated.out).toContain('app.admin({ resources: [ProductResource] })');
+    const files = ['src/index.ts', 'src/database.ts', 'src/models/user.ts', 'jsango.config.ts', 'src/admin/product-resource.ts', 'src/models/product.ts'].map((f) =>
       path.join(PROJECT, f)
     );
     const program = ts.createProgram(files, {

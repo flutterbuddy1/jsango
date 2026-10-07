@@ -37,9 +37,9 @@ export class Agent<TOutput = string> {
   private memoryStore?: MemoryStore | undefined;
 
   constructor(config: AgentConfig, provider?: ILlmProvider) {
-    this.name = config.name;
+    this.name = config.name ?? 'agent';
     this.config = config;
-    this.provider = provider ?? getDefaultRouter();
+    this.provider = provider ?? config.provider ?? getDefaultRouter();
 
     // Register tools
     if (config.tools) {
@@ -104,7 +104,16 @@ export class Agent<TOutput = string> {
     }
 
     // 3. Prepare messages & memory
-    const conversationKey = context.conversationId ?? 'default';
+    // History is isolated per tenant and user, so two users can never read each other's
+    // conversation even if they pick the same conversationId.
+    const userId = context.user && typeof context.user === 'object' ? (context.user as { id?: unknown }).id : context.user;
+    const conversationKey = [
+      context.tenantId !== undefined ? `t:${context.tenantId}` : undefined,
+      userId !== undefined && userId !== null ? `u:${String(userId)}` : undefined,
+      context.conversationId ?? 'default',
+    ]
+      .filter((part) => part !== undefined)
+      .join('|');
     const history: LlmMessage[] = this.memoryStore ? await this.memoryStore.get(conversationKey) : [];
     const messages: LlmMessage[] = [...history];
 
@@ -123,11 +132,33 @@ export class Agent<TOutput = string> {
 
     messages.push({ role: 'user', content: userInput });
 
+    const toolsList = this.getTools();
+
+    // Enhance system prompt with available tools so models on Ollama/OpenRouter know their exact signatures
+    if (toolsList.length > 0) {
+      const toolDescriptions = toolsList
+        .map((t) => {
+          const props = t.inputSchema?.properties
+            ? Object.entries(t.inputSchema.properties)
+                .map(([k, v]: [string, any]) => `${k}: ${v?.type ?? 'string'}`)
+                .join(', ')
+            : '';
+          return `- ${t.name}(${props}): ${t.description}`;
+        })
+        .join('\n');
+
+      const toolPrompt = `\n\n[AVAILABLE TOOLS]\nYou have access to the following tools:\n${toolDescriptions}\nWhen the user request requires data or actions from these tools, invoke the appropriate tool.`;
+
+      if (messages.length > 0 && messages[0]?.role === 'system') {
+        messages[0].content += toolPrompt;
+      } else {
+        messages.unshift({ role: 'system', content: (instructions || '') + toolPrompt });
+      }
+    }
+
     let usage: LlmUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
     let currentStep = 0;
     let finalAnswer = '';
-
-    const toolsList = this.getTools();
 
     while (currentStep < maxSteps) {
       currentStep++;

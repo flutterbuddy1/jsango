@@ -13,15 +13,43 @@ pnpm add @jsango/orm
 ## Usage
 
 ```typescript
-import { defineModel, fields, relations } from '@jsango/orm';
+import { defineModel, fields, relations, setDatabaseManager } from '@jsango/orm';
+import { DatabaseManager } from '@jsango/database';
 
-export const User = defineModel('User', {
-  id: fields.uuid({ primaryKey: true }),
-  email: fields.string({ unique: true }),
-  posts: relations.hasMany(() => Post, { foreignKey: 'userId' }),
+setDatabaseManager(
+  new DatabaseManager({ default: 'main', connections: { main: { driver: 'sqlite', filename: './dev.db' } } })
+);
+
+export const User = defineModel({
+  name: 'User',
+  table: 'users',
+  fields: {
+    id: fields.uuid({ primaryKey: true, defaultValue: () => crypto.randomUUID() }),
+    email: fields.string({ unique: true }),
+    active: fields.boolean({ defaultValue: true }),
+  },
+  relations: {
+    posts: relations.hasMany('Post', { foreignKey: 'userId' }),
+  },
+  timestamps: true,
 });
 
-const users = await User.query().with('posts').where('active', '=', true).all();
+export const Post = defineModel({
+  name: 'Post',
+  table: 'posts',
+  fields: {
+    id: fields.uuid({ primaryKey: true, defaultValue: () => crypto.randomUUID() }),
+    userId: fields.uuid(),
+    title: fields.string(),
+  },
+  relations: {
+    author: relations.belongsTo('User', { foreignKey: 'userId' }),
+  },
+});
+
+const user = await User.create({ email: 'ada@example.com' });
+const users = await User.query().with('posts').where('active', '=', true).orderBy('email').get();
+const page = await User.query().paginate({ page: 1, pageSize: 20 });
 ```
 
 ## Documentation

@@ -39,6 +39,9 @@ export const ADMIN_APP_BUNDLE_JS = ${JSON.stringify(bundleCode)};
 `;
 
   fs.writeFileSync(path.resolve(pkgRoot, 'src', 'page', 'bundle-content.ts'), bundleTsContent, 'utf-8');
+  // `tsc -b` ran before this script, so also update the compiled module: otherwise dist would
+  // always ship the previous build's UI.
+  fs.writeFileSync(path.resolve(pkgRoot, 'dist', 'page', 'bundle-content.js'), bundleTsContent, 'utf-8');
   console.log('✅ React Admin SPA bundle generated and embedded successfully.');
 }
 

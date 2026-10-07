@@ -4,6 +4,10 @@ import { timingSafeEqualString } from '../../internal/timing.js';
 export interface TotpSecretResult {
   readonly secret: string;
   readonly uri: string;
+  /**
+   * @deprecated Sends the secret to a third-party QR service (api.qrserver.com). Render `uri` as a
+   * QR code locally instead.
+   */
   readonly qrCodeUrl: string;
 }
 

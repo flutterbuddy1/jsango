@@ -5,12 +5,17 @@
 JSango natively supports request cancellation using standard Web `AbortSignal`:
 
 1. **Client Disconnect**:
-   When the client closes the TCP connection before the response finishes, the underlying `NodeHttpServer` triggers an abort on the request's `AbortController`.
+   When the client closes the TCP connection before the response finishes, the underlying Node server (created by `createNodeHttpServer`) triggers an abort on the request's `AbortController`.
 2. **Signal Observation**:
    Middleware and handlers can inspect `ctx.signal.aborted` or attach event listeners to cancel expensive background I/O operations or database transactions:
    ```typescript
-   if (ctx.signal.aborted) {
-     return HttpResponse.text('Client closed connection', { status: 499 });
+   import { HttpResponse, type RequestContext } from '@jsango/http';
+
+   async function handler(ctx: RequestContext) {
+     if (ctx.signal.aborted) {
+       return HttpResponse.text('Client closed connection', { status: 499 });
+     }
+     return HttpResponse.json({ ok: true });
    }
    ```
 3. **Guaranteed Scope Disposal**:

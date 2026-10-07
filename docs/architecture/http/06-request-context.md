@@ -9,7 +9,11 @@
 ## Structure
 
 ```typescript
-export class RequestContext {
+import type { HttpRequest, HttpResponse } from '@jsango/http';
+import type { ILogger } from '@jsango/core';
+import type { IContainer } from '@jsango/container';
+
+export declare class RequestContext {
   public readonly request: HttpRequest;
   public response: HttpResponse;
   public readonly requestId: string;

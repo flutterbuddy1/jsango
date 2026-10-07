@@ -49,7 +49,7 @@ const supportAgent = agent({
 
 const app = createApp();
 
-// Exposes REST POST /api/support, SSE GET /api/support, and WebSockets automatically!
+// Exposes REST POST /api/support and SSE GET /api/support; wsAgent() adds a WebSocket endpoint
 app.agent('/api/support', supportAgent);
 app.wsAgent('/ws/support', supportAgent);
 

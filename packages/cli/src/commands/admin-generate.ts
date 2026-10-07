@@ -52,7 +52,7 @@ export class AdminGenerateCommand extends BaseCommand {
     const idName = rawName.toLowerCase() + (rawName.endsWith('s') ? '' : 's');
     const label = modelName.replace(/([A-Z])/g, ' $1').trim();
     const pluralLabel = label.endsWith('s') ? label : `${label}s`;
-    const kebabName = rawName.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, '$1-$2').toLowerCase();
+    const kebabName = rawName.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
 
     const outputDir = (context.options['output'] as string | undefined) ?? 'src/admin';
     const groupName = (context.options['group'] as string | undefined) ?? 'Content Management';
@@ -63,7 +63,7 @@ export class AdminGenerateCommand extends BaseCommand {
     const resourceFilePath = path.resolve(context.projectRoot, outputDir, resourceFileName);
 
     // 1. Generate Admin Resource file
-    const resourceContent = `import { AdminResource } from '@jsango/admin-core';
+    const resourceContent = `import { AdminResource } from 'jsango';
 
 export const ${modelName}Resource = new AdminResource({
   id: '${idName}',
@@ -75,7 +75,7 @@ export const ${modelName}Resource = new AdminResource({
   navigationOrder: 1,
   primaryKey: 'id',
   fields: [
-    { name: 'id', type: 'uuid', readonly: true },
+    { name: 'id', type: 'number', readonly: true },
     { name: 'title', type: 'text', required: true, label: 'Title', searchable: true },
     { name: 'description', type: 'textarea', label: 'Description', searchable: true },
     { name: 'isActive', type: 'boolean', label: 'Is Active' },
@@ -115,20 +115,18 @@ export const ${modelName}Resource = new AdminResource({
       modelFilePath = path.join(modelDir, modelFileName);
 
       if (!fs.existsSync(modelFilePath)) {
-        const modelContent = `import { defineModel, fields } from '@jsango/orm';
+        const modelContent = `import { defineModel, fields } from 'jsango';
 
-export const ${modelName} = defineModel({
-  name: '${modelName}',
-  table: '${idName}',
-  fields: {
-    id: fields.uuid({ primaryKey: true }),
+export const ${modelName} = defineModel(
+  '${modelName}',
+  {
+    id: fields.id(),
     title: fields.string(),
-    description: fields.string({ default: '' }),
-    isActive: fields.boolean({ default: true }),
-    createdAt: fields.string({ default: () => new Date().toISOString() }),
-    updatedAt: fields.string({ default: () => new Date().toISOString() }),
+    description: fields.text({ nullable: true }),
+    isActive: fields.boolean({ defaultValue: true }),
   },
-});
+  { table: '${idName}', timestamps: true }
+);
 `;
         fs.mkdirSync(modelDir, { recursive: true });
         fs.writeFileSync(modelFilePath, modelContent, 'utf8');
@@ -154,10 +152,12 @@ export const ${modelName} = defineModel({
         );
       }
       context.output.info('\nNext steps to activate:');
-      context.output.text(`  1. In src/admin/index.ts:`);
-      context.output.text(`     registry.register(${modelName}Resource);`);
-      context.output.text(`  2. In createOrmAdminQueryAdapter():`);
-      context.output.text(`     Add ${modelName} to the models map.`);
+      context.output.text(`  1. Register it with the admin panel:`);
+      context.output.text(`     app.admin({ resources: [${modelName}Resource] });`);
+      if (modelFilePath) {
+        context.output.text(`  2. Create the table:`);
+        context.output.text(`     npx jsango makemigrations && npx jsango migrate`);
+      }
     }
 
     return ExitCode.SUCCESS;

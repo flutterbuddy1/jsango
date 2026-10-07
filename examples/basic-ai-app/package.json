@@ -1,0 +1,14 @@
+{
+  "name": "example-basic-ai-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "dev": "node dist/index.js"
+  },
+  "dependencies": {
+    "jsango": "workspace:*"
+  }
+}

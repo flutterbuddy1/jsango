@@ -13,13 +13,21 @@ pnpm add @jsango/cache
 ## Usage
 
 ```typescript
-import { CacheManager, MemoryCacheDriver } from '@jsango/cache';
+import { CacheManager } from '@jsango/cache';
 
-const manager = new CacheManager({
-  default: new MemoryCacheDriver({ defaultTtl: 300 }),
+const cache = new CacheManager({
+  default: 'default',
+  stores: {
+    default: { driver: 'memory', ttlMs: 300_000, options: { maxEntries: 10_000 } },
+  },
+  prefix: 'my-app',
 });
-const store = manager.store();
-const user = await store.remember('user:42', 60, () => fetchUserFromDb(42));
+
+// Computes once under concurrent load (stampede protection), then caches for 60s.
+const user = await cache.remember('user:42', () => fetchUserFromDb(42), { ttlSeconds: 60 });
+
+const sessions = cache.store().namespace('sessions');
+await sessions.set('abc', { userId: 42 }, { ttlMs: 30_000 });
 ```
 
 ## Documentation

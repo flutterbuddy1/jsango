@@ -35,10 +35,16 @@ export {
   ChartWidget,
   ActivityWidget,
   type DashboardWidgetType,
+  type DashboardWidgetWidth,
   type DashboardWidgetConfig,
+  type DashboardContext,
+  type MetricValue,
+  type TableData,
+  type ChartData,
+  type ActivityItem,
 } from './public/dashboard.js';
 export { AdminPage, type AdminPageConfig } from './public/pages.js';
 export { type IAdminPlugin } from './public/plugins.js';
-export { AdminResource } from './public/resource.js';
+export { AdminResource, deriveFieldsFromModel } from './public/resource.js';
 export { AutoResourceGenerator } from './public/auto-generator.js';
 export { AdminRegistry } from './public/registry.js';

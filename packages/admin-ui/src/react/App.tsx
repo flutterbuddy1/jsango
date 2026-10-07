@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAdmin } from './context/AdminContext.js';
 import { AdminShell } from './components/layout/AdminShell.js';
-import { DashboardView } from './views/DashboardView.js';
+import { DashboardView, CustomPageView } from './views/DashboardView.js';
 import { DataTable } from './components/data-table/DataTable.js';
 import { DynamicForm } from './components/forms/DynamicForm.js';
 import { ProfileSecurityView } from './views/ProfileSecurityView.js';
@@ -50,6 +50,11 @@ export const AppContent: React.FC = () => {
 
   if (route === '#audit') {
     return <AuditTrailView />;
+  }
+
+  if (route.startsWith('#page/')) {
+    const pageId = decodeURIComponent(route.replace('#page/', ''));
+    return <CustomPageView key={pageId} pageId={pageId} />;
   }
 
   if (route === '#system') {

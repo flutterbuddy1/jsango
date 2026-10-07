@@ -9,6 +9,8 @@ Future jsango packages (e.g., Admin, Queue, Cache, WebSockets) and third-party e
 Extensions implement `ICommandProvider`:
 
 ```typescript
+import type { CommandRegistry } from '@jsango/cli';
+
 export interface ICommandProvider {
   readonly name: string;
   registerCommands(registry: CommandRegistry): void;
@@ -18,7 +20,13 @@ export interface ICommandProvider {
 ## Example: Future Admin Package Command Provider
 
 ```typescript
-import { type ICommandProvider, type CommandRegistry, BaseCommand } from '@jsango/cli';
+import {
+  type ICommandProvider,
+  type CommandRegistry,
+  type CommandContext,
+  BaseCommand,
+  ExitCode,
+} from '@jsango/cli';
 
 class AdminRoutesCommand extends BaseCommand {
   public readonly name = 'admin:routes';
@@ -42,6 +50,8 @@ export class AdminCommandProvider implements ICommandProvider {
 Applications can register providers cleanly:
 
 ```typescript
+import { CliApplication } from '@jsango/cli';
+
 const app = CliApplication.createDefault();
 app.registerProvider(new AdminCommandProvider());
 await app.run();

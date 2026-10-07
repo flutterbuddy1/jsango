@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BrandLogo } from '../components/layout/BrandLogo.js';
 import { useAdmin } from '../context/AdminContext.js';
 import {
   Shield,
@@ -68,25 +69,10 @@ export const LoginView: React.FC = () => {
       >
         {/* Brand Header */}
         <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
-          <div
-            style={{
-              width: 52,
-              height: 52,
-              borderRadius: 14,
-              background: 'linear-gradient(135deg, #0d9488 0%, #0284c7 100%)',
-              color: '#ffffff',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 900,
-              fontSize: '1.375rem',
-              boxShadow: '0 8px 20px rgba(13, 148, 136, 0.35)',
-              marginBottom: '1rem',
-            }}
-          >
-            JS
+          <div style={{ display: 'inline-flex', marginBottom: '1rem' }}>
+            <BrandLogo size={52} />
           </div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.025em' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.025em', overflowWrap: 'anywhere' }}>
             {config.title}
           </h1>
           <p style={{ fontSize: '0.8125rem', color: 'var(--chakra-colors-fg-muted)', marginTop: 4 }}>
@@ -144,7 +130,7 @@ export const LoginView: React.FC = () => {
                     autoFocus
                     autoComplete="username"
                     className="chakra-input"
-                    placeholder="admin@jsango.dev"
+                    placeholder="you@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     style={{ paddingLeft: '2.35rem' }}

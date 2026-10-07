@@ -11,7 +11,7 @@ import { Agent, agent, getDefaultRouter } from './agents/agent.js';
 import { tool, type CreateToolOptions } from './tools/tool.js';
 import { Workflow, workflow } from './workflows/workflow.js';
 import { KnowledgeBase, knowledge, type KnowledgeBaseOptions } from './rag/knowledge.js';
-import { memory } from './memory/memory.js';
+import { memory, type DatabaseMemoryOptions } from './memory/memory.js';
 import { evaluate } from './evals/evaluator.js';
 import { mcp } from './mcp/mcp.js';
 import { FakeLlmProvider } from './providers/fake-provider.js';
@@ -83,8 +83,9 @@ export class AiFacade {
     return knowledge(name, options);
   }
 
-  public memory(type: 'memory' | 'database' | 'cache' = 'memory'): MemoryStore {
-    return memory(type);
+  /** `ai.memory()` (in-process) or `ai.memory('database', { connection: db })` (persisted). */
+  public memory(type: 'memory' | 'database' = 'memory', options?: DatabaseMemoryOptions): MemoryStore {
+    return type === 'database' ? memory('database', options as DatabaseMemoryOptions) : memory();
   }
 
   public evaluate = evaluate;

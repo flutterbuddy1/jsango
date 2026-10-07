@@ -47,7 +47,10 @@ graph TD
 ### `OpenApiGenerator`
 
 ```typescript
+import { Router } from '@jsango/router';
 import { OpenApiGenerator } from '@jsango/openapi';
+
+const router = new Router();
 
 const generator = new OpenApiGenerator({
   info: {
@@ -59,27 +62,31 @@ const generator = new OpenApiGenerator({
   includeAdmin: false,
 });
 
-const doc = generator.generate(app.router);
+const doc = generator.generate(router);
 ```
 
 ### `createOpenApiHandler`
 
-Serves the specification over HTTP with optional access control:
+Serves the specification over HTTP. `format` is `'json'` (default), `'yaml'` or `'auto'` (negotiated from the `Accept` header); `?format=yaml` always returns YAML. Protect the route with your own middleware if the spec must not be public:
 
 ```typescript
-import { createOpenApiHandler } from '@jsango/openapi';
+import { Router } from '@jsango/router';
+import { OpenApiGenerator, createOpenApiHandler } from '@jsango/openapi';
+
+const router = new Router();
+const generator = new OpenApiGenerator({ info: { title: 'Acme API', version: '1.0.0' } });
 
 router.get(
   '/openapi.json',
-  createOpenApiHandler({
-    generator,
+  createOpenApiHandler(generator, {
+    router,
     format: 'json',
-    contentType: 'application/json',
+    cacheDocument: true,
   })
 );
 ```
 
 ### CLI Commands
 
-- `jsango openapi:generate [--output <path>] [--format json|yaml] [--include-admin]`
+- `jsango openapi:generate [--output <path>] [--format json|yaml] [--title <title>] [--version <version>] [--include-admin]`
 - `jsango openapi:validate [--file <path>] [--include-admin]`

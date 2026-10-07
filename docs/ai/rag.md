@@ -9,37 +9,40 @@ JSango provides native document ingestion, chunking, semantic embeddings, and ve
 ```typescript
 import { knowledge, InMemoryVectorStore } from 'jsango';
 
-const vectorStore = new InMemoryVectorStore();
-
-export const companyDocs = knowledge({
-  name: 'company-docs',
-  vectorStore,
-  chunkSize: 500,
+export const companyDocs = knowledge('company-docs', {
+  vectorStore: new InMemoryVectorStore(), // default; plug in your own IVectorStore
+  chunkSize: 500,                         // words per chunk
   chunkOverlap: 50,
 });
 
-// Ingest documents
-await companyDocs.ingest({
-  id: 'doc_1',
-  text: 'JSango is a high-performance TypeScript backend framework with native AI agent orchestration.',
-  metadata: { section: 'overview' },
-});
+// Ingest raw text (chunked and embedded automatically)
+await companyDocs.ingest(
+  'JSango is a high-performance TypeScript backend framework with native AI agent orchestration.',
+  { metadata: { section: 'overview' } }
+);
+
+// ...or documents you have already split
+await companyDocs.ingest([
+  { id: 'faq_1', content: 'Refunds are processed within 5 business days.', metadata: { section: 'faq' } },
+]);
 ```
+
+Embeddings come from the knowledge base's `provider` (default: the default model router), so the
+provider must implement `embed()` (OpenAI, Gemini, Ollama and the fake provider do).
 
 ---
 
 ## Semantic Querying
 
 ```typescript
-const results = await companyDocs.query({
-  query: 'What is JSango?',
-  limit: 3,
-  minScore: 0.7,
-});
-
+// Scored matches
+const results = await companyDocs.search('What is JSango?', { limit: 3, minScore: 0.7 });
 for (const match of results) {
-  console.log(`[Score: ${match.score}] ${match.document.text}`);
+  console.log(`[Score: ${match.score.toFixed(2)}] ${match.document.content}`);
 }
+
+// Just the matching text
+const passages: string[] = await companyDocs.retrieve('refund policy', 3);
 ```
 
 ---
@@ -49,14 +52,14 @@ for (const match of results) {
 Agents can query knowledge bases directly inside their reasoning loop:
 
 ```typescript
-import { agent, tool } from 'jsango';
+import { agent, tool, object, string } from 'jsango';
 
 const searchKnowledge = tool({
   name: 'searchDocs',
   description: 'Search internal technical documentation',
   schema: object({ query: string() }),
-  execute: async ({ query }) => {
-    return await companyDocs.query({ query, limit: 3 });
+  execute: async ({ query }: { query: string }) => {
+    return await companyDocs.retrieve(query, 3);
   },
 });
 

@@ -32,9 +32,13 @@ app.get("/users", async () => {
 ```
 When advanced control is required, lower-level primitives are immediately accessible without breaking existing code:
 ```typescript
+import { HttpResponse } from "jsango";
+
 app.get("/users", async (ctx) => {
-  ctx.response.setHeader("X-Custom-Header", "Value");
-  return ctx.response.json({ data: await User.all() }, 200);
+  return HttpResponse.json(
+    { data: await User.all() },
+    { status: 200, headers: { "X-Custom-Header": "Value" } }
+  );
 });
 ```
 

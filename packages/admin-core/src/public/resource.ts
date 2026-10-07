@@ -1,9 +1,18 @@
-import type { AdminResourceOptions, AdminResourceSchema, AdminSortDirection } from './types.js';
-import { AdminField } from './fields.js';
+import type { ModelMetadata, FieldType } from '@jsango/orm';
+import type {
+  AdminFieldConfig,
+  AdminFieldType,
+  AdminResourceOptions,
+  AdminResourceSchema,
+  AdminSortDirection,
+} from './types.js';
+import { AdminField, isSensitiveFieldName } from './fields.js';
 import { AdminFilter } from './filters.js';
 import { AdminAction, AdminBulkAction } from './actions.js';
 
 export class AdminResource {
+  /** The options this resource was created with (used to rebuild it once the model is known). */
+  public readonly options: AdminResourceOptions;
   public readonly id: string;
   public readonly modelName: string;
   public readonly label: string;
@@ -29,22 +38,28 @@ export class AdminResource {
   public readonly actions = new Map<string, AdminAction>();
   public readonly bulkActions = new Map<string, AdminBulkAction>();
   public readonly canSoftDelete: boolean;
+  public readonly exactCount: boolean;
+  public readonly exportBatchSize: number;
 
   constructor(options: AdminResourceOptions) {
-    this.modelName = options.modelName ?? options.id ?? 'Unknown';
+    this.options = options;
+    this.modelName = options.modelName ?? options.modelMetadata?.name ?? options.id ?? 'Unknown';
     this.id = options.id ?? this.modelName.toLowerCase();
     this.label = options.label ?? AdminField.formatLabel(this.modelName);
     this.pluralLabel = options.pluralLabel ?? `${this.label}s`;
     this.navigationGroup = options.navigationGroup;
     this.navigationIcon = options.navigationIcon;
     this.navigationOrder = options.navigationOrder;
-    this.primaryKey = options.primaryKey ?? 'id';
+    this.primaryKey = options.primaryKey ?? options.modelMetadata?.primaryKey ?? 'id';
 
-    if (options.fields) {
-      for (const f of options.fields) {
-        this.fields.set(f.name, new AdminField(f));
-      }
+    // Fields come from the model; `options.fields` overrides them by name or adds new ones
+    // (e.g. computed columns), so customizing one field never loses the others.
+    const configs = new Map<string, AdminFieldConfig>();
+    if (options.modelMetadata) {
+      for (const f of deriveFieldsFromModel(options.modelMetadata)) configs.set(f.name, f);
     }
+    for (const f of options.fields ?? []) configs.set(f.name, { ...configs.get(f.name), ...f });
+    for (const f of configs.values()) this.fields.set(f.name, new AdminField(f));
 
     const allFieldNames = [...this.fields.keys()];
     this.listFields =
@@ -69,12 +84,18 @@ export class AdminResource {
     this.defaultSortDirection = options.defaultSortDirection ?? 'asc';
     this.defaultPageSize = options.defaultPageSize ?? 25;
     this.maxPageSize = options.maxPageSize ?? 100;
-    this.canSoftDelete = options.canSoftDelete ?? false;
+    this.canSoftDelete = options.canSoftDelete ?? options.modelMetadata?.softDelete.enabled ?? false;
+    this.exactCount = options.exactCount ?? true;
+    this.exportBatchSize = options.exportBatchSize ?? 1000;
 
-    if (options.filters) {
-      for (const filter of options.filters) {
-        this.filters.set(filter.name, new AdminFilter(filter));
-      }
+    // Default filters: boolean and choice fields marked filterable.
+    const filters =
+      options.filters ??
+      [...this.fields.values()]
+        .filter((f) => f.filterable && (f.type === 'boolean' || f.enumChoices))
+        .map((f) => ({ name: f.name, field: f.name, type: f.type === 'boolean' ? ('boolean' as const) : ('enum' as const), label: f.label, choices: f.enumChoices }));
+    for (const filter of filters) {
+      this.filters.set(filter.name, new AdminFilter(filter));
     }
 
     if (options.actions) {
@@ -123,8 +144,76 @@ export class AdminResource {
       actions: [...this.actions.values()].map((a) => a.toJSON()),
       bulkActions: [...this.bulkActions.values()].map((ba) => ba.toJSON()),
       canSoftDelete: this.canSoftDelete,
+      exactCount: this.exactCount,
     };
 
     return this._cachedSchema;
+  }
+}
+
+/** Admin field configs for every column and relation of an ORM model. */
+export function deriveFieldsFromModel(metadata: ModelMetadata): AdminFieldConfig[] {
+  const fields: AdminFieldConfig[] = [];
+  for (const [name, fieldMeta] of metadata.fields) {
+    const type = mapOrmTypeToAdminType(fieldMeta.type, name);
+    const sensitive = isSensitiveFieldName(name);
+    const searchable = (type === 'text' || type === 'email') && !sensitive;
+    fields.push({
+      name,
+      type,
+      required: !fieldMeta.nullable && !fieldMeta.primaryKey && fieldMeta.defaultValue === undefined,
+      readonly: fieldMeta.primaryKey || name === 'createdAt' || name === 'updatedAt',
+      sensitive,
+      hidden: sensitive,
+      sortable: type !== 'json',
+      searchable,
+      filterable: type === 'enum' || type === 'boolean' || type === 'date',
+    });
+  }
+  for (const [name, rel] of metadata.relations) {
+    fields.push({
+      name,
+      type: 'relation',
+      relationTarget: typeof rel['targetResolver'] === 'string' ? rel['targetResolver'] : undefined,
+      relationType: rel.type,
+      readonly: true,
+      sortable: false,
+      searchable: false,
+      filterable: rel.type === 'belongsTo',
+    });
+  }
+  return fields;
+}
+
+function mapOrmTypeToAdminType(ormType: FieldType, name: string): AdminFieldType {
+  if (isSensitiveFieldName(name)) return 'password';
+  if (/email/i.test(name)) return 'email';
+  if (/url|website/i.test(name)) return 'url';
+  switch (ormType) {
+    case 'string':
+      return 'text';
+    case 'text':
+      return 'textarea';
+    case 'integer':
+    case 'bigint':
+    case 'float':
+    case 'decimal':
+      return 'number';
+    case 'boolean':
+      return 'boolean';
+    case 'dateTime':
+      return 'datetime';
+    case 'date':
+      return 'date';
+    case 'time':
+      return 'time';
+    case 'json':
+      return 'json';
+    case 'uuid':
+      return 'uuid';
+    case 'binary':
+      return 'file';
+    default:
+      return 'text';
   }
 }

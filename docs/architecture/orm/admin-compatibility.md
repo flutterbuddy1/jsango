@@ -27,14 +27,22 @@ Admin controllers and UI generators will query `ModelMetadata` for:
 1. **Model Discovery**:
 
    ```typescript
-   import { getAllModels, getMetadata } from '@jsango/orm';
+   import { getAllModels, defaultModelRegistry } from '@jsango/orm';
 
    const models = getAllModels(); // All registered models in the application
+   const userMeta = defaultModelRegistry.getMetadata('User'); // ModelMetadata | undefined
    ```
 
 2. **Form & Table Rendering**:
 
    ```typescript
+   import { defineModel, fields } from '@jsango/orm';
+
+   const User = defineModel('User', {
+     id: fields.id(),
+     email: fields.string({ unique: true }),
+   });
+
    const meta = User.metadata;
 
    for (const [name, field] of meta.fields) {
@@ -48,6 +56,8 @@ Admin controllers and UI generators will query `ModelMetadata` for:
 3. **Relationship Navigation**:
 
    ```typescript
+   const meta = Post.metadata;
+
    for (const [name, rel] of meta.relations) {
      rel.type; // 'hasMany', 'belongsTo', etc.
      rel.foreignKey; // Select dropdown foreign key
@@ -58,10 +68,18 @@ Admin controllers and UI generators will query `ModelMetadata` for:
 4. **Custom Admin Metadata Extension**:
    Models can provide custom admin options in their definition:
    ```typescript
+   import { defineModel, fields } from '@jsango/orm';
+
    const User = defineModel({
      name: 'User',
      table: 'users',
-     fields: { ... },
+     fields: {
+       id: fields.id(),
+       email: fields.string(),
+       name: fields.string(),
+       role: fields.string(),
+       active: fields.boolean(),
+     },
      metadata: {
        admin: {
          searchFields: ['email', 'name'],

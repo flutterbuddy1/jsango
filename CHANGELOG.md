@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.0] - 2026-10-07
+
+### Authentication kit: `createAuth()`
+- **New:** `createAuth()` is one object for password login, JWT access tokens and rotating refresh tokens, cookie sessions, API keys, social login (`google()`, `github()`, `oauthProvider()` with PKCE), external identity providers through JWKS (Auth0, Clerk, Cognito, Firebase, Keycloak), and TOTP two-factor login. All of them are guarded by `auth.required({ roles, permissions, methods })` and `auth.optional()`. Guide: `docs/auth/README.md`.
+- Secure defaults: scrypt with automatic rehash, brute-force lockout (`429`), no account enumeration, refresh-token reuse detection, instant `logout()` / `logoutAll()` revocation, HMAC-signed HttpOnly session cookies with CSRF `Origin` checks, hashed API keys, and one-time MFA codes.
+- `MemoryAuthStore` (default) and `DatabaseAuthStore` (PostgreSQL, MySQL, SQLite, MongoDB) for sessions, revocations and counters. A warning is logged when the memory store is used in production.
+- `JwksVerifier` for verifying provider tokens on their own.
+
+### Admin panel: customizable, secure and built for large tables
+- **Customizing:** `resources: [{ model, ...options }]` (and `new AdminResource({ modelName })`) now merges your options with the model's fields, so overriding one column no longer drops the rest. Computed columns (`computedGetter`) work in lists, details and exports. Boolean and choice fields get filters automatically.
+- **Dashboards:** `app.admin({ dashboard: [...] })` with `MetricWidget`, `ChartWidget` (line/bar with tooltip, legend and dark mode), `TableWidget` and `ActivityWidget`. Widgets load independently and in parallel, and support `cacheSeconds`, `refreshIntervalSeconds` and `permission`.
+- **Custom pages:** `new AdminPage({ id, label, widgets })` adds sidebar pages built from widgets.
+- **Large tables:** lists load only their columns and run `COUNT(*)` in parallel with the page. `exactCount: false` skips the count. CSV export streams every matching row with keyset pagination through a one-time link. Bulk delete runs in one query. Search is debounced.
+- **ORM:** `chunk()` and `cursor()` without `orderBy()` now use keyset pagination (`WHERE pk > last`) instead of OFFSET. `paginate()` runs its count and page queries in parallel.
+- **Sign-in:** `auth: createAuth(...)` signs in with your application's users. `healthChecks` and `auditStore` are new options. The database is health-checked automatically.
+- **Branding:** `logoUrl`, `logoText` and `faviconUrl` options. The header no longer breaks on phones: long titles are truncated, the subtitle hides, and "View site" moves into the menu.
+- **Real data everywhere:** the dashboard, audit trail, sessions and system page now show real data. They previously showed hard-coded demo values.
+
+### Security
+- **Removed a hard-coded `staff` / `staff123` admin login** that worked in every installation.
+- Admin login is refused in production when no admin password is configured. It is rate-limited (429 after 5 failures) and uses constant-time comparison.
+- Admin session tokens are 256-bit random values (previously `Math.random()`), stored hashed and expire after 8 hours.
+- Changing the admin password requires the current password, and disabling 2FA requires the password. 2FA setup no longer accepts a client-chosen secret, and the UI no longer sends the TOTP secret to a third-party QR service.
+- Sort and filter fields are allow-listed, `pageSize` is capped by `maxPageSize`, and the resource list hides resources the user can't view.
+
+### Fixed
+- Admin list filters never applied (query values were read as arrays).
+- The admin UI bundle in `dist` was always one build behind its sources.
+- AI workflows, memory, MCP, metrics and CRUD APIs that the docs referenced but that were missing or broken. Every documentation snippet is now type-checked in CI (`tests/docs-snippets.test.ts`).
+
+### Breaking
+- Admin API: anonymous requests get `401 ERR_ADMIN_UNAUTHORIZED` (was 403). `AdminListResult.total` / `totalPages` can be `null` (resources with `exactCount: false`). `/dashboard` returns widget definitions only; load data per widget from `/dashboard/widgets/:id`. Admin sessions are in memory, so signing in again is needed after a restart.
+- `JwtTokenVerifier` rejects tokens without `exp` (pass `allowNonExpiring: true` to opt out) and tokens without `sub` (they no longer become an `anonymous` identity). Sign tokens with `jwt.sign(payload, { expiresInSeconds })`.
+
+### Deprecated
+- `TotpService.generateSecret().qrCodeUrl` sends the secret to a third-party QR service. Render `uri` locally instead.
+
+---
+
 ## [1.3.0] - 2026-09-30
 
 ### MongoDB support and advanced queries for every database

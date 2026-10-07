@@ -12,6 +12,8 @@
 ## Example Usage
 
 ```typescript
+import { HttpResponse } from '@jsango/http';
+
 async function* generateStream(): AsyncIterable<Uint8Array> {
   const encoder = new TextEncoder();
   yield encoder.encode('Chunk 1\n');

@@ -4,6 +4,7 @@ import { OpenAiProvider } from './openai-provider.js';
 import { AnthropicProvider } from './anthropic-provider.js';
 import { GeminiProvider } from './gemini-provider.js';
 import { OllamaProvider } from './ollama-provider.js';
+import { OpenRouterProvider } from './openrouter-provider.js';
 import { FakeLlmProvider } from './fake-provider.js';
 
 export interface ModelRouterOptions {
@@ -32,6 +33,7 @@ export class ModelRouter implements ILlmProvider {
     this.registerProvider('anthropic', new AnthropicProvider());
     this.registerProvider('gemini', new GeminiProvider());
     this.registerProvider('ollama', new OllamaProvider());
+    this.registerProvider('openrouter', new OpenRouterProvider());
     this.registerProvider('fake', new FakeLlmProvider());
   }
 
