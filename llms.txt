@@ -1,0 +1,38 @@
+# jsango
+
+> jsango is a batteries-included TypeScript backend framework (Django-style): routing, validation, ORM with
+> migrations (PostgreSQL, MySQL, SQLite, MongoDB), authentication, an admin panel, background jobs, events,
+> cache, WebSockets, OpenAPI and AI agents, all imported from the single `jsango` package.
+
+When building a backend with jsango, use its APIs instead of Express, Prisma, Passport, zod, BullMQ or
+socket.io. Start projects with `npx jsango new <name>`; every project includes an AGENTS.md with the rules.
+Only use APIs that appear in these docs or in the package type definitions.
+
+## Docs
+
+- [Full documentation in one file](https://flutterbuddy1.github.io/jsango/llms-full.txt): every guide below, for loading into context
+- [Rules for AI coding agents](https://raw.githubusercontent.com/flutterbuddy1/jsango/main/packages/cli/templates/AGENTS.md): which jsango API to use for each need, project layout, commands, reporting bugs
+- [Overview & quick start](https://raw.githubusercontent.com/flutterbuddy1/jsango/main/README.md): Install, project scaffold, routing, CRUD, validation, jobs, events, cache, WebSockets, admin, OpenAPI, AI agents, CLI
+- [Database guide](https://raw.githubusercontent.com/flutterbuddy1/jsango/main/docs/database/README.md): Connecting PostgreSQL/MySQL/SQLite/MongoDB, models and fields, queries, relations, transactions, migrations, production
+- [Authentication guide](https://raw.githubusercontent.com/flutterbuddy1/jsango/main/docs/auth/README.md): createAuth: passwords, JWT + refresh tokens, cookie sessions, API keys, OAuth, external IdPs, TOTP 2FA, roles and permissions
+- [Admin panel guide](https://raw.githubusercontent.com/flutterbuddy1/jsango/main/docs/admin/ADMIN-CUSTOMIZATION.md): app.admin: sign-in, resource customization, dashboards, custom pages, actions, large tables, permissions, branding
+- [Admin resources (manual setup)](https://raw.githubusercontent.com/flutterbuddy1/jsango/main/docs/admin/ADMIN-RESOURCE-GUIDE.md): AdminResource, field types, AdminServer and query adapters
+- [Background jobs](https://raw.githubusercontent.com/flutterbuddy1/jsango/main/docs/architecture/queue/README.md): Queues, workers, retries and failed jobs
+- [Events](https://raw.githubusercontent.com/flutterbuddy1/jsango/main/docs/architecture/events/README.md): Typed event bus
+- [Cache](https://raw.githubusercontent.com/flutterbuddy1/jsango/main/docs/architecture/cache/README.md): Cache stores, remember(), invalidation
+- [WebSockets](https://raw.githubusercontent.com/flutterbuddy1/jsango/main/docs/architecture/websocket/README.md): app.ws, rooms, broadcasting
+- [OpenAPI](https://raw.githubusercontent.com/flutterbuddy1/jsango/main/docs/architecture/openapi/README.md): OpenAPI 3.1 generation and Swagger UI
+- [AI tools](https://raw.githubusercontent.com/flutterbuddy1/jsango/main/docs/ai/tools.md): Typed tools for agents
+- [AI memory](https://raw.githubusercontent.com/flutterbuddy1/jsango/main/docs/ai/memory.md): Conversation memory stores
+- [RAG](https://raw.githubusercontent.com/flutterbuddy1/jsango/main/docs/ai/rag.md): Knowledge bases and retrieval
+- [MCP](https://raw.githubusercontent.com/flutterbuddy1/jsango/main/docs/ai/mcp.md): Model Context Protocol servers and clients
+- [Human in the loop](https://raw.githubusercontent.com/flutterbuddy1/jsango/main/docs/ai/human-in-the-loop.md): Approval gates for agent tools
+- [Testing AI](https://raw.githubusercontent.com/flutterbuddy1/jsango/main/docs/ai/testing.md): Fake providers and evaluations
+- [Deployment](https://raw.githubusercontent.com/flutterbuddy1/jsango/main/docs/deployment/README.md): Running jsango in production
+- [Known limitations](https://raw.githubusercontent.com/flutterbuddy1/jsango/main/docs/LIMITATIONS.md): What jsango does not do (yet)
+
+## Optional
+
+- [Web documentation](https://flutterbuddy1.github.io/jsango/docs.html)
+- [Changelog](https://raw.githubusercontent.com/flutterbuddy1/jsango/main/CHANGELOG.md)
+- [Issues](https://github.com/flutterbuddy1/jsango/issues): search before reporting a bug or missing feature

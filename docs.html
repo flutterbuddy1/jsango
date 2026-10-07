@@ -81,6 +81,7 @@
         <ul class="sidebar-links">
           <li><a href="#intro" class="sidebar-link active">Introduction & Philosophy</a></li>
           <li><a href="#quickstart" class="sidebar-link">5-Minute Quickstart</a></li>
+          <li><a href="#building-with-ai" class="sidebar-link">Building with AI Assistants</a></li>
           <li><a href="#project-structure" class="sidebar-link">Project Structure</a></li>
           <li><a href="#configuration" class="sidebar-link">Configuration & Environment</a></li>
         </ul>
@@ -327,6 +328,33 @@ app.<span class="hl-fn">crud</span>(<span class="hl-str">'/api/crud/products'</s
           <pre><code>npm run dev</code></pre>
         </div>
 
+      </section>
+
+      <hr class="doc-divider">
+
+      <!-- SECTION: Building with AI -->
+      <section id="building-with-ai" class="doc-section">
+        <h2>Building with AI Assistants</h2>
+        <p>
+          jsango is ready for AI coding agents. Every project created with <code>jsango new</code> includes an
+          <code>AGENTS.md</code> (read by Claude Code, Cursor, GitHub Copilot, Codex and others) that tells the agent to build with
+          jsango's APIs instead of Express, Prisma or Passport, which API to use for each need, the project layout, the commands,
+          and to check its work with <code>tsc</code> and <code>migrate:check</code>. A <code>CLAUDE.md</code> that imports it is added too.
+        </p>
+        <div class="cli-table-wrapper" style="margin-bottom: 24px;">
+          <table class="cli-table">
+            <thead>
+              <tr><th>What</th><th>Where</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Add or refresh the rules in an existing project</td><td><code>npx jsango ai:init</code> (keeps your own AGENTS.md content; run again after upgrading)</td></tr>
+              <tr><td>Docs index for AI assistants</td><td><a href="llms.txt"><code>llms.txt</code></a></td></tr>
+              <tr><td>All guides in one file, to load into context</td><td><a href="llms-full.txt"><code>llms-full.txt</code></a></td></tr>
+              <tr><td>Found a bug or missing feature</td><td>The agent drafts an issue without secrets and asks you before you submit it on <a href="https://github.com/flutterbuddy1/jsango/issues">GitHub</a></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Tip: start your prompt with "Use jsango (https://flutterbuddy1.github.io/jsango/llms.txt) to build…" when the project doesn't exist yet.</p>
       </section>
 
       <hr class="doc-divider">
