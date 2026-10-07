@@ -70,58 +70,61 @@ document.addEventListener('DOMContentLoaded', () => {
       title: '1. Runtime Layer',
       pkg: '@jsango/runtime',
       desc: 'Abstracts platform differences between Node.js 20+ and modern JavaScript runtimes without coupling business logic to node APIs.',
-      snippet: `import { createRuntimeAdapter } from '@jsango/runtime';
+      snippet: `import { createRuntimeAdapter, detectRuntime } from '@jsango/runtime';
 
-// High-performance Node.js runtime adapter
-export const runtime = createRuntimeAdapter({
-  platform: 'node',
-  features: { http2: true, cluster: true }
-});`,
+// Picks the adapter for the current runtime (Node.js, Bun, ...)
+export const runtime = createRuntimeAdapter();
+console.log(detectRuntime(), runtime.getEnv('NODE_ENV'), runtime.cwd());`,
     },
     core: {
       title: '2. Core Lifecycle & DI',
       pkg: '@jsango/core & @jsango/container',
       desc: 'Application lifecycle management, structured error hierarchy, and ultra-fast dependency injection with transient, singleton, and scoped lifetimes.',
-      snippet: `import { Container, Injectable } from '@jsango/container';
+      snippet: `import { Container } from '@jsango/container';
 
-@Injectable()
-export class BillingService {
-  processInvoice(id: string) { /* ... */ }
-}`,
+class BillingService {
+  processInvoice(id: string) { return { id, paid: true }; }
+}
+
+const container = new Container();
+container.registerSingleton('billing', () => new BillingService());
+container.resolve<BillingService>('billing').processInvoice('inv_1');`,
     },
     http: {
       title: '3. HTTP Abstraction',
       pkg: '@jsango/http',
       desc: 'Zero-allocation streaming request/response abstractions, cookie managers, header sanitization, and multipart streaming parsers.',
-      snippet: `import { HttpRequest, HttpResponse } from '@jsango/http';
+      snippet: `import { HttpResponse, type RequestContext } from '@jsango/http';
 
-export function handle(req: HttpRequest, res: HttpResponse) {
-  res.setHeader('X-Powered-By', 'JSango');
-  return res.json({ status: 'ok' });
+export async function handle(ctx: RequestContext) {
+  const body = await ctx.request.json<{ name: string }>();
+  return HttpResponse.json({ hello: body.name }, { headers: { 'X-Powered-By': 'JSango' } });
 }`,
     },
     router: {
       title: '4. SegRadix Router',
       pkg: '@jsango/router',
       desc: 'Optimized Segment Radix Trie router delivering >7.7M lookups/sec with typed parameter constraints (:uuid, :int, :slug).',
-      snippet: `import { SegRadixRouter } from '@jsango/router';
+      snippet: `import { Router } from '@jsango/router';
 
-const router = new SegRadixRouter();
-router.get('/api/users/:id:uuid', (ctx) => {
-  return ctx.json({ id: ctx.params.id });
-});`,
+const router = new Router();
+router.get('/api/users/:id', (ctx) => ({ id: ctx.request.params['id'] }), {
+  constraints: { id: 'uuid' }, // also: number, slug, alpha, alphanumeric or a RegExp
+});
+const match = router.match('GET', '/api/users/0b0e3c6e-7a7d-4d6a-9a8e-1f2b3c4d5e6f');`,
     },
     middleware: {
       title: '5. Middleware Pipeline',
       pkg: '@jsango/middleware',
       desc: 'Onion-style asynchronous middleware pipeline supporting rate limiting, CORS, CSRF, security headers, and telemetry tracing.',
-      snippet: `import { Application } from '@jsango/middleware';
+      snippet: `import { createApp } from 'jsango';
 
-const app = new Application();
+const app = createApp();
 app.use(async (ctx, next) => {
   const start = performance.now();
-  await next();
-  ctx.response.setHeader('X-Runtime', \`\${performance.now() - start}ms\`);
+  const response = await next();
+  ctx.logger.info('request', { path: ctx.request.pathname, ms: performance.now() - start });
+  return response;
 });`,
     },
     orm: {
@@ -147,14 +150,17 @@ export const User = defineModel('User', {
       title: '7. Auto Admin Console',
       pkg: '@jsango/admin-server & @jsango/admin-ui',
       desc: 'React SPA and orchestrator generating full CRUD, filters, search, TOTP 2FA, session control, audit trails, and data export.',
-      snippet: `import { createAdminResource } from '@jsango/admin-core';
+      snippet: `import { AdminResource } from '@jsango/admin-core';
 
-export const UserResource = createAdminResource(User, {
-  label: 'User Accounts',
+export const UserResource = new AdminResource({
+  modelName: 'User',
+  label: 'User Account',
+  pluralLabel: 'User Accounts',
   searchFields: ['email', 'name'],
   listFields: ['id', 'email', 'createdAt'],
-  export: { csv: true, excel: true },
-});`,
+});
+
+// app.admin({ resources: [UserResource] });`,
     },
     ai: {
       title: '8. AI Platform & Agent Runtime',
