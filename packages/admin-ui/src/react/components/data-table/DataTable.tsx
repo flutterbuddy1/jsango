@@ -250,7 +250,9 @@ export const DataTable: React.FC<DataTableProps> = ({ resource }) => {
             body: JSON.stringify(row),
           });
           successCount++;
-        } catch {}
+        } catch {
+          // ignore individual failed row import and continue
+        }
       }
       showToast(`Successfully imported ${successCount} of ${importRows.length} ${resource.pluralLabel}`);
       setImportModalOpen(false);

@@ -19,7 +19,8 @@ export interface JsangoProjectConfig {
    * Database used by `jsango migrate`, `db:status`, etc. Either a DatabaseConfig object or an
    * existing DatabaseManager instance. When omitted, DATABASE_URL / DATABASE_* env vars are used.
    */
-  readonly database?: DatabaseConfig | DatabaseManager | (() => DatabaseConfig | DatabaseManager) | undefined;
+  readonly database?:
+    DatabaseConfig | DatabaseManager | (() => DatabaseConfig | DatabaseManager) | undefined;
   /**
    * Files or directories containing `defineModel()` models. Directories are scanned recursively.
    * Default: `./src/models` when it exists.

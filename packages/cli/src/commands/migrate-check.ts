@@ -70,11 +70,16 @@ export class MigrateCheckCommand extends BaseCommand {
 
       let pending: string[] = [];
       if (db) {
-        const runner = new MigrationRunner({ databaseManager: db, registry: context.getMigrationRegistry() });
+        const runner = new MigrationRunner({
+          databaseManager: db,
+          registry: context.getMigrationRegistry(),
+        });
         const status = await runner.status(connection);
         pending = status.pending.map((m) => m.id);
         if (pending.length > 0) {
-          problems.push(`${pending.length} migration(s) are not applied: ${pending.join(', ')}. Run "jsango migrate".`);
+          problems.push(
+            `${pending.length} migration(s) are not applied: ${pending.join(', ')}. Run "jsango migrate".`
+          );
         }
       }
 
@@ -95,7 +100,9 @@ export class MigrateCheckCommand extends BaseCommand {
       }
       return ExitCode.MIGRATION_ERROR;
     } catch (err) {
-      context.output.error(`Migration check failed: ${err instanceof Error ? err.message : String(err)}`);
+      context.output.error(
+        `Migration check failed: ${err instanceof Error ? err.message : String(err)}`
+      );
       return ExitCode.MIGRATION_ERROR;
     }
   }

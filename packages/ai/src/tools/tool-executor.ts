@@ -36,14 +36,19 @@ export class ToolExecutor {
       // Anything else cannot prove its permissions and is denied.
       let allowed: boolean;
       if (typeof user.hasPermission === 'function') {
-        allowed = (await Promise.all(tool.permissions.map((p) => user.hasPermission(p)))).every(Boolean);
+        allowed = (await Promise.all(tool.permissions.map((p) => user.hasPermission(p)))).every(
+          Boolean
+        );
       } else if (Array.isArray(user.permissions)) {
         allowed = tool.permissions.every((p) => (user.permissions as unknown[]).includes(p));
       } else {
         allowed = false;
       }
       if (!allowed) {
-        throw new ToolError(tool.name, `Forbidden: User lacks required permissions for tool '${tool.name}'.`);
+        throw new ToolError(
+          tool.name,
+          `Forbidden: User lacks required permissions for tool '${tool.name}'.`
+        );
       }
     }
 
@@ -65,10 +70,15 @@ export class ToolExecutor {
       const execPromise = Promise.resolve(tool.execute(args, context));
       let timer: ReturnType<typeof setTimeout> | undefined;
       const timeoutPromise = new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error(`Execution timed out after ${timeoutMs}ms`)), timeoutMs);
+        timer = setTimeout(
+          () => reject(new Error(`Execution timed out after ${timeoutMs}ms`)),
+          timeoutMs
+        );
       });
 
-      const output = await Promise.race([execPromise, timeoutPromise]).finally(() => clearTimeout(timer));
+      const output = await Promise.race([execPromise, timeoutPromise]).finally(() =>
+        clearTimeout(timer)
+      );
 
       return {
         toolName: tool.name,

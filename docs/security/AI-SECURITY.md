@@ -21,11 +21,11 @@
 
 ## 2. Threat Model Matrix
 
-| Threat Vector | Mitigation Strategy in JSango AI |
-|---|---|
-| **Prompt Injection** | Strict system instruction pinning, input filter guardrails, structured JSON Schema validation. |
-| **Tool Injection / Abuse** | Tool arguments validated with `@jsango/validation`, permission checks (`permissions: [...]`), execution timeouts. |
-| **Unintended Side-Effects** | Human-in-the-loop approval workflows (`requiresApproval: true`), idempotency keys. |
-| **Cross-Tenant Data Leak** | Scoped memory isolation with composite tenant/user keys. |
-| **Runaway Agent / Cost Spike** | Strict guardrails on `maxSteps` (default: 10), `maxTokens`, `maxCostUsd`, and `maxExecutionTimeMs`. |
-| **Secret Exfiltration** | Sensitive prompt redaction in observability spans and audit logs. |
+| Threat Vector                  | Mitigation Strategy in JSango AI                                                                                  |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| **Prompt Injection**           | Strict system instruction pinning, input filter guardrails, structured JSON Schema validation.                    |
+| **Tool Injection / Abuse**     | Tool arguments validated with `@jsango/validation`, permission checks (`permissions: [...]`), execution timeouts. |
+| **Unintended Side-Effects**    | Human-in-the-loop approval workflows (`requiresApproval: true`), idempotency keys.                                |
+| **Cross-Tenant Data Leak**     | Scoped memory isolation with composite tenant/user keys.                                                          |
+| **Runaway Agent / Cost Spike** | Strict guardrails on `maxSteps` (default: 10), `maxTokens`, `maxCostUsd`, and `maxExecutionTimeMs`.               |
+| **Secret Exfiltration**        | Sensitive prompt redaction in observability spans and audit logs.                                                 |

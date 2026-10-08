@@ -30,7 +30,10 @@ export class DatabaseManager {
     readonly connections: Record<string, ResolvedConnectionConfig>;
   };
   private readonly drivers = new Map<string, IDatabaseDriver>();
-  private readonly driverFactories = new Map<string, (config: ConnectionConfig) => IDatabaseDriver>();
+  private readonly driverFactories = new Map<
+    string,
+    (config: ConnectionConfig) => IDatabaseDriver
+  >();
   private readonly connectionDrivers = new Map<string, IDatabaseDriver>();
   private readonly pools = new Map<string, ConnectionPool>();
   private readonly dialects = new Map<string, SqlDialect>();
@@ -80,7 +83,10 @@ export class DatabaseManager {
     return this;
   }
 
-  private registerDriverFactory(name: string, factory: (config: ConnectionConfig) => IDatabaseDriver): void {
+  private registerDriverFactory(
+    name: string,
+    factory: (config: ConnectionConfig) => IDatabaseDriver
+  ): void {
     this.driverFactories.set(name, factory);
   }
 
@@ -237,7 +243,10 @@ export class DatabaseManager {
    */
   public async mongo<TDb = unknown>(name?: string): Promise<TDb> {
     const connName = this.resolveConnectionName(name);
-    const driver = this.getConnectionDriver(connName, this.config.connections[connName]!) as IDatabaseDriver & {
+    const driver = this.getConnectionDriver(
+      connName,
+      this.config.connections[connName]!
+    ) as IDatabaseDriver & {
       getDb?: () => Promise<unknown>;
     };
     if (typeof driver.getDb !== 'function') {

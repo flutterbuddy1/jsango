@@ -16,13 +16,14 @@ export class GeminiProvider extends BaseLlmProvider {
 
   constructor(options: GeminiProviderOptions = {}) {
     super();
-    this.apiKey = options.apiKey ?? (typeof process !== 'undefined' ? process.env?.GEMINI_API_KEY ?? '' : '');
+    this.apiKey =
+      options.apiKey ?? (typeof process !== 'undefined' ? (process.env?.GEMINI_API_KEY ?? '') : '');
     this.baseUrl = options.baseUrl ?? 'https://generativelanguage.googleapis.com/v1beta';
     this.defaultModel = options.defaultModel ?? 'gemini-1.5-flash';
   }
 
   public async generate(options: LlmCallOptions): Promise<LlmResponse> {
-    const model = (options.model?.replace(/^gemini:/, '') ?? this.defaultModel);
+    const model = options.model?.replace(/^gemini:/, '') ?? this.defaultModel;
     const payload = this.buildPayload(options);
 
     try {
@@ -69,7 +70,7 @@ export class GeminiProvider extends BaseLlmProvider {
           promptTokens,
           completionTokens,
           totalTokens,
-          estimatedCostUsd: (promptTokens * 0.00000035) + (completionTokens * 0.00000105),
+          estimatedCostUsd: promptTokens * 0.00000035 + completionTokens * 0.00000105,
         },
         raw: data,
       };
@@ -80,7 +81,7 @@ export class GeminiProvider extends BaseLlmProvider {
   }
 
   public async stream(options: LlmCallOptions): Promise<LlmStream> {
-    const model = (options.model?.replace(/^gemini:/, '') ?? this.defaultModel);
+    const model = options.model?.replace(/^gemini:/, '') ?? this.defaultModel;
     const payload = this.buildPayload(options);
     const apiKey = this.apiKey;
     const baseUrl = this.baseUrl;
@@ -96,9 +97,11 @@ export class GeminiProvider extends BaseLlmProvider {
 
       const res = await fetch(url, fetchInit);
 
-
       if (!res.ok) {
-        throw new ProviderError('gemini', `Stream request failed (${res.status}): ${await res.text()}`);
+        throw new ProviderError(
+          'gemini',
+          `Stream request failed (${res.status}): ${await res.text()}`
+        );
       }
 
       if (!res.body) return;
@@ -158,7 +161,10 @@ export class GeminiProvider extends BaseLlmProvider {
     }
 
     const payload: Record<string, unknown> = {
-      contents: contents.length > 0 ? contents : [{ role: 'user', parts: [{ text: options.prompt ?? '' }] }],
+      contents:
+        contents.length > 0
+          ? contents
+          : [{ role: 'user', parts: [{ text: options.prompt ?? '' }] }],
     };
 
     if (options.system) {

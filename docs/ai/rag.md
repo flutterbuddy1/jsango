@@ -11,7 +11,7 @@ import { knowledge, InMemoryVectorStore } from 'jsango';
 
 export const companyDocs = knowledge('company-docs', {
   vectorStore: new InMemoryVectorStore(), // default; plug in your own IVectorStore
-  chunkSize: 500,                         // words per chunk
+  chunkSize: 500, // words per chunk
   chunkOverlap: 50,
 });
 
@@ -23,7 +23,11 @@ await companyDocs.ingest(
 
 // ...or documents you have already split
 await companyDocs.ingest([
-  { id: 'faq_1', content: 'Refunds are processed within 5 business days.', metadata: { section: 'faq' } },
+  {
+    id: 'faq_1',
+    content: 'Refunds are processed within 5 business days.',
+    metadata: { section: 'faq' },
+  },
 ]);
 ```
 

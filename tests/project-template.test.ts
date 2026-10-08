@@ -64,9 +64,14 @@ describe('project template', () => {
     const generated = await cli(PROJECT, 'make:admin', 'Product');
     expect(generated.code).toBe(0);
     expect(generated.out).toContain('app.admin({ resources: [ProductResource] })');
-    const files = ['src/index.ts', 'src/database.ts', 'src/models/user.ts', 'jsango.config.ts', 'src/admin/product-resource.ts', 'src/models/product.ts'].map((f) =>
-      path.join(PROJECT, f)
-    );
+    const files = [
+      'src/index.ts',
+      'src/database.ts',
+      'src/models/user.ts',
+      'jsango.config.ts',
+      'src/admin/product-resource.ts',
+      'src/models/product.ts',
+    ].map((f) => path.join(PROJECT, f));
     const program = ts.createProgram(files, {
       target: ts.ScriptTarget.ES2022,
       module: ts.ModuleKind.NodeNext,
@@ -80,7 +85,9 @@ describe('project template', () => {
     const diagnostics = ts
       .getPreEmitDiagnostics(program)
       // dotenv is a dependency of the generated app, not of this monorepo
-      .filter((d) => !ts.flattenDiagnosticMessageText(d.messageText, '\n').includes("'dotenv/config'"));
+      .filter(
+        (d) => !ts.flattenDiagnosticMessageText(d.messageText, '\n').includes("'dotenv/config'")
+      );
     const messages = diagnostics.map(
       (d) =>
         `${d.file ? path.relative(PROJECT, d.file.fileName) : ''}: ${ts.flattenDiagnosticMessageText(d.messageText, '\n')}`

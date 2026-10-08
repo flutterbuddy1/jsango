@@ -8,14 +8,14 @@ In AI applications, model inference latency (network I/O to OpenAI, Anthropic, G
 
 ## 2. Benchmark Summary (Node.js v22 on Apple Silicon)
 
-| Operation | Ops / Sec | Latency (p50) | Latency (p99) | Allocation |
-|---|---|---|---|---|
-| **Tool Dispatch & Validation** | 2,450,000 ops/sec | 0.0004 ms | 0.0012 ms | Zero hot-path allocs |
-| **Cosine Similarity (1536-dim)** | 620,000 ops/sec | 0.0016 ms | 0.0038 ms | TypedArray vector |
-| **Agent Step Cycle (In-Memory)** | 185,000 ops/sec | 0.0054 ms | 0.0120 ms | Minimal step state |
-| **Workflow Step Propagation** | 410,000 ops/sec | 0.0024 ms | 0.0065 ms | Immutable copy |
-| **Memory Lookup & Cache** | 1,800,000 ops/sec | 0.0005 ms | 0.0015 ms | O(1) Map fetch |
-| **SSE Event Stream Encoding** | 920,000 ops/sec | 0.0010 ms | 0.0025 ms | Streaming buffer |
+| Operation                        | Ops / Sec         | Latency (p50) | Latency (p99) | Allocation           |
+| -------------------------------- | ----------------- | ------------- | ------------- | -------------------- |
+| **Tool Dispatch & Validation**   | 2,450,000 ops/sec | 0.0004 ms     | 0.0012 ms     | Zero hot-path allocs |
+| **Cosine Similarity (1536-dim)** | 620,000 ops/sec   | 0.0016 ms     | 0.0038 ms     | TypedArray vector    |
+| **Agent Step Cycle (In-Memory)** | 185,000 ops/sec   | 0.0054 ms     | 0.0120 ms     | Minimal step state   |
+| **Workflow Step Propagation**    | 410,000 ops/sec   | 0.0024 ms     | 0.0065 ms     | Immutable copy       |
+| **Memory Lookup & Cache**        | 1,800,000 ops/sec | 0.0005 ms     | 0.0015 ms     | O(1) Map fetch       |
+| **SSE Event Stream Encoding**    | 920,000 ops/sec   | 0.0010 ms     | 0.0025 ms     | Streaming buffer     |
 
 ---
 

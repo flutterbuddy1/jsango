@@ -9,14 +9,15 @@ export interface ValidationMiddlewareOptions {
 }
 
 export type ValidationTarget =
-  | ValidationMiddlewareOptions
-  | IValidator<any>
-  | Record<string, BaseSchema<any>>;
+  ValidationMiddlewareOptions | IValidator<any> | Record<string, BaseSchema<any>>;
 
 function normalizeValidator(
   validatorOrShape: IValidator<any> | Record<string, BaseSchema<any>>
 ): IValidator<any> {
-  if (validatorOrShape instanceof BaseSchema || (typeof validatorOrShape === 'object' && 'validate' in validatorOrShape)) {
+  if (
+    validatorOrShape instanceof BaseSchema ||
+    (typeof validatorOrShape === 'object' && 'validate' in validatorOrShape)
+  ) {
     return validatorOrShape as IValidator<any>;
   }
   return schema(validatorOrShape as Record<string, BaseSchema<any>>);
@@ -43,7 +44,9 @@ export function validate(options: ValidationTarget) {
     if (opts.params) paramsValidator = normalizeValidator(opts.params);
   } else {
     // Shorthand for body validation: validate(schema({ name: string() })) or validate({ name: string() })
-    bodyValidator = normalizeValidator(options as IValidator<any> | Record<string, BaseSchema<any>>);
+    bodyValidator = normalizeValidator(
+      options as IValidator<any> | Record<string, BaseSchema<any>>
+    );
   }
 
   return async (

@@ -91,7 +91,9 @@ export class DatabaseConnection implements IDatabaseConnection {
   /**
    * Executes a structured document command (MongoDB). Throws on SQL connections.
    */
-  public async execute<T = Record<string, unknown>>(command: MongoCommand): Promise<DatabaseResult<T>> {
+  public async execute<T = Record<string, unknown>>(
+    command: MongoCommand
+  ): Promise<DatabaseResult<T>> {
     this.assertNotReleased();
     return runDocumentCommand<T>(this.rawConnection, command, this.driverName, this.telemetry);
   }

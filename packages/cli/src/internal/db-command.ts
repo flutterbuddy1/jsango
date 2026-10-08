@@ -6,7 +6,9 @@ import { missingDatabaseHelp } from './project-loader.js';
  * Loads the project and returns its DatabaseManager, printing setup instructions when no
  * database is configured.
  */
-export async function requireDatabase(context: CommandContext): Promise<DatabaseManager | undefined> {
+export async function requireDatabase(
+  context: CommandContext
+): Promise<DatabaseManager | undefined> {
   await context.loadProject();
   const db = await context.getDatabaseManager();
   if (!db) {

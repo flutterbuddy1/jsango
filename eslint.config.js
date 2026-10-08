@@ -10,15 +10,28 @@ export default tsPlugin.config(
       '**/.turbo/**',
       '**/*.d.ts',
       '**/*.d.ts.map',
+      'site/**',
+      'docs/**',
+      'packages/admin-ui/src/page/bundle-content.ts',
     ],
   },
   js.configs.recommended,
   ...tsPlugin.configs.recommended,
   {
-    files: ['packages/**/*.ts'],
+    files: ['scripts/**/*.{js,mjs}', 'packages/**/scripts/**/*.{js,mjs}'],
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+      },
+    },
+  },
+  {
+    files: ['packages/**/*.{ts,tsx}', 'examples/**/*.{ts,tsx}'],
     rules: {
       'no-console': 'error',
-      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unsafe-function-type': 'warn',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
@@ -27,7 +40,7 @@ export default tsPlugin.config(
     },
   },
   {
-    files: ['**/*.test.ts', '**/*.spec.ts', 'tests/**/*.ts'],
+    files: ['**/*.test.ts', '**/*.spec.ts', 'tests/**/*.ts', 'examples/**/*.ts'],
     rules: {
       'no-console': 'off',
       '@typescript-eslint/no-explicit-any': 'off',

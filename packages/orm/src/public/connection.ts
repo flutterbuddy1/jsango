@@ -1,5 +1,9 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { DatabaseManager, type IDatabaseTransaction, type TransactionOptions } from '@jsango/database';
+import {
+  DatabaseManager,
+  type IDatabaseTransaction,
+  type TransactionOptions,
+} from '@jsango/database';
 import type { QueryContext } from './types.js';
 
 /**

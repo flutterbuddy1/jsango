@@ -20,7 +20,8 @@ export class OpenAiProvider extends BaseLlmProvider {
 
   constructor(options: OpenAiProviderOptions = {}) {
     super();
-    this.apiKey = options.apiKey ?? (typeof process !== 'undefined' ? process.env?.OPENAI_API_KEY ?? '' : '');
+    this.apiKey =
+      options.apiKey ?? (typeof process !== 'undefined' ? (process.env?.OPENAI_API_KEY ?? '') : '');
     this.baseUrl = options.baseUrl ?? 'https://api.openai.com/v1';
     this.organization = options.organization;
     this.defaultModel = options.defaultModel ?? 'gpt-4o';
@@ -51,7 +52,10 @@ export class OpenAiProvider extends BaseLlmProvider {
 
       if (!res.ok) {
         const errorText = await res.text();
-        throw new ProviderError(this.name, `Request failed with status ${res.status}: ${errorText}`);
+        throw new ProviderError(
+          this.name,
+          `Request failed with status ${res.status}: ${errorText}`
+        );
       }
 
       const data = (await res.json()) as any;
@@ -59,7 +63,11 @@ export class OpenAiProvider extends BaseLlmProvider {
       const message = choice?.message;
 
       let toolCalls: LlmToolCall[] | undefined;
-      if (message?.tool_calls && Array.isArray(message.tool_calls) && message.tool_calls.length > 0) {
+      if (
+        message?.tool_calls &&
+        Array.isArray(message.tool_calls) &&
+        message.tool_calls.length > 0
+      ) {
         toolCalls = message.tool_calls.map((tc: any, index: number) => {
           let args = {};
           try {
@@ -77,7 +85,11 @@ export class OpenAiProvider extends BaseLlmProvider {
             arguments: args,
           };
         });
-      } else if (options.tools && options.tools.length > 0 && typeof message?.content === 'string') {
+      } else if (
+        options.tools &&
+        options.tools.length > 0 &&
+        typeof message?.content === 'string'
+      ) {
         const availableToolNames = options.tools.map((t: any) => t.name).filter(Boolean);
         const extracted = this.extractTextToolCalls(message.content, availableToolNames);
         if (extracted.length > 0) {
@@ -97,7 +109,7 @@ export class OpenAiProvider extends BaseLlmProvider {
           promptTokens,
           completionTokens,
           totalTokens,
-          estimatedCostUsd: (promptTokens * 0.000005) + (completionTokens * 0.000015),
+          estimatedCostUsd: promptTokens * 0.000005 + completionTokens * 0.000015,
         },
         raw: data,
       };
@@ -136,7 +148,10 @@ export class OpenAiProvider extends BaseLlmProvider {
 
       if (!res.ok) {
         const errorText = await res.text();
-        throw new ProviderError(providerName, `Stream request failed (${res.status}): ${errorText}`);
+        throw new ProviderError(
+          providerName,
+          `Stream request failed (${res.status}): ${errorText}`
+        );
       }
 
       if (!res.body) return;
@@ -178,7 +193,10 @@ export class OpenAiProvider extends BaseLlmProvider {
     return this.createStream(generator);
   }
 
-  public override async embed(text: string | string[], options?: { model?: string }): Promise<number[][]> {
+  public override async embed(
+    text: string | string[],
+    options?: { model?: string }
+  ): Promise<number[][]> {
     const input = Array.isArray(text) ? text : [text];
     const model = options?.model ?? 'text-embedding-3-small';
 
@@ -224,7 +242,9 @@ export class OpenAiProvider extends BaseLlmProvider {
             arguments: parsed.arguments ?? parsed.parameters ?? parsed.input ?? {},
           });
         }
-      } catch {}
+      } catch {
+        // ignore malformed tool json
+      }
     }
 
     // 2. Check ```json ... ``` blocks
@@ -243,7 +263,9 @@ export class OpenAiProvider extends BaseLlmProvider {
               arguments: parsed.arguments ?? parsed.parameters ?? parsed.input ?? {},
             });
           }
-        } catch {}
+        } catch {
+          // ignore malformed tool json
+        }
       }
     }
 
@@ -260,7 +282,9 @@ export class OpenAiProvider extends BaseLlmProvider {
               name,
               arguments: parsed,
             });
-          } catch {}
+          } catch {
+            // ignore malformed tool json
+          }
         }
       }
     }
@@ -268,7 +292,10 @@ export class OpenAiProvider extends BaseLlmProvider {
     // 4. Check raw JSON object with "name": "toolName" or "tool": "toolName"
     if (results.length === 0) {
       for (const name of toolNames) {
-        const jsonPattern = new RegExp(`\\{[\\s\\S]*?"(?:name|tool|function)"\\s*:\\s*"${name}"[\\s\\S]*?\\}`, 'i');
+        const jsonPattern = new RegExp(
+          `\\{[\\s\\S]*?"(?:name|tool|function)"\\s*:\\s*"${name}"[\\s\\S]*?\\}`,
+          'i'
+        );
         const jsonMatch = jsonPattern.exec(text);
         if (jsonMatch) {
           try {
@@ -278,7 +305,9 @@ export class OpenAiProvider extends BaseLlmProvider {
               name,
               arguments: parsed.arguments ?? parsed.parameters ?? parsed.input ?? {},
             });
-          } catch {}
+          } catch {
+            // ignore malformed tool json
+          }
         }
       }
     }
@@ -289,7 +318,7 @@ export class OpenAiProvider extends BaseLlmProvider {
   private buildPayload(options: LlmCallOptions, isStream: boolean): Record<string, unknown> {
     const messages = this.normalizeMessages(options.messages, options.prompt, options.system);
     const prefixRegex = new RegExp(`^${this.name}:`, 'i');
-    const model = (options.model?.replace(prefixRegex, '') ?? this.defaultModel);
+    const model = options.model?.replace(prefixRegex, '') ?? this.defaultModel;
 
     const payload: Record<string, unknown> = {
       model,
@@ -306,7 +335,10 @@ export class OpenAiProvider extends BaseLlmProvider {
             type: 'function',
             function: {
               name: tc.name,
-              arguments: typeof tc.arguments === 'string' ? tc.arguments : JSON.stringify(tc.arguments ?? {}),
+              arguments:
+                typeof tc.arguments === 'string'
+                  ? tc.arguments
+                  : JSON.stringify(tc.arguments ?? {}),
             },
           }));
         }

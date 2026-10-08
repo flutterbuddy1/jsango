@@ -1,11 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import {
-  DatabaseManager,
-  databaseConfigFromEnv,
-  type DatabaseConfig,
-} from '@jsango/database';
+import { DatabaseManager, databaseConfigFromEnv, type DatabaseConfig } from '@jsango/database';
 import { setDatabaseManager } from '@jsango/orm';
 import {
   loadMigrationsFromDirectory,
@@ -86,7 +82,10 @@ export function loadEnvFile(file: string, env: NodeJS.ProcessEnv = process.env):
     if (!match) continue;
     const key = match[1]!;
     let value = match[2]!;
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
       const quote = value[0];
       value = value.slice(1, -1);
       if (quote === '"') value = value.replace(/\\n/g, '\n');
@@ -128,7 +127,10 @@ async function importFile(file: string, what: string): Promise<Record<string, un
     return (await import(pathToFileURL(file).href)) as Record<string, unknown>;
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
-    throw new ProjectLoadError(`Failed to load ${what} ${path.relative(process.cwd(), file) || file}: ${reason}`, err);
+    throw new ProjectLoadError(
+      `Failed to load ${what} ${path.relative(process.cwd(), file) || file}: ${reason}`,
+      err
+    );
   }
 }
 
@@ -185,7 +187,9 @@ export async function loadProject(rootDir: string): Promise<LoadedProject> {
   try {
     if (rawDb) {
       ownsDatabaseManager = !isDatabaseManager(rawDb);
-      databaseManager = isDatabaseManager(rawDb) ? rawDb : new DatabaseManager(rawDb as DatabaseConfig);
+      databaseManager = isDatabaseManager(rawDb)
+        ? rawDb
+        : new DatabaseManager(rawDb as DatabaseConfig);
       databaseSource = 'config';
     } else if (envDefinesDatabase(process.env)) {
       databaseManager = new DatabaseManager(databaseConfigFromEnv(process.env));
@@ -213,7 +217,9 @@ export async function loadProject(rootDir: string): Promise<LoadedProject> {
   const modelFiles: string[] = [];
   for (const target of modelTargets) {
     if (config.models !== undefined && !fs.existsSync(target)) {
-      throw new ProjectLoadError(`Models path "${path.relative(rootDir, target)}" from the config does not exist.`);
+      throw new ProjectLoadError(
+        `Models path "${path.relative(rootDir, target)}" from the config does not exist.`
+      );
     }
     for (const file of listSourceFiles(target)) {
       await importFile(file, 'model file');
@@ -225,12 +231,17 @@ export async function loadProject(rootDir: string): Promise<LoadedProject> {
   const migrationsSetting =
     typeof config.migrations === 'object' ? config.migrations.directory : config.migrations;
   const migrationsDir = path.resolve(rootDir, migrationsSetting ?? 'migrations');
-  if (fs.existsSync(migrationsDir) && fs.readdirSync(migrationsDir).some((f) => /\.[cm]?ts$/.test(f))) {
+  if (
+    fs.existsSync(migrationsDir) &&
+    fs.readdirSync(migrationsDir).some((f) => /\.[cm]?ts$/.test(f))
+  ) {
     await enableTypeScript();
   }
   let migrations: LoadedMigrations;
   try {
-    migrations = await loadMigrationsFromDirectory(migrationsDir, { registry: new MigrationRegistry() });
+    migrations = await loadMigrationsFromDirectory(migrationsDir, {
+      registry: new MigrationRegistry(),
+    });
   } catch (err) {
     throw new ProjectLoadError(err instanceof Error ? err.message : String(err), err);
   }

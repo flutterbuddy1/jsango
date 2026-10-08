@@ -32,7 +32,11 @@ export class McpServer {
     return this;
   }
 
-  public listTools(): Array<{ name: string; description: string; inputSchema: Record<string, unknown> }> {
+  public listTools(): Array<{
+    name: string;
+    description: string;
+    inputSchema: Record<string, unknown>;
+  }> {
     return Array.from(this.tools.values()).map((t) => ({
       name: t.name,
       description: t.description,
@@ -40,7 +44,10 @@ export class McpServer {
     }));
   }
 
-  public async callTool(name: string, args: Record<string, unknown>): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
+  public async callTool(
+    name: string,
+    args: Record<string, unknown>
+  ): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
     const t = this.tools.get(name);
     if (!t) {
       throw new Error(`MCP Tool '${name}' not found.`);
@@ -75,7 +82,11 @@ export class McpServer {
       return null; // notification, e.g. notifications/initialized
     }
     const ok = (result: unknown) => ({ jsonrpc: '2.0' as const, id, result });
-    const fail = (code: number, message: string) => ({ jsonrpc: '2.0' as const, id, error: { code, message } });
+    const fail = (code: number, message: string) => ({
+      jsonrpc: '2.0' as const,
+      id,
+      error: { code, message },
+    });
 
     switch (method) {
       case 'initialize':
@@ -113,7 +124,9 @@ export class McpServer {
    * Cursor and VS Code use to start a server: `{ "command": "npx", "args": ["my-server"] }`.
    * Resolves when the input ends. Nothing else may write to stdout while it runs; log to stderr.
    */
-  public async serveStdio(stdio: McpStdio = { input: process.stdin, output: process.stdout }): Promise<void> {
+  public async serveStdio(
+    stdio: McpStdio = { input: process.stdin, output: process.stdout }
+  ): Promise<void> {
     const decoder = new TextDecoder();
     const pending = new Set<Promise<void>>();
     let buffer = '';
@@ -123,14 +136,23 @@ export class McpServer {
       try {
         message = JSON.parse(line);
       } catch {
-        stdio.output.write(JSON.stringify({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } }) + '\n');
+        stdio.output.write(
+          JSON.stringify({
+            jsonrpc: '2.0',
+            id: null,
+            error: { code: -32700, message: 'Parse error' },
+          }) + '\n'
+        );
         return;
       }
       type Request = Parameters<McpServer['handleJsonRpc']>[0];
       const batch = Array.isArray(message);
       const requests = (batch ? message : [message]) as Request[];
-      const replies = (await Promise.all(requests.map((m) => this.handleJsonRpc(m)))).filter(Boolean);
-      if (replies.length > 0) stdio.output.write(JSON.stringify(batch ? replies : replies[0]) + '\n');
+      const replies = (await Promise.all(requests.map((m) => this.handleJsonRpc(m)))).filter(
+        Boolean
+      );
+      if (replies.length > 0)
+        stdio.output.write(JSON.stringify(batch ? replies : replies[0]) + '\n');
     };
 
     for await (const chunk of stdio.input) {
@@ -186,7 +208,11 @@ export class McpConnection {
     this.fetchFn = options.fetch ?? fetch;
   }
 
-  private async rpc(method: string, params?: unknown, notification = false): Promise<Record<string, unknown> | undefined> {
+  private async rpc(
+    method: string,
+    params?: unknown,
+    notification = false
+  ): Promise<Record<string, unknown> | undefined> {
     const id = notification ? undefined : this.nextId++;
     const res = await this.fetchFn(this.url, {
       method: 'POST',
@@ -196,11 +222,19 @@ export class McpConnection {
         ...(this.sessionId ? { 'Mcp-Session-Id': this.sessionId } : {}),
         ...this.headers,
       },
-      body: JSON.stringify({ jsonrpc: '2.0', ...(id !== undefined ? { id } : {}), method, ...(params !== undefined ? { params } : {}) }),
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        ...(id !== undefined ? { id } : {}),
+        method,
+        ...(params !== undefined ? { params } : {}),
+      }),
     });
     this.sessionId = res.headers.get('mcp-session-id') ?? this.sessionId;
     if (!res.ok) {
-      throw new AiError({ code: 'ERR_AI_MCP', message: `MCP ${method} failed: HTTP ${res.status} ${await res.text()}` });
+      throw new AiError({
+        code: 'ERR_AI_MCP',
+        message: `MCP ${method} failed: HTTP ${res.status} ${await res.text()}`,
+      });
     }
     if (notification || res.status === 202 || res.status === 204) return undefined;
 
@@ -216,9 +250,16 @@ export class McpConnection {
     } else {
       message = JSON.parse(body) as RpcMessage;
     }
-    if (!message) throw new AiError({ code: 'ERR_AI_MCP', message: `MCP ${method}: no response for request ${id}.` });
+    if (!message)
+      throw new AiError({
+        code: 'ERR_AI_MCP',
+        message: `MCP ${method}: no response for request ${id}.`,
+      });
     if (message.error) {
-      throw new AiError({ code: 'ERR_AI_MCP', message: `MCP ${method} failed: ${message.error.message ?? JSON.stringify(message.error)}` });
+      throw new AiError({
+        code: 'ERR_AI_MCP',
+        message: `MCP ${method} failed: ${message.error.message ?? JSON.stringify(message.error)}`,
+      });
     }
     return message.result;
   }
@@ -273,7 +314,14 @@ export class McpClient {
   }
 
   /** Wraps local functions as tools (for in-process MCP-style tool lists). */
-  public static fromTools(toolsList: Array<{ name: string; description: string; inputSchema: any; handler: (args: any) => Promise<any> }>): Record<string, ToolDefinition> {
+  public static fromTools(
+    toolsList: Array<{
+      name: string;
+      description: string;
+      inputSchema: any;
+      handler: (args: any) => Promise<any>;
+    }>
+  ): Record<string, ToolDefinition> {
     const map: Record<string, ToolDefinition> = {};
     for (const item of toolsList) {
       map[item.name] = tool({

@@ -62,7 +62,11 @@ export function connectionHint(err: unknown): string | undefined {
     return 'Connecting timed out. Check firewall rules, the host/port, and whether SSL is required.';
   }
   // PostgreSQL SQLSTATE codes / MySQL error codes
-  if (code === '28P01' || code === 'ER_ACCESS_DENIED_ERROR' || message.includes('password authentication failed')) {
+  if (
+    code === '28P01' ||
+    code === 'ER_ACCESS_DENIED_ERROR' ||
+    message.includes('password authentication failed')
+  ) {
     return 'Authentication failed. Check the username and password.';
   }
   if (code === '3D000' || code === 'ER_BAD_DB_ERROR') {
@@ -84,11 +88,7 @@ function errorReason(err: unknown): string {
   return message || String((err as { code?: unknown } | null)?.code ?? 'unknown error');
 }
 
-export function formatConnectionFailure(
-  driverLabel: string,
-  target: string,
-  err: unknown
-): string {
+export function formatConnectionFailure(driverLabel: string, target: string, err: unknown): string {
   const reason = errorReason(err);
   const hint = connectionHint(err);
   return `Failed to connect to ${driverLabel} at ${target}: ${reason}${hint ? `\nHint: ${hint}` : ''}`;

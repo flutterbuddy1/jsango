@@ -63,7 +63,9 @@ export class StringSchema extends BaseSchema<string> {
     }
 
     if (typeof input !== 'string') {
-      return this.failure([{ field: path, message: `${path} must be a string`, code: 'TYPE_MISMATCH' }]);
+      return this.failure([
+        { field: path, message: `${path} must be a string`, code: 'TYPE_MISMATCH' },
+      ]);
     }
 
     if (this.minLength !== undefined && input.length < this.minLength) {
@@ -89,12 +91,16 @@ export class StringSchema extends BaseSchema<string> {
     if (this.isEmail) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(input)) {
-        return this.failure([{ field: path, message: `${path} must be a valid email address`, code: 'INVALID_EMAIL' }]);
+        return this.failure([
+          { field: path, message: `${path} must be a valid email address`, code: 'INVALID_EMAIL' },
+        ]);
       }
     }
 
     if (this.pattern && !this.pattern.test(input)) {
-      return this.failure([{ field: path, message: `${path} format is invalid`, code: 'INVALID_FORMAT' }]);
+      return this.failure([
+        { field: path, message: `${path} format is invalid`, code: 'INVALID_FORMAT' },
+      ]);
     }
 
     return this.success(input);
@@ -140,19 +146,35 @@ export class NumberSchema extends BaseSchema<number> {
     const num = typeof input === 'number' ? input : Number(input);
 
     if (isNaN(num)) {
-      return this.failure([{ field: path, message: `${path} must be a valid number`, code: 'TYPE_MISMATCH' }]);
+      return this.failure([
+        { field: path, message: `${path} must be a valid number`, code: 'TYPE_MISMATCH' },
+      ]);
     }
 
     if (this.isInteger && !Number.isInteger(num)) {
-      return this.failure([{ field: path, message: `${path} must be an integer`, code: 'INVALID_INTEGER' }]);
+      return this.failure([
+        { field: path, message: `${path} must be an integer`, code: 'INVALID_INTEGER' },
+      ]);
     }
 
     if (this.minValue !== undefined && num < this.minValue) {
-      return this.failure([{ field: path, message: `${path} must be greater than or equal to ${this.minValue}`, code: 'MIN_VALUE' }]);
+      return this.failure([
+        {
+          field: path,
+          message: `${path} must be greater than or equal to ${this.minValue}`,
+          code: 'MIN_VALUE',
+        },
+      ]);
     }
 
     if (this.maxValue !== undefined && num > this.maxValue) {
-      return this.failure([{ field: path, message: `${path} must be less than or equal to ${this.maxValue}`, code: 'MAX_VALUE' }]);
+      return this.failure([
+        {
+          field: path,
+          message: `${path} must be less than or equal to ${this.maxValue}`,
+          code: 'MAX_VALUE',
+        },
+      ]);
     }
 
     return this.success(num);
@@ -182,7 +204,9 @@ export class BooleanSchema extends BaseSchema<boolean> {
       return this.success(false);
     }
 
-    return this.failure([{ field: path, message: `${path} must be a boolean`, code: 'TYPE_MISMATCH' }]);
+    return this.failure([
+      { field: path, message: `${path} must be a boolean`, code: 'TYPE_MISMATCH' },
+    ]);
   }
 }
 
@@ -201,7 +225,9 @@ export class DateSchema extends BaseSchema<Date> {
     const date = input instanceof Date ? input : new Date(String(input));
 
     if (isNaN(date.getTime())) {
-      return this.failure([{ field: path, message: `${path} must be a valid date`, code: 'INVALID_DATE' }]);
+      return this.failure([
+        { field: path, message: `${path} must be a valid date`, code: 'INVALID_DATE' },
+      ]);
     }
 
     return this.success(date);
@@ -238,15 +264,29 @@ export class ArraySchema<T> extends BaseSchema<readonly T[]> {
     }
 
     if (!Array.isArray(input)) {
-      return this.failure([{ field: path, message: `${path} must be an array`, code: 'TYPE_MISMATCH' }]);
+      return this.failure([
+        { field: path, message: `${path} must be an array`, code: 'TYPE_MISMATCH' },
+      ]);
     }
 
     if (this.minItems !== undefined && input.length < this.minItems) {
-      return this.failure([{ field: path, message: `${path} must contain at least ${this.minItems} items`, code: 'MIN_ITEMS' }]);
+      return this.failure([
+        {
+          field: path,
+          message: `${path} must contain at least ${this.minItems} items`,
+          code: 'MIN_ITEMS',
+        },
+      ]);
     }
 
     if (this.maxItems !== undefined && input.length > this.maxItems) {
-      return this.failure([{ field: path, message: `${path} must contain at most ${this.maxItems} items`, code: 'MAX_ITEMS' }]);
+      return this.failure([
+        {
+          field: path,
+          message: `${path} must contain at most ${this.maxItems} items`,
+          code: 'MAX_ITEMS',
+        },
+      ]);
     }
 
     const errors: ValidationErrorItem[] = [];
@@ -296,7 +336,9 @@ export class ObjectSchema<TShape extends ShapeDefinition> extends BaseSchema<Inf
 
     if (typeof input !== 'object' || Array.isArray(input)) {
       const field = path || 'value';
-      return this.failure([{ field, message: `${field} must be an object`, code: 'TYPE_MISMATCH' }]);
+      return this.failure([
+        { field, message: `${field} must be an object`, code: 'TYPE_MISMATCH' },
+      ]);
     }
 
     const record = input as Record<string, unknown>;

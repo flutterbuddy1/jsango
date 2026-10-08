@@ -31,13 +31,13 @@ migrations. The same models, queries and migration commands work on all of them.
        npx jsango makemigrations ──► migrations/<timestamp>_<name>.ts ──► npx jsango migrate
 ```
 
-| Piece | Role |
-| --- | --- |
-| **`DatabaseManager`** | Owns connection pools. Created once from a config object, e.g. `databaseConfigFromEnv()`. |
-| **`setDatabaseManager(db)`** | Makes every model use that manager. Call it once at startup. |
-| **Models** (`defineModel`) | Describe tables in TypeScript. They are the **source of truth** for your schema. |
-| **Migration files** | Versioned, reviewable steps that change the real database to match the models. |
-| **`jsango.config.ts`** | Tells the CLI where the database, models and migrations are. |
+| Piece                        | Role                                                                                      |
+| ---------------------------- | ----------------------------------------------------------------------------------------- |
+| **`DatabaseManager`**        | Owns connection pools. Created once from a config object, e.g. `databaseConfigFromEnv()`. |
+| **`setDatabaseManager(db)`** | Makes every model use that manager. Call it once at startup.                              |
+| **Models** (`defineModel`)   | Describe tables in TypeScript. They are the **source of truth** for your schema.          |
+| **Migration files**          | Versioned, reviewable steps that change the real database to match the models.            |
+| **`jsango.config.ts`**       | Tells the CLI where the database, models and migrations are.                              |
 
 The workflow is the same as Django's: **change a model → `makemigrations` → review the file →
 `migrate` → commit both.**
@@ -64,13 +64,13 @@ Node.js 22.13+. To switch databases, edit `.env` (see below). Your code stays th
 
 ### Supported databases
 
-| Database | `driver` | Install in your project | URL format |
-| --- | --- | --- | --- |
-| PostgreSQL 12+ | `postgres` (aliases `postgresql`, `pg`) | `npm install pg` | `postgres://user:pass@host:5432/db` |
-| MySQL 8+ / MariaDB 10.5+ | `mysql` (alias `mariadb`) | `npm install mysql2` | `mysql://user:pass@host:3306/db` |
-| SQLite 3.35+ | `sqlite` | nothing on Node 22.13+ (`node:sqlite`); otherwise `npm install better-sqlite3` | `sqlite:./db.sqlite3` |
-| MongoDB 5+ | `mongodb` (alias `mongo`) | `npm install mongodb` | `mongodb://user:pass@host:27017/db` or `mongodb+srv://…` |
-| In-memory (tests) | `memory` | nothing | — |
+| Database                 | `driver`                                | Install in your project                                                        | URL format                                               |
+| ------------------------ | --------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------- |
+| PostgreSQL 12+           | `postgres` (aliases `postgresql`, `pg`) | `npm install pg`                                                               | `postgres://user:pass@host:5432/db`                      |
+| MySQL 8+ / MariaDB 10.5+ | `mysql` (alias `mariadb`)               | `npm install mysql2`                                                           | `mysql://user:pass@host:3306/db`                         |
+| SQLite 3.35+             | `sqlite`                                | nothing on Node 22.13+ (`node:sqlite`); otherwise `npm install better-sqlite3` | `sqlite:./db.sqlite3`                                    |
+| MongoDB 5+               | `mongodb` (alias `mongo`)               | `npm install mongodb`                                                          | `mongodb://user:pass@host:27017/db` or `mongodb+srv://…` |
+| In-memory (tests)        | `memory`                                | nothing                                                                        | —                                                        |
 
 > The client packages are optional peer dependencies: install only the one you use. If it is
 > missing, the first query fails with a message telling you exactly what to install.
@@ -137,15 +137,15 @@ export const db = new DatabaseManager({
 setDatabaseManager(db);
 ```
 
-| Connection option | Meaning |
-| --- | --- |
-| `driver` | `postgres`, `mysql`, `sqlite`, `mongodb`, `memory` (optional if `url` is set) |
-| `url` | Full connection URL |
-| `host`, `port`, `database`, `username`, `password` | Individual settings |
-| `filename` | SQLite file path (`:memory:` for an in-memory database) |
-| `ssl` | `true`, `false`, or a TLS options object |
-| `pool` | `{ min, max, acquireTimeoutMs, idleTimeoutMs, connectionTimeoutMs, maxLifetimeMs }` |
-| `options` | Extra options passed to the client (`pg.Pool`, `mysql2.createPool`, `better-sqlite3`) |
+| Connection option                                  | Meaning                                                                               |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `driver`                                           | `postgres`, `mysql`, `sqlite`, `mongodb`, `memory` (optional if `url` is set)         |
+| `url`                                              | Full connection URL                                                                   |
+| `host`, `port`, `database`, `username`, `password` | Individual settings                                                                   |
+| `filename`                                         | SQLite file path (`:memory:` for an in-memory database)                               |
+| `ssl`                                              | `true`, `false`, or a TLS options object                                              |
+| `pool`                                             | `{ min, max, acquireTimeoutMs, idleTimeoutMs, connectionTimeoutMs, maxLifetimeMs }`   |
+| `options`                                          | Extra options passed to the client (`pg.Pool`, `mysql2.createPool`, `better-sqlite3`) |
 
 Models that don't set `connection` use the **default** connection. Whatever the default is
 called, the name `'default'` always resolves to it.
@@ -153,11 +153,11 @@ called, the name `'default'` always resolves to it.
 ### Verify the connection at startup
 
 ```ts
-await db.verify();          // throws a descriptive error if it cannot connect
+await db.verify(); // throws a descriptive error if it cannot connect
 await app.listen(3000);
 
 process.once('SIGTERM', async () => {
-  await db.close();         // drain pools on shutdown
+  await db.close(); // drain pools on shutdown
   process.exit(0);
 });
 ```
@@ -206,20 +206,20 @@ import { defineConfig } from 'jsango';
 import { db } from './src/database.js';
 
 export default defineConfig({
-  database: db,                 // a DatabaseManager, or a config object like { default, connections }
-  models: './src/models',       // file(s) or folder(s) with defineModel() calls (scanned recursively)
-  migrations: './migrations',   // where migration files live
+  database: db, // a DatabaseManager, or a config object like { default, connections }
+  models: './src/models', // file(s) or folder(s) with defineModel() calls (scanned recursively)
+  migrations: './migrations', // where migration files live
 });
 ```
 
 All keys are optional:
 
-| Key | Default |
-| --- | --- |
-| `database` | built from `DATABASE_URL` / `DATABASE_DRIVER` env vars |
-| `models` | `./src/models` |
-| `migrations` | `./migrations` |
-| `envFile` | `.env` (existing environment variables are never overwritten) |
+| Key          | Default                                                       |
+| ------------ | ------------------------------------------------------------- |
+| `database`   | built from `DATABASE_URL` / `DATABASE_DRIVER` env vars        |
+| `models`     | `./src/models`                                                |
+| `migrations` | `./migrations`                                                |
+| `envFile`    | `.env` (existing environment variables are never overwritten) |
 
 TypeScript files (the config, models and migrations) are loaded with `tsx`, so no build step is
 needed and the usual `./file.js` import style works.
@@ -235,7 +235,7 @@ import { defineModel, fields } from 'jsango';
 export const User = defineModel(
   'User',
   {
-    id: fields.id(),                                      // auto-increment primary key
+    id: fields.id(), // auto-increment primary key
     email: fields.string({ maxLength: 255, unique: true }),
     name: fields.string({ maxLength: 120, nullable: true }),
     role: fields.string({ maxLength: 20, defaultValue: 'member', indexed: true }),
@@ -243,9 +243,9 @@ export const User = defineModel(
     settings: fields.json({ nullable: true }),
   },
   {
-    table: 'users',       // default: lower-cased model name + "s"
-    timestamps: true,     // adds createdAt / updatedAt, set automatically
-    softDelete: false,    // true adds deletedAt; delete() then only marks rows
+    table: 'users', // default: lower-cased model name + "s"
+    timestamps: true, // adds createdAt / updatedAt, set automatically
+    softDelete: false, // true adds deletedAt; delete() then only marks rows
   }
 );
 ```
@@ -254,38 +254,38 @@ Fields are **NOT NULL by default**. Use `nullable: true` for optional columns.
 
 ### Field types
 
-| Field | PostgreSQL | MySQL | SQLite | JS value |
-| --- | --- | --- | --- | --- |
-| `fields.id()` | `SERIAL PRIMARY KEY` | `INT AUTO_INCREMENT PRIMARY KEY` | `INTEGER PRIMARY KEY AUTOINCREMENT` | `number` |
-| `fields.string({ maxLength })` | `VARCHAR(n)` (255) | `VARCHAR(n)` | `VARCHAR(n)` | `string` |
-| `fields.text()` | `TEXT` | `LONGTEXT` | `TEXT` | `string` |
-| `fields.integer()` | `INTEGER` | `INT` | `INTEGER` | `number` |
-| `fields.bigint()` | `BIGINT` | `BIGINT` | `BIGINT` | `bigint` |
-| `fields.float()` / `number()` | `DOUBLE PRECISION` | `DOUBLE` | `REAL` | `number` |
-| `fields.decimal({ precision, scale })` | `NUMERIC(p,s)` | `DECIMAL(p,s)` | `NUMERIC(p,s)` | `number` |
-| `fields.boolean()` | `BOOLEAN` | `TINYINT(1)` | `INTEGER` (0/1) | `boolean` |
-| `fields.dateTime()` | `TIMESTAMP WITH TIME ZONE` | `DATETIME(3)` (UTC) | `DATETIME` (ISO text) | `Date` |
-| `fields.date()` / `time()` | `DATE` / `TIME` | `DATE` / `TIME` | `DATE` / `TIME` | `Date` |
-| `fields.json()` | `JSONB` | `JSON` | `TEXT` | object / array |
-| `fields.uuid()` | `UUID` | `CHAR(36)` | `VARCHAR(36)` | `string` |
-| `fields.binary()` | `BYTEA` | `LONGBLOB` | `BLOB` | `Uint8Array` |
-| `fields.objectId()` | `VARCHAR(24)` | `VARCHAR(24)` | `VARCHAR(24)` | `string` (a native `ObjectId` on MongoDB) |
+| Field                                  | PostgreSQL                 | MySQL                            | SQLite                              | JS value                                  |
+| -------------------------------------- | -------------------------- | -------------------------------- | ----------------------------------- | ----------------------------------------- |
+| `fields.id()`                          | `SERIAL PRIMARY KEY`       | `INT AUTO_INCREMENT PRIMARY KEY` | `INTEGER PRIMARY KEY AUTOINCREMENT` | `number`                                  |
+| `fields.string({ maxLength })`         | `VARCHAR(n)` (255)         | `VARCHAR(n)`                     | `VARCHAR(n)`                        | `string`                                  |
+| `fields.text()`                        | `TEXT`                     | `LONGTEXT`                       | `TEXT`                              | `string`                                  |
+| `fields.integer()`                     | `INTEGER`                  | `INT`                            | `INTEGER`                           | `number`                                  |
+| `fields.bigint()`                      | `BIGINT`                   | `BIGINT`                         | `BIGINT`                            | `bigint`                                  |
+| `fields.float()` / `number()`          | `DOUBLE PRECISION`         | `DOUBLE`                         | `REAL`                              | `number`                                  |
+| `fields.decimal({ precision, scale })` | `NUMERIC(p,s)`             | `DECIMAL(p,s)`                   | `NUMERIC(p,s)`                      | `number`                                  |
+| `fields.boolean()`                     | `BOOLEAN`                  | `TINYINT(1)`                     | `INTEGER` (0/1)                     | `boolean`                                 |
+| `fields.dateTime()`                    | `TIMESTAMP WITH TIME ZONE` | `DATETIME(3)` (UTC)              | `DATETIME` (ISO text)               | `Date`                                    |
+| `fields.date()` / `time()`             | `DATE` / `TIME`            | `DATE` / `TIME`                  | `DATE` / `TIME`                     | `Date`                                    |
+| `fields.json()`                        | `JSONB`                    | `JSON`                           | `TEXT`                              | object / array                            |
+| `fields.uuid()`                        | `UUID`                     | `CHAR(36)`                       | `VARCHAR(36)`                       | `string`                                  |
+| `fields.binary()`                      | `BYTEA`                    | `LONGBLOB`                       | `BLOB`                              | `Uint8Array`                              |
+| `fields.objectId()`                    | `VARCHAR(24)`              | `VARCHAR(24)`                    | `VARCHAR(24)`                       | `string` (a native `ObjectId` on MongoDB) |
 
 Values are converted both ways: booleans come back as `true`/`false` on every database, dates as
 `Date`, JSON as parsed objects.
 
 ### Field options
 
-| Option | Effect |
-| --- | --- |
-| `nullable: true` | Allows `NULL` (default: NOT NULL) |
-| `unique: true` | Unique constraint `uq_<table>_<column>` |
-| `indexed: true` | Index `idx_<table>_<column>` |
-| `defaultValue: x` | Default for new rows; a function (`() => crypto.randomUUID()`) is evaluated by the ORM and isn't stored in the schema |
-| `maxLength: n` | `VARCHAR(n)` |
-| `precision`, `scale` | For `decimal` |
-| `columnName: 'x'` | Column name when it differs from the property name |
-| `primaryKey`, `autoIncrement` | For custom keys, e.g. `fields.uuid({ primaryKey: true, defaultValue: () => crypto.randomUUID() })` |
+| Option                        | Effect                                                                                                                |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `nullable: true`              | Allows `NULL` (default: NOT NULL)                                                                                     |
+| `unique: true`                | Unique constraint `uq_<table>_<column>`                                                                               |
+| `indexed: true`               | Index `idx_<table>_<column>`                                                                                          |
+| `defaultValue: x`             | Default for new rows; a function (`() => crypto.randomUUID()`) is evaluated by the ORM and isn't stored in the schema |
+| `maxLength: n`                | `VARCHAR(n)`                                                                                                          |
+| `precision`, `scale`          | For `decimal`                                                                                                         |
+| `columnName: 'x'`             | Column name when it differs from the property name                                                                    |
+| `primaryKey`, `autoIncrement` | For custom keys, e.g. `fields.uuid({ primaryKey: true, defaultValue: () => crypto.randomUUID() })`                    |
 
 Model options: `table`, `connection` (named connection), `primaryKey`, `timestamps`
 (`true` or `{ createdAt: 'created_at', updatedAt: 'updated_at' }`), `softDelete`
@@ -300,7 +300,7 @@ export const Post = defineModel(
   {
     id: fields.id(),
     title: fields.string(),
-    userId: fields.integer(),                    // the foreign key column
+    userId: fields.integer(), // the foreign key column
   },
   {
     table: 'posts',
@@ -316,11 +316,11 @@ export const Post = defineModel(
 //   relations: { posts: { type: 'hasMany', target: 'Post', foreignKey: 'userId' } }
 ```
 
-| Type | Meaning | `foreignKey` lives on |
-| --- | --- | --- |
-| `belongsTo` | this row points to one parent | this model |
-| `hasOne` / `hasMany` | children point to this row | the target model |
-| `manyToMany` | via a pivot model: `through`, `pivotForeignKey`, `pivotTargetKey` | the pivot model |
+| Type                 | Meaning                                                           | `foreignKey` lives on |
+| -------------------- | ----------------------------------------------------------------- | --------------------- |
+| `belongsTo`          | this row points to one parent                                     | this model            |
+| `hasOne` / `hasMany` | children point to this row                                        | the target model      |
+| `manyToMany`         | via a pivot model: `through`, `pivotForeignKey`, `pivotTargetKey` | the pivot model       |
 
 `target` can be the model name (`'User'`) or a function (`() => User`), which avoids circular
 imports. `belongsTo` foreign keys use `ON DELETE CASCADE`, or `SET NULL` when the field is
@@ -333,14 +333,17 @@ nullable. Override it with `options: { onDelete: 'RESTRICT' }`.
 ```ts
 // Create
 const user = await User.create({ email: 'a@example.com', name: 'Ada' });
-user.id;          // assigned by the database
-user.createdAt;   // Date
+user.id; // assigned by the database
+user.createdAt; // Date
 
-await Post.bulkCreate([{ title: 'One', userId: user.id }, { title: 'Two', userId: user.id }]);
+await Post.bulkCreate([
+  { title: 'One', userId: user.id },
+  { title: 'Two', userId: user.id },
+]);
 
 // Read
-await User.find(1);                      // by primary key, or null
-await User.findOrFail(1);                // throws ModelNotFoundError
+await User.find(1); // by primary key, or null
+await User.findOrFail(1); // throws ModelNotFoundError
 await User.where('email', 'a@example.com').first();
 await User.where({ role: 'admin', isActive: true }).get();
 await User.query()
@@ -358,11 +361,13 @@ await User.where('isActive', true).exists();
 const page = await User.query().orderBy('id').paginate({ page: 2, pageSize: 25 });
 // page.items, page.total, page.page, page.pageSize, page.totalPages
 
-for await (const u of User.query().cursor(500)) { /* stream large tables in batches */ }
+for await (const u of User.query().cursor(500)) {
+  /* stream large tables in batches */
+}
 
 // Update
 user.name = 'Ada Lovelace';
-await user.save();                                   // only changed columns are written
+await user.save(); // only changed columns are written
 await User.where('isActive', false).update({ role: 'inactive' });
 
 // Delete
@@ -390,26 +395,26 @@ await Book.where('genre', 'fiction')
 
 await Book.whereNot('status', 'draft').get();
 await Book.whereNot((q) => q.where('genre', 'kids').orWhere('price', 0)).get();
-await Book.whereBetween('price', [10, 25]).get();          // also whereNotBetween / orWhereBetween
-await Book.whereLike('title', '%guide%').get();            // case-insensitive everywhere
+await Book.whereBetween('price', [10, 25]).get(); // also whereNotBetween / orWhereBetween
+await Book.whereLike('title', '%guide%').get(); // case-insensitive everywhere
 await Book.whereLike('code', 'AB_%', { caseSensitive: true }).get(); // exact case on PostgreSQL / MongoDB
-await Book.where('price', 'BETWEEN', [10, 25]).get();      // operator form
+await Book.where('price', 'BETWEEN', [10, 25]).get(); // operator form
 await Book.orWhereIn('genre', ['a', 'b']).orWhereNull('pages').get();
 
 // Selection
 await Book.select('genre').distinct().orderBy('genre').get();
-await Book.orderBy('price').pluck('title');                // ['Tiny Tales', ...]
-await Book.where('isbn', isbn).value('title');             // single value or null
+await Book.orderBy('price').pluck('title'); // ['Tiny Tales', ...]
+await Book.where('isbn', isbn).value('title'); // single value or null
 await Book.findMany([id1, id2]);
-await Book.latest().first();                               // newest by createdAt (oldest() too)
+await Book.latest().first(); // newest by createdAt (oldest() too)
 await Book.query().firstOrFail();
 
 // Aggregates
-await Book.sum('price');                                   // 0 when nothing matches
-await Book.where('genre', 'science').avg('price');         // null when nothing matches
+await Book.sum('price'); // 0 when nothing matches
+await Book.where('genre', 'science').avg('price'); // null when nothing matches
 await Book.min('price');
 await Book.max('pages');
-await Book.count('pages');                                 // counts non-null values
+await Book.count('pages'); // counts non-null values
 await Book.where('genre', 'none').doesntExist();
 
 // GROUP BY / HAVING -> plain rows
@@ -423,15 +428,17 @@ await Book.query()
 // [{ genre: 'science', total: 42.5, books: 2, longest: 300 }, ...]
 
 // Atomic counters (no read-modify-write race)
-await Author.where('active', true).increment('logins');   // bulk; decrement() too
-await post.increment('views', 1);                          // single model, also updates `post.views`
+await Author.where('active', true).increment('logins'); // bulk; decrement() too
+await post.increment('views', 1); // single model, also updates `post.views`
 
 // Find-or-create / upsert-style helpers
 const tag = await Tag.firstOrCreate({ slug: 'news' }, { label: 'News' });
 const setting = await Setting.updateOrCreate({ key: 'theme' }, { value: 'dark' });
 
 // Batches
-await User.query().chunk(500, async (users, page) => { /* ... return false to stop */ });
+await User.query().chunk(500, async (users, page) => {
+  /* ... return false to stop */
+});
 
 // Row locks inside a transaction (PostgreSQL / MySQL; no-op on SQLite and MongoDB)
 await transaction(async () => {
@@ -444,15 +451,15 @@ await Post.onlyTrashed().where('authorId', id).restore();
 await post.restore();
 
 // Escape hatch
-await User.whereRaw('LOWER(email) = ?', [email]).get();          // SQL databases
-await User.whereRaw({ tags: { $all: ['a', 'b'] } }).get();       // MongoDB
+await User.whereRaw('LOWER(email) = ?', [email]).get(); // SQL databases
+await User.whereRaw({ tags: { $all: ['a', 'b'] } }).get(); // MongoDB
 ```
 
 ### Eager loading (no N+1)
 
 ```ts
 const posts = await Post.query().with('author').orderBy('id', 'DESC').limit(10).get();
-posts[0].author.email;   // loaded with one extra query for all posts
+posts[0].author.email; // loaded with one extra query for all posts
 ```
 
 ### Soft deletes
@@ -460,10 +467,10 @@ posts[0].author.email;   // loaded with one extra query for all posts
 With `softDelete: true`, `delete()` sets `deletedAt` and normal queries skip those rows.
 
 ```ts
-await Post.query().get();            // only rows not soft-deleted
-await Post.withTrashed().get();      // everything
-await Post.onlyTrashed().get();      // only soft-deleted
-await post.delete({ force: true });  // really delete
+await Post.query().get(); // only rows not soft-deleted
+await Post.withTrashed().get(); // everything
+await Post.onlyTrashed().get(); // only soft-deleted
+await post.delete({ force: true }); // really delete
 ```
 
 ### Transactions
@@ -473,12 +480,17 @@ import { transaction } from 'jsango';
 
 await transaction(async () => {
   const user = await User.create({ email: 'ada@example.com' });
-  await Profile.create({ userId: user.id });   // same transaction automatically
-  if (!ok) throw new Error('rollback');         // any error rolls everything back
+  await Profile.create({ userId: user.id }); // same transaction automatically
+  if (!ok) throw new Error('rollback'); // any error rolls everything back
 });
 
 // isolation level / specific connection
-await transaction(async () => { /* ... */ }, { isolationLevel: 'SERIALIZABLE', connection: 'analytics' });
+await transaction(
+  async () => {
+    /* ... */
+  },
+  { isolationLevel: 'SERIALIZABLE', connection: 'analytics' }
+);
 ```
 
 Every model call inside the callback, including nested async functions, uses the transaction.
@@ -503,20 +515,24 @@ DATABASE_URL=mongodb://app:secret@localhost:27017/myapp
 and exposes it as a 24-character hex string:
 
 ```ts
-export const Post = defineModel('Post', {
-  id: fields.objectId({ primaryKey: true }),   // a new ObjectId is generated on create
-  title: fields.string(),
-  authorId: fields.objectId(),                 // stored as an ObjectId reference
-  tags: fields.json({ nullable: true }),       // arrays / objects are stored natively
-}, {
-  table: 'posts',                              // collection name
-  timestamps: true,
-  relations: { author: { type: 'belongsTo', target: 'Author', foreignKey: 'authorId' } },
-});
+export const Post = defineModel(
+  'Post',
+  {
+    id: fields.objectId({ primaryKey: true }), // a new ObjectId is generated on create
+    title: fields.string(),
+    authorId: fields.objectId(), // stored as an ObjectId reference
+    tags: fields.json({ nullable: true }), // arrays / objects are stored natively
+  },
+  {
+    table: 'posts', // collection name
+    timestamps: true,
+    relations: { author: { type: 'belongsTo', target: 'Author', foreignKey: 'authorId' } },
+  }
+);
 
 const post = await Post.create({ title: 'Hello', authorId: author.id });
-post.id;                          // '65f1c2...' (ObjectId as a string)
-await Post.find(post.id);         // strings are converted to ObjectId in queries
+post.id; // '65f1c2...' (ObjectId as a string)
+await Post.find(post.id); // strings are converted to ObjectId in queries
 ```
 
 Use `fields.objectId()` for primary keys and references if a model must run on MongoDB and SQL
@@ -541,16 +557,16 @@ Migrations don't need transactions and work on standalone servers too.
 **Migrations on MongoDB.** `makemigrations` and `migrate` work the same way as on SQL, and
 the operations are translated as follows:
 
-| Operation | MongoDB |
-| --- | --- |
-| create table | `createCollection` with a `$jsonSchema` validator (required fields + types, `validationLevel: moderate`) plus indexes |
-| unique / index | `createIndex` (unique indexes on nullable fields ignore missing values, like SQL NULLs) |
-| add column | backfills the default into existing documents, then updates the validator |
-| drop column | relaxes the validator, drops the indexes on it, then `$unset`s the field everywhere |
-| rename column | updates the validator, `$rename`s the field, and rebuilds the indexes on it |
-| alter column | updates the validator |
-| rename / drop table | `renameCollection` / `drop` |
-| foreign keys | skipped (MongoDB has none); relations are still resolved by the ORM |
+| Operation           | MongoDB                                                                                                               |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| create table        | `createCollection` with a `$jsonSchema` validator (required fields + types, `validationLevel: moderate`) plus indexes |
+| unique / index      | `createIndex` (unique indexes on nullable fields ignore missing values, like SQL NULLs)                               |
+| add column          | backfills the default into existing documents, then updates the validator                                             |
+| drop column         | relaxes the validator, drops the indexes on it, then `$unset`s the field everywhere                                   |
+| rename column       | updates the validator, `$rename`s the field, and rebuilds the indexes on it                                           |
+| alter column        | updates the validator                                                                                                 |
+| rename / drop table | `renameCollection` / `drop`                                                                                           |
+| foreign keys        | skipped (MongoDB has none); relations are still resolved by the ORM                                                   |
 
 Migration history lives in the `jsango_migrations` collection, and the lock in
 `jsango_migration_lock`. For data migrations, use `ctx.execute()` (`ctx.sql()` isn't available):
@@ -559,8 +575,18 @@ Migration history lives in the `jsango_migrations` collection, and the lock in
 export default defineMigration({
   id: '20260930130000_backfill_roles',
   async up(ctx) {
-    await ctx.execute({ op: 'updateMany', collection: 'users', filter: { role: null }, update: { $set: { role: 'member' } } });
-    await ctx.execute({ op: 'createIndex', collection: 'users', keys: { lastSeenAt: -1 }, name: 'idx_users_last_seen' });
+    await ctx.execute({
+      op: 'updateMany',
+      collection: 'users',
+      filter: { role: null },
+      update: { $set: { role: 'member' } },
+    });
+    await ctx.execute({
+      op: 'createIndex',
+      collection: 'users',
+      keys: { lastSeenAt: -1 },
+      name: 'idx_users_last_seen',
+    });
   },
   async down(ctx) {
     await ctx.execute({ op: 'dropIndex', collection: 'users', name: 'idx_users_last_seen' });
@@ -577,12 +603,19 @@ native driver:
 ```ts
 import type { Db } from 'mongodb';
 const mongo = await db.mongo<Db>();
-await mongo.collection('events').aggregate([{ $match: { type: 'signup' } }]).toArray();
+await mongo
+  .collection('events')
+  .aggregate([{ $match: { type: 'signup' } }])
+  .toArray();
 
 // or structured commands through a pooled connection:
 const conn = await db.connection();
 try {
-  const { rows } = await conn.execute({ op: 'aggregate', collection: 'orders', pipeline: [{ $match: { status: 'paid' } }] });
+  const { rows } = await conn.execute({
+    op: 'aggregate',
+    collection: 'orders',
+    pipeline: [{ $match: { status: 'paid' } }],
+  });
 } finally {
   await conn.release();
 }
@@ -598,7 +631,7 @@ Your **models describe the schema you want**. **Migrations** are the ordered ste
 real database there. jsango writes them for you:
 
 1. `npx jsango makemigrations` replays your existing migration files to work out what the
-   database *should* look like now (this needs no database connection), compares that with your
+   database _should_ look like now (this needs no database connection), compares that with your
    models, and writes a new file containing only the difference.
 2. `npx jsango migrate` runs the pending files in order and records each one in the
    `jsango_migrations` table, so it never runs twice.
@@ -631,9 +664,7 @@ export const name = 'add_age_to_users';
 export default new Migration({
   id,
   name,
-  operations: [
-    new AddColumnOperation('users', { "name": "age", "type": "integer", "nullable": true }),
-  ],
+  operations: [new AddColumnOperation('users', { name: 'age', type: 'integer', nullable: true })],
 });
 ```
 
@@ -642,15 +673,15 @@ inverse operations in reverse order.
 
 ### Commands
 
-| Command | What it does |
-| --- | --- |
-| `jsango makemigrations [name]` | Create a migration from model changes (alias of `migrate:generate`). `--dry-run` shows the changes without writing a file; `--empty` creates a blank hand-written migration. |
-| `jsango migrate` | Apply pending migrations. `--dry-run` prints the SQL; `--target <id>` stops at a migration; `--yes` confirms destructive changes. |
-| `jsango migrate:status` | List applied and pending migrations. |
-| `jsango migrate:rollback` | Undo the last **batch** (everything applied by the last `migrate` run). `--steps 1` undoes just one migration; `--target <id>` undoes everything after `<id>`. |
-| `jsango migrate:check` | Exit with an error if models have changes that aren't in a migration, or if migrations are pending. Use it in CI. `--skip-db` compares files only. |
-| `jsango migrate:reset --yes [--fresh]` | Roll back all migrations; `--fresh` then re-applies them. Refused when `NODE_ENV=production`. |
-| `jsango db:status` | Test every configured connection. |
+| Command                                | What it does                                                                                                                                                                 |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `jsango makemigrations [name]`         | Create a migration from model changes (alias of `migrate:generate`). `--dry-run` shows the changes without writing a file; `--empty` creates a blank hand-written migration. |
+| `jsango migrate`                       | Apply pending migrations. `--dry-run` prints the SQL; `--target <id>` stops at a migration; `--yes` confirms destructive changes.                                            |
+| `jsango migrate:status`                | List applied and pending migrations.                                                                                                                                         |
+| `jsango migrate:rollback`              | Undo the last **batch** (everything applied by the last `migrate` run). `--steps 1` undoes just one migration; `--target <id>` undoes everything after `<id>`.               |
+| `jsango migrate:check`                 | Exit with an error if models have changes that aren't in a migration, or if migrations are pending. Use it in CI. `--skip-db` compares files only.                           |
+| `jsango migrate:reset --yes [--fresh]` | Roll back all migrations; `--fresh` then re-applies them. Refused when `NODE_ENV=production`.                                                                                |
+| `jsango db:status`                     | Test every configured connection.                                                                                                                                            |
 
 All of them accept `--connection <name>` for multi-database projects, and `--json` for
 machine-readable output.
@@ -692,7 +723,7 @@ export default defineMigration({
 
     await ctx.createTable('audit_logs', (t) => {
       t.id();
-      t.integer('userId').references('users');        // FK -> users.id, ON DELETE CASCADE
+      t.integer('userId').references('users'); // FK -> users.id, ON DELETE CASCADE
       t.string('action', 50).index();
       t.json('payload').nullable();
       t.timestamps();
@@ -721,11 +752,11 @@ Use the `ctx` schema helpers rather than `ctx.sql()` for schema changes, because
 
 ### How each database runs migrations
 
-| | PostgreSQL | SQLite | MySQL / MariaDB | MongoDB |
-| --- | --- | --- | --- | --- |
-| Each migration in a transaction | ✅ | ✅ | ❌ DDL auto-commits | ❌ |
-| Failure mid-migration | fully rolled back | fully rolled back | earlier statements stay applied; the error says so | earlier commands stay applied; the error says so |
-| `ALTER COLUMN`, add/drop foreign key | native | table rebuild (automatic, data preserved) | native | validator update; FKs skipped |
+|                                      | PostgreSQL        | SQLite                                    | MySQL / MariaDB                                    | MongoDB                                          |
+| ------------------------------------ | ----------------- | ----------------------------------------- | -------------------------------------------------- | ------------------------------------------------ |
+| Each migration in a transaction      | ✅                | ✅                                        | ❌ DDL auto-commits                                | ❌                                               |
+| Failure mid-migration                | fully rolled back | fully rolled back                         | earlier statements stay applied; the error says so | earlier commands stay applied; the error says so |
+| `ALTER COLUMN`, add/drop foreign key | native            | table rebuild (automatic, data preserved) | native                                             | validator update; FKs skipped                    |
 
 - **SQLite** can't alter columns or add/drop foreign keys in place. jsango rebuilds the table:
   it creates a copy with the new definition, copies the rows, swaps the tables and recreates
@@ -777,22 +808,22 @@ CLI, so TypeScript migrations run without a build step.
 
 ## 7. Troubleshooting
 
-| Message | Fix |
-| --- | --- |
-| `No database is configured for this project` | Add `jsango.config.ts` (see [section 2](#2-jsangoconfigts)) or set `DATABASE_URL` in `.env`. |
-| `PostgreSQL support requires the 'pg' package` | `npm install pg` (or `mysql2` / `better-sqlite3` / `mongodb`). |
-| `MongoDB transactions need a replica set` | Start `mongod --replSet rs0` and run `rs.initiate()` once, or use Atlas. |
-| `Document failed validation` (MongoDB) | A document is missing a required (non-nullable) field or has the wrong type. Make the field `nullable: true` or pass a value. |
-| `MongoDB connections do not run SQL` | Use models, `conn.execute({...})` or `db.mongo()` instead of `db.query('SELECT ...')`. |
-| `SQLite support requires 'better-sqlite3' or Node.js 22.13+` | Upgrade Node.js, or run `npm install better-sqlite3`. |
-| `ECONNREFUSED` | The database server isn't running, or the host/port is wrong. |
-| `password authentication failed` / `ER_ACCESS_DENIED_ERROR` | Wrong user or password. URL-encode special characters in `DATABASE_URL`. |
-| `database "x" does not exist` / `ER_BAD_DB_ERROR` | Create the database first: `CREATE DATABASE x;` |
-| `no such table: users` / `relation "users" does not exist` | You haven't run `npx jsango makemigrations` and `npx jsango migrate` yet. |
-| `Migration run contains destructive changes` | Check with `migrate --dry-run`, then run `migrate --yes`. |
-| `No changes detected` but the table is wrong | The table was changed outside migrations. Run `migrate:status`, then fix the table with a hand-written migration. |
-| `Could not acquire migration lock` | Another `migrate` is running. A crashed run's lock expires after 15 minutes. |
-| `Model with name 'X' is already registered` | Two different models share a name. Model names must be unique. |
+| Message                                                      | Fix                                                                                                                           |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `No database is configured for this project`                 | Add `jsango.config.ts` (see [section 2](#2-jsangoconfigts)) or set `DATABASE_URL` in `.env`.                                  |
+| `PostgreSQL support requires the 'pg' package`               | `npm install pg` (or `mysql2` / `better-sqlite3` / `mongodb`).                                                                |
+| `MongoDB transactions need a replica set`                    | Start `mongod --replSet rs0` and run `rs.initiate()` once, or use Atlas.                                                      |
+| `Document failed validation` (MongoDB)                       | A document is missing a required (non-nullable) field or has the wrong type. Make the field `nullable: true` or pass a value. |
+| `MongoDB connections do not run SQL`                         | Use models, `conn.execute({...})` or `db.mongo()` instead of `db.query('SELECT ...')`.                                        |
+| `SQLite support requires 'better-sqlite3' or Node.js 22.13+` | Upgrade Node.js, or run `npm install better-sqlite3`.                                                                         |
+| `ECONNREFUSED`                                               | The database server isn't running, or the host/port is wrong.                                                                 |
+| `password authentication failed` / `ER_ACCESS_DENIED_ERROR`  | Wrong user or password. URL-encode special characters in `DATABASE_URL`.                                                      |
+| `database "x" does not exist` / `ER_BAD_DB_ERROR`            | Create the database first: `CREATE DATABASE x;`                                                                               |
+| `no such table: users` / `relation "users" does not exist`   | You haven't run `npx jsango makemigrations` and `npx jsango migrate` yet.                                                     |
+| `Migration run contains destructive changes`                 | Check with `migrate --dry-run`, then run `migrate --yes`.                                                                     |
+| `No changes detected` but the table is wrong                 | The table was changed outside migrations. Run `migrate:status`, then fix the table with a hand-written migration.             |
+| `Could not acquire migration lock`                           | Another `migrate` is running. A crashed run's lock expires after 15 minutes.                                                  |
+| `Model with name 'X' is already registered`                  | Two different models share a name. Model names must be unique.                                                                |
 
 ---
 

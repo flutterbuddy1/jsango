@@ -3,6 +3,7 @@
 ## Agent Architecture
 
 Agents in JSango are autonomous execution units that combine:
+
 - **System Instructions**: Define persona, capabilities, and boundaries.
 - **Tools**: Allow the agent to interact with databases, external APIs, and internal services.
 - **Memory**: Context persistence across multiple conversation turns.
@@ -40,6 +41,7 @@ export const SupportAgent = agent({
 ## Running and Streaming
 
 ### Programmatic Execution
+
 ```typescript
 const result = await SupportAgent.run({
   input: 'What plan is account 100 on?',
@@ -52,6 +54,7 @@ console.log('Total Tokens:', result.usage.totalTokens);
 ```
 
 ### Event Streaming
+
 ```typescript
 for await (const event of SupportAgent.stream({ input: 'Where is order 123?' })) {
   if (event.type === 'message.delta') {

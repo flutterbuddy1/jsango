@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc -b",
+    "clean": "rm -rf dist *.tsbuildinfo",
     "dev": "node dist/index.js"
   },
   "dependencies": {

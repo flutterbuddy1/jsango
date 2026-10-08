@@ -31,7 +31,11 @@ export class McpCommand extends BaseCommand {
     const api = () => (index ??= ApiIndex.forProject(cwd));
     let docs: DocsSearch | undefined | null;
     const loadDocs = () =>
-      docs === undefined ? (docs = DocsSearch.load(fileURLToPath(new URL('../docs/llms-full.txt', import.meta.url))) ?? null) : docs;
+      docs === undefined
+        ? (docs =
+            DocsSearch.load(fileURLToPath(new URL('../docs/llms-full.txt', import.meta.url))) ??
+            null)
+        : docs;
 
     const server = createJsangoMcpServer({
       getApi: (name) => api().lookup(name),
@@ -64,7 +68,12 @@ export function createJsangoMcpServer(handlers: JsangoMcpHandlers): McpServer {
         'Exact TypeScript signature and documentation of a jsango export from the installed version, e.g. "createAuth", "defineModel", "fields.string", "QueryBuilder.paginate", "Auth.login". Suggests close names when it does not exist.',
       inputSchema: {
         type: 'object',
-        properties: { name: { type: 'string', description: 'Export name, optionally with a member: Name or Name.member' } },
+        properties: {
+          name: {
+            type: 'string',
+            description: 'Export name, optionally with a member: Name or Name.member',
+          },
+        },
         required: ['name'],
       },
       execute: ({ name }: { name?: unknown }) => handlers.getApi(String(name ?? '')),
@@ -76,7 +85,10 @@ export function createJsangoMcpServer(handlers: JsangoMcpHandlers): McpServer {
       inputSchema: {
         type: 'object',
         properties: {
-          query: { type: 'string', description: 'Keywords, e.g. "refresh token rotation" or "admin dashboard widgets"' },
+          query: {
+            type: 'string',
+            description: 'Keywords, e.g. "refresh token rotation" or "admin dashboard widgets"',
+          },
           limit: { type: 'number', description: 'Sections to return (default 4, max 8)' },
         },
         required: ['query'],
@@ -90,7 +102,9 @@ export function createJsangoMcpServer(handlers: JsangoMcpHandlers): McpServer {
         'Verify the project: TypeScript type-check, migrations in sync with the models (jsango migrate:check), and optionally the test suite. Returns failures with jsango-specific hints. Run it before finishing a task.',
       inputSchema: {
         type: 'object',
-        properties: { tests: { type: 'boolean', description: 'Also run `npm test` (default false)' } },
+        properties: {
+          tests: { type: 'boolean', description: 'Also run `npm test` (default false)' },
+        },
       },
       execute: ({ tests }: { tests?: unknown }) => handlers.runCheck(tests === true),
     })
@@ -102,17 +116,26 @@ export function createJsangoMcpServer(handlers: JsangoMcpHandlers): McpServer {
         type: 'object',
         properties: {
           kind: { type: 'string', enum: ['bug', 'missing-feature', 'docs'] },
-          title: { type: 'string', description: 'Short and specific, e.g. "paginate() ignores orderBy on MongoDB"' },
+          title: {
+            type: 'string',
+            description: 'Short and specific, e.g. "paginate() ignores orderBy on MongoDB"',
+          },
           summary: { type: 'string', description: 'What is wrong or missing, in a few sentences' },
-          reproduction: { type: 'string', description: 'Minimal code that shows the problem (no project secrets or private data)' },
+          reproduction: {
+            type: 'string',
+            description: 'Minimal code that shows the problem (no project secrets or private data)',
+          },
           expected: { type: 'string' },
           actual: { type: 'string', description: 'Actual behaviour or error message' },
         },
         required: ['kind', 'title', 'summary'],
       },
       execute: (args: Record<string, unknown>) => {
-        const kind = ['bug', 'missing-feature', 'docs'].includes(String(args['kind'])) ? (args['kind'] as IssueDraftInput['kind']) : 'bug';
-        const text = (key: string) => (typeof args[key] === 'string' ? (args[key] as string) : undefined);
+        const kind = ['bug', 'missing-feature', 'docs'].includes(String(args['kind']))
+          ? (args['kind'] as IssueDraftInput['kind'])
+          : 'bug';
+        const text = (key: string) =>
+          typeof args[key] === 'string' ? (args[key] as string) : undefined;
         return handlers.reportIssue({
           kind,
           title: text('title') ?? '',

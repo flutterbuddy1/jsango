@@ -7,7 +7,12 @@ import * as path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { CliApplication, CliOutput } from '../packages/cli/dist/index.js';
-import { clearDatabaseManager, defaultModelRegistry, setDatabaseManager, transaction } from '../packages/orm/dist/index.js';
+import {
+  clearDatabaseManager,
+  defaultModelRegistry,
+  setDatabaseManager,
+  transaction,
+} from '../packages/orm/dist/index.js';
 import { DatabaseManager } from '../packages/database/dist/index.js';
 
 const ROOT = path.join(__dirname, `.tmp-mongo-cli-${process.pid}`);
@@ -44,7 +49,10 @@ describe('MongoDB through the CLI (standalone server)', () => {
     clearDatabaseManager();
     defaultModelRegistry.clear();
 
-    write(path.join(APP, 'package.json'), JSON.stringify({ name: 'mongo-app', type: 'module', dependencies: { jsango: '*' } }));
+    write(
+      path.join(APP, 'package.json'),
+      JSON.stringify({ name: 'mongo-app', type: 'module', dependencies: { jsango: '*' } })
+    );
     write(path.join(APP, '.env'), `DATABASE_URL=${url}\n`);
     write(
       path.join(APP, 'jsango.config.ts'),
@@ -121,10 +129,12 @@ export const User = defineModel('User', {
   it('a model change migrates the existing collection and rolls back', async () => {
     write(
       path.join(APP, 'src/models/user.ts'),
-      fs.readFileSync(path.join(APP, 'src/models/user.ts'), 'utf8').replace(
-        "name: fields.string({ maxLength: 100, nullable: true }),",
-        "name: fields.string({ maxLength: 100, nullable: true }),\n  plan: fields.string({ maxLength: 20, defaultValue: 'free' }),"
-      )
+      fs
+        .readFileSync(path.join(APP, 'src/models/user.ts'), 'utf8')
+        .replace(
+          'name: fields.string({ maxLength: 100, nullable: true }),',
+          "name: fields.string({ maxLength: 100, nullable: true }),\n  plan: fields.string({ maxLength: 20, defaultValue: 'free' }),"
+        )
     );
     // The CLI imports models fresh in a new process; emulate it by pointing at a copy.
     const v2 = path.join(APP, 'src/models/user.ts');
@@ -150,7 +160,11 @@ export default defineConfig({ database: databaseConfigFromEnv(), models: './src/
       const conn = await db.connection();
       try {
         // existing document was backfilled with the default
-        const docs = await conn.execute!({ op: 'find', collection: 'users', filter: { email: 'a@example.com' } });
+        const docs = await conn.execute!({
+          op: 'find',
+          collection: 'users',
+          filter: { email: 'a@example.com' },
+        });
         expect(docs.rows[0]).toMatchObject({ plan: 'free' });
       } finally {
         await conn.release();
@@ -165,7 +179,11 @@ export default defineConfig({ database: databaseConfigFromEnv(), models: './src/
     try {
       const conn = await db2.connection();
       try {
-        const docs = await conn.execute!({ op: 'find', collection: 'users', filter: { email: 'a@example.com' } });
+        const docs = await conn.execute!({
+          op: 'find',
+          collection: 'users',
+          filter: { email: 'a@example.com' },
+        });
         expect(docs.rows[0]).not.toHaveProperty('plan');
       } finally {
         await conn.release();

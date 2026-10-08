@@ -8,8 +8,14 @@ JSango provides a fluent, type-safe workflow builder for orchestrating multi-age
 import { workflow, agent } from 'jsango';
 
 // Define specialist agents
-const researcher = agent({ name: 'Researcher', instructions: 'Find facts and references on the topic.' });
-const writer = agent({ name: 'Writer', instructions: 'Draft a compelling blog post from research.' });
+const researcher = agent({
+  name: 'Researcher',
+  instructions: 'Find facts and references on the topic.',
+});
+const writer = agent({
+  name: 'Writer',
+  instructions: 'Draft a compelling blog post from research.',
+});
 const reviewer = agent({ name: 'Reviewer', instructions: 'Review draft for clarity and tone.' });
 
 // Build workflow

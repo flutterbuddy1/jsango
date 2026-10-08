@@ -30,7 +30,9 @@ type MutableTable = {
 };
 
 function toMutable(def: TableDefinition): MutableTable {
-  const pk = def.primaryKey ? [...def.primaryKey] : def.columns.filter((c) => c.primaryKey).map((c) => c.name);
+  const pk = def.primaryKey
+    ? [...def.primaryKey]
+    : def.columns.filter((c) => c.primaryKey).map((c) => c.name);
   return {
     name: def.name,
     columns: def.columns.map((c) => ({ ...c })),
@@ -134,17 +136,27 @@ export class SchemaState {
     } else if (op instanceof AlterColumnOperation) {
       const table = this.tables.get(op.tableName);
       if (table) {
-        table.columns = table.columns.map((c) => (c.name === op.column.name ? { ...op.column } : c));
+        table.columns = table.columns.map((c) =>
+          c.name === op.column.name ? { ...op.column } : c
+        );
       }
     } else if (op instanceof RenameColumnOperation) {
       const table = this.tables.get(op.tableName);
       if (table) {
         const rename = (n: string) => (n === op.oldName ? op.newName : n);
-        table.columns = table.columns.map((c) => (c.name === op.oldName ? { ...c, name: op.newName } : c));
+        table.columns = table.columns.map((c) =>
+          c.name === op.oldName ? { ...c, name: op.newName } : c
+        );
         table.primaryKey = table.primaryKey.map(rename);
         table.indexes = table.indexes.map((i) => ({ ...i, columns: i.columns.map(rename) }));
-        table.uniqueConstraints = table.uniqueConstraints.map((u) => ({ ...u, columns: u.columns.map(rename) }));
-        table.foreignKeys = table.foreignKeys.map((f) => ({ ...f, columns: f.columns.map(rename) }));
+        table.uniqueConstraints = table.uniqueConstraints.map((u) => ({
+          ...u,
+          columns: u.columns.map(rename),
+        }));
+        table.foreignKeys = table.foreignKeys.map((f) => ({
+          ...f,
+          columns: f.columns.map(rename),
+        }));
       }
     } else if (op instanceof CreateIndexOperation) {
       const table = this.tables.get(op.tableName);
@@ -167,7 +179,9 @@ export class SchemaState {
     } else if (op instanceof DropUniqueConstraintOperation) {
       const table = this.tables.get(op.tableName);
       if (table) {
-        table.uniqueConstraints = table.uniqueConstraints.filter((u) => u.name !== op.constraintName);
+        table.uniqueConstraints = table.uniqueConstraints.filter(
+          (u) => u.name !== op.constraintName
+        );
       }
     } else if (op instanceof AddForeignKeyOperation) {
       const table = this.tables.get(op.tableName);

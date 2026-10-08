@@ -12,7 +12,9 @@ export class OpenRouterProvider extends OpenAiProvider {
   public override readonly name = 'openrouter';
 
   constructor(options: OpenRouterProviderOptions = {}) {
-    const apiKey = options.apiKey ?? (typeof process !== 'undefined' ? process.env?.OPENROUTER_API_KEY ?? '' : '');
+    const apiKey =
+      options.apiKey ??
+      (typeof process !== 'undefined' ? (process.env?.OPENROUTER_API_KEY ?? '') : '');
     const headers: Record<string, string> = {};
 
     if (options.siteUrl) {

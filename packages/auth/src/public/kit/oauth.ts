@@ -28,14 +28,31 @@ export interface OAuthProvider {
   /** Extra query parameters for the authorize URL (e.g. `{ prompt: 'select_account' }`). */
   readonly authorizeParams?: Readonly<Record<string, string>> | undefined;
   /** Loads the user's profile with the provider access token. */
-  profile(accessToken: string, tokens: Readonly<Record<string, unknown>>, fetchFn: typeof fetch): Promise<Omit<OAuthProfile, 'provider' | 'accessToken'>>;
+  profile(
+    accessToken: string,
+    tokens: Readonly<Record<string, unknown>>,
+    fetchFn: typeof fetch
+  ): Promise<Omit<OAuthProfile, 'provider' | 'accessToken'>>;
 }
 
-type ProviderCredentials = { clientId: string; clientSecret: string; redirectUri: string; scopes?: readonly string[] };
+type ProviderCredentials = {
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+  scopes?: readonly string[];
+};
 
-async function getJson(fetchFn: typeof fetch, url: string, accessToken: string): Promise<Record<string, unknown>> {
+async function getJson(
+  fetchFn: typeof fetch,
+  url: string,
+  accessToken: string
+): Promise<Record<string, unknown>> {
   const res = await fetchFn(url, {
-    headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json', 'User-Agent': 'jsango' },
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: 'application/json',
+      'User-Agent': 'jsango',
+    },
   });
   if (!res.ok) throw new Error(`${url} returned HTTP ${res.status}`);
   return (await res.json()) as Record<string, unknown>;
@@ -50,7 +67,11 @@ export function google(options: ProviderCredentials): OAuthProvider {
     tokenUrl: 'https://oauth2.googleapis.com/token',
     scopes: options.scopes ?? ['openid', 'email', 'profile'],
     async profile(accessToken, _tokens, fetchFn) {
-      const u = await getJson(fetchFn, 'https://openidconnect.googleapis.com/v1/userinfo', accessToken);
+      const u = await getJson(
+        fetchFn,
+        'https://openidconnect.googleapis.com/v1/userinfo',
+        accessToken
+      );
       return {
         id: String(u['sub']),
         email: u['email'] as string | undefined,
@@ -78,10 +99,18 @@ export function github(options: ProviderCredentials): OAuthProvider {
       let verified = false;
       try {
         const res = await fetchFn('https://api.github.com/user/emails', {
-          headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json', 'User-Agent': 'jsango' },
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Accept: 'application/json',
+            'User-Agent': 'jsango',
+          },
         });
         if (res.ok) {
-          const emails = (await res.json()) as Array<{ email: string; primary: boolean; verified: boolean }>;
+          const emails = (await res.json()) as Array<{
+            email: string;
+            primary: boolean;
+            verified: boolean;
+          }>;
           const primary = emails.find((e) => e.primary) ?? emails.find((e) => e.verified);
           if (primary) {
             email = primary.email;
@@ -107,14 +136,18 @@ export function github(options: ProviderCredentials): OAuthProvider {
  * Any OAuth 2.0 / OpenID Connect provider (Microsoft, GitLab, Discord, Keycloak, ...).
  * `userInfoUrl` must return JSON; map it with `mapProfile` when the fields are not OIDC-standard.
  */
-export function oauthProvider(options: ProviderCredentials & {
-  name: string;
-  authorizeUrl: string;
-  tokenUrl: string;
-  userInfoUrl: string;
-  authorizeParams?: Record<string, string>;
-  mapProfile?: (userInfo: Record<string, unknown>) => Omit<OAuthProfile, 'provider' | 'accessToken' | 'raw'>;
-}): OAuthProvider {
+export function oauthProvider(
+  options: ProviderCredentials & {
+    name: string;
+    authorizeUrl: string;
+    tokenUrl: string;
+    userInfoUrl: string;
+    authorizeParams?: Record<string, string>;
+    mapProfile?: (
+      userInfo: Record<string, unknown>
+    ) => Omit<OAuthProfile, 'provider' | 'accessToken' | 'raw'>;
+  }
+): OAuthProvider {
   return {
     ...options,
     scopes: options.scopes ?? ['openid', 'email', 'profile'],
@@ -141,7 +174,11 @@ export class OAuthError extends AuthenticationError {
 }
 
 /** Creates the authorize URL plus the state that must be stored in a signed cookie. */
-export function buildAuthorizeRequest(provider: OAuthProvider): { url: string; state: string; verifier: string } {
+export function buildAuthorizeRequest(provider: OAuthProvider): {
+  url: string;
+  state: string;
+  verifier: string;
+} {
   const state = Base64Url.encode(crypto.randomBytes(24));
   const verifier = Base64Url.encode(crypto.randomBytes(32));
   const challenge = Base64Url.encode(crypto.createHash('sha256').update(verifier).digest());
@@ -179,12 +216,16 @@ export async function completeAuthorization(
   const tokens = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   const accessToken = tokens['access_token'];
   if (!res.ok || typeof accessToken !== 'string') {
-    throw new OAuthError(`${provider.name} rejected the authorization code${tokens['error'] ? `: ${String(tokens['error'])}` : ''}.`);
+    throw new OAuthError(
+      `${provider.name} rejected the authorization code${tokens['error'] ? `: ${String(tokens['error'])}` : ''}.`
+    );
   }
   try {
     const profile = await provider.profile(accessToken, tokens, fetchFn);
     return { ...profile, provider: provider.name, accessToken };
   } catch (err) {
-    throw new OAuthError(`Could not load the ${provider.name} profile: ${err instanceof Error ? err.message : String(err)}`);
+    throw new OAuthError(
+      `Could not load the ${provider.name} profile: ${err instanceof Error ? err.message : String(err)}`
+    );
   }
 }

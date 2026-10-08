@@ -69,7 +69,13 @@ export class JwksVerifier {
         for (const jwk of body.keys ?? []) {
           if (jwk.use && jwk.use !== 'sig') continue;
           try {
-            keys.set(jwk.kid ?? '', crypto.createPublicKey({ key: jwk as unknown as crypto.JsonWebKeyInput['key'], format: 'jwk' }));
+            keys.set(
+              jwk.kid ?? '',
+              crypto.createPublicKey({
+                key: jwk as unknown as crypto.JsonWebKeyInput['key'],
+                format: 'jwk',
+              })
+            );
           } catch {
             // skip keys Node cannot import
           }
@@ -98,7 +104,8 @@ export class JwksVerifier {
     }
 
     const alg = header.alg ? ALGORITHMS[header.alg] : undefined;
-    if (!alg) throw new InvalidCredentialsError(`Disallowed JWT algorithm "${String(header.alg)}".`);
+    if (!alg)
+      throw new InvalidCredentialsError(`Disallowed JWT algorithm "${String(header.alg)}".`);
 
     let key: crypto.KeyObject | undefined;
     try {
@@ -109,7 +116,9 @@ export class JwksVerifier {
         key = this.keys.get(header.kid ?? '');
       }
     } catch (err) {
-      throw new InvalidCredentialsError(`Could not load signing keys: ${err instanceof Error ? err.message : String(err)}`);
+      throw new InvalidCredentialsError(
+        `Could not load signing keys: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
     if (!key) throw new InvalidCredentialsError('Unknown JWT signing key.');
 
@@ -118,7 +127,9 @@ export class JwksVerifier {
       Buffer.from(`${h}.${p}`),
       {
         key,
-        ...(alg.padding !== undefined ? { padding: alg.padding, saltLength: crypto.constants.RSA_PSS_SALTLEN_DIGEST } : {}),
+        ...(alg.padding !== undefined
+          ? { padding: alg.padding, saltLength: crypto.constants.RSA_PSS_SALTLEN_DIGEST }
+          : {}),
         ...(alg.ieee ? { dsaEncoding: 'ieee-p1363' as const } : {}),
       },
       Base64Url.decodeToBuffer(s)
@@ -127,15 +138,19 @@ export class JwksVerifier {
 
     const now = Math.floor(Date.now() / 1000);
     const tolerance = this.options.clockToleranceSeconds ?? 30;
-    if (typeof payload.exp !== 'number') throw new InvalidCredentialsError('JWT has no expiry (exp).');
+    if (typeof payload.exp !== 'number')
+      throw new InvalidCredentialsError('JWT has no expiry (exp).');
     if (now - tolerance >= payload.exp) throw new TokenExpiredError();
     if (typeof payload.nbf === 'number' && now + tolerance < payload.nbf) {
       throw new InvalidCredentialsError('JWT token is not active yet.');
     }
-    const issuers = typeof this.options.issuer === 'string' ? [this.options.issuer] : this.options.issuer;
-    if (!issuers.includes(String(payload.iss))) throw new InvalidCredentialsError('JWT issuer mismatch.');
+    const issuers =
+      typeof this.options.issuer === 'string' ? [this.options.issuer] : this.options.issuer;
+    if (!issuers.includes(String(payload.iss)))
+      throw new InvalidCredentialsError('JWT issuer mismatch.');
     if (this.options.audience) {
-      const expected = typeof this.options.audience === 'string' ? [this.options.audience] : this.options.audience;
+      const expected =
+        typeof this.options.audience === 'string' ? [this.options.audience] : this.options.audience;
       const actual = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
       if (!actual.some((a) => expected.includes(a as string))) {
         throw new InvalidCredentialsError('JWT audience mismatch.');

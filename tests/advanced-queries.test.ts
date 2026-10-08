@@ -70,15 +70,27 @@ function defineModels() {
       softDelete: true,
       registry,
       indexes: [{ columns: ['genre', 'price'] }],
-      relations: { author: { type: 'belongsTo', target: () => Author as any, foreignKey: 'authorId' } },
+      relations: {
+        author: { type: 'belongsTo', target: () => Author as any, foreignKey: 'authorId' },
+      },
     }
   );
-  const Counter = defineModel('Counter', { id: fields.id(), label: fields.string() }, { table: 'q_counters', registry });
+  const Counter = defineModel(
+    'Counter',
+    { id: fields.id(), label: fields.string() },
+    { table: 'q_counters', registry }
+  );
   return { registry, Author, Book, Counter };
 }
 
 async function cleanSlate(db: DatabaseManager, isMongo: boolean) {
-  const names = ['q_books', 'q_authors', 'q_counters', 'jsango_migrations', 'jsango_migration_lock'];
+  const names = [
+    'q_books',
+    'q_authors',
+    'q_counters',
+    'jsango_migrations',
+    'jsango_migration_lock',
+  ];
   if (isMongo) {
     const conn = await db.connection();
     try {
@@ -89,7 +101,9 @@ async function cleanSlate(db: DatabaseManager, isMongo: boolean) {
     return;
   }
   for (const t of names) {
-    await db.query(`DROP TABLE IF EXISTS ${db.getDialect().quoteIdentifier(t)}`).catch(() => undefined);
+    await db
+      .query(`DROP TABLE IF EXISTS ${db.getDialect().quoteIdentifier(t)}`)
+      .catch(() => undefined);
   }
 }
 
@@ -109,7 +123,12 @@ async function runSuite(db: DatabaseManager, opts: SuiteOptions): Promise<void> 
     defineMigration({
       id: '20260102000000_add_isbn',
       async up(ctx) {
-        await ctx.addColumn('q_books', { name: 'isbn', type: 'string', length: 20, nullable: true });
+        await ctx.addColumn('q_books', {
+          name: 'isbn',
+          type: 'string',
+          length: 20,
+          nullable: true,
+        });
         await ctx.addIndex('q_books', ['isbn'], { name: 'idx_q_books_isbn' });
       },
       async down(ctx) {
@@ -125,9 +144,25 @@ async function runSuite(db: DatabaseManager, opts: SuiteOptions): Promise<void> 
 
   // --- create / defaults / ids / json / dates ---------------------------------------------------
   const at = (s: number) => new Date(Date.UTC(2026, 0, 1, 0, 0, s));
-  const ada = (await Author.create({ name: 'Ada', email: 'ada@example.com', country: 'GB', profile: { tags: ['math', 'code'] }, createdAt: at(1) })) as any;
-  const bob = (await Author.create({ name: 'Bob', email: 'bob@example.com', country: 'US', createdAt: at(2) })) as any;
-  const cy = (await Author.create({ name: 'Cy', email: 'cy@example.com', active: false, createdAt: at(3) })) as any;
+  const ada = (await Author.create({
+    name: 'Ada',
+    email: 'ada@example.com',
+    country: 'GB',
+    profile: { tags: ['math', 'code'] },
+    createdAt: at(1),
+  })) as any;
+  const bob = (await Author.create({
+    name: 'Bob',
+    email: 'bob@example.com',
+    country: 'US',
+    createdAt: at(2),
+  })) as any;
+  const cy = (await Author.create({
+    name: 'Cy',
+    email: 'cy@example.com',
+    active: false,
+    createdAt: at(3),
+  })) as any;
   expect(ada.id).toMatch(/^[0-9a-f]{24}$/);
   expect(ada.active).toBe(true);
   expect(ada.logins).toBe(0);
@@ -144,10 +179,31 @@ async function runSuite(db: DatabaseManager, opts: SuiteOptions): Promise<void> 
   expect(((await Counter.find(counter.id)) as any).label).toBe('x');
 
   await Book.bulkCreate([
-    { title: 'Analytical Engines', genre: 'science', price: 30, pages: 300, authorId: ada.id, publishedAt: new Date('2020-01-01T00:00:00Z') },
-    { title: 'Notes on Programs', genre: 'science', price: 12.5, pages: 120, authorId: ada.id, publishedAt: new Date('2021-06-01T00:00:00Z') },
+    {
+      title: 'Analytical Engines',
+      genre: 'science',
+      price: 30,
+      pages: 300,
+      authorId: ada.id,
+      publishedAt: new Date('2020-01-01T00:00:00Z'),
+    },
+    {
+      title: 'Notes on Programs',
+      genre: 'science',
+      price: 12.5,
+      pages: 120,
+      authorId: ada.id,
+      publishedAt: new Date('2021-06-01T00:00:00Z'),
+    },
     { title: 'Bob Builds', genre: 'kids', price: 8, pages: 40, authorId: bob.id },
-    { title: 'The Big Book', genre: 'fiction', price: 25, pages: 900, authorId: bob.id, publishedAt: new Date('2019-03-01T00:00:00Z') },
+    {
+      title: 'The Big Book',
+      genre: 'fiction',
+      price: 25,
+      pages: 900,
+      authorId: bob.id,
+      publishedAt: new Date('2019-03-01T00:00:00Z'),
+    },
     { title: 'Tiny Tales', genre: 'fiction', price: 5, authorId: cy.id },
   ]);
   expect(await Book.count()).toBe(5);
@@ -156,30 +212,65 @@ async function runSuite(db: DatabaseManager, opts: SuiteOptions): Promise<void> 
   await expect(Author.create({ name: 'Dup', email: 'ada@example.com' })).rejects.toThrow();
 
   // --- where variants -----------------------------------------------------------------------
-  const titles = async (q: { get(): Promise<readonly any[]> }) => (await q.get()).map((b: any) => b.title).sort();
+  const titles = async (q: { get(): Promise<readonly any[]> }) =>
+    (await q.get()).map((b: any) => b.title).sort();
 
-  expect(await titles(Book.where('genre', 'science'))).toEqual(['Analytical Engines', 'Notes on Programs']);
-  expect(await titles(Book.where('price', '>', 20))).toEqual(['Analytical Engines', 'The Big Book']);
+  expect(await titles(Book.where('genre', 'science'))).toEqual([
+    'Analytical Engines',
+    'Notes on Programs',
+  ]);
+  expect(await titles(Book.where('price', '>', 20))).toEqual([
+    'Analytical Engines',
+    'The Big Book',
+  ]);
   expect(await titles(Book.where({ genre: 'fiction', price: 5 }))).toEqual(['Tiny Tales']);
-  expect(await titles(Book.whereIn('genre', ['kids', 'fiction']).whereNotIn('title', ['Tiny Tales']))).toEqual(['Bob Builds', 'The Big Book']);
+  expect(
+    await titles(Book.whereIn('genre', ['kids', 'fiction']).whereNotIn('title', ['Tiny Tales']))
+  ).toEqual(['Bob Builds', 'The Big Book']);
   expect(await titles(Book.whereNull('pages'))).toEqual(['Tiny Tales']);
-  expect(await titles(Book.query().whereNotNull('publishedAt').where('price', '<', 20))).toEqual(['Notes on Programs']);
-  expect(await titles(Book.whereBetween('price', [8, 25]))).toEqual(['Bob Builds', 'Notes on Programs', 'The Big Book']);
-  expect(await titles(Book.query().whereNotBetween('price', [8, 25]))).toEqual(['Analytical Engines', 'Tiny Tales']);
+  expect(await titles(Book.query().whereNotNull('publishedAt').where('price', '<', 20))).toEqual([
+    'Notes on Programs',
+  ]);
+  expect(await titles(Book.whereBetween('price', [8, 25]))).toEqual([
+    'Bob Builds',
+    'Notes on Programs',
+    'The Big Book',
+  ]);
+  expect(await titles(Book.query().whereNotBetween('price', [8, 25]))).toEqual([
+    'Analytical Engines',
+    'Tiny Tales',
+  ]);
   expect(await titles(Book.whereLike('title', '%book%'))).toEqual(['The Big Book']); // case-insensitive
   expect(await titles(Book.whereLike('title', 'b%'))).toEqual(['Bob Builds']);
-  expect(await titles(Book.whereNot('genre', 'science'))).toEqual(['Bob Builds', 'The Big Book', 'Tiny Tales']);
+  expect(await titles(Book.whereNot('genre', 'science'))).toEqual([
+    'Bob Builds',
+    'The Big Book',
+    'Tiny Tales',
+  ]);
 
   // grouped conditions: genre = fiction AND (price < 10 OR pages > 500)
   expect(
-    await titles(Book.where('genre', 'fiction').where((q: any) => q.where('price', '<', 10).orWhere('pages', '>', 500)))
+    await titles(
+      Book.where('genre', 'fiction').where((q: any) =>
+        q.where('price', '<', 10).orWhere('pages', '>', 500)
+      )
+    )
   ).toEqual(['The Big Book', 'Tiny Tales']);
   // precedence: a AND b OR c
-  expect(await titles(Book.where('genre', 'kids').where('price', 8).orWhere('title', 'Tiny Tales'))).toEqual(['Bob Builds', 'Tiny Tales']);
-  expect(await titles(Book.query().whereNot((q: any) => q.where('genre', 'science').orWhere('genre', 'kids')))).toEqual(['The Big Book', 'Tiny Tales']);
+  expect(
+    await titles(Book.where('genre', 'kids').where('price', 8).orWhere('title', 'Tiny Tales'))
+  ).toEqual(['Bob Builds', 'Tiny Tales']);
+  expect(
+    await titles(
+      Book.query().whereNot((q: any) => q.where('genre', 'science').orWhere('genre', 'kids'))
+    )
+  ).toEqual(['The Big Book', 'Tiny Tales']);
 
   // dates compare natively
-  expect(await titles(Book.where('publishedAt', '>=', new Date('2020-01-01T00:00:00Z')))).toEqual(['Analytical Engines', 'Notes on Programs']);
+  expect(await titles(Book.where('publishedAt', '>=', new Date('2020-01-01T00:00:00Z')))).toEqual([
+    'Analytical Engines',
+    'Notes on Programs',
+  ]);
 
   // raw escape hatch per dialect
   const raw = opts.isMongo
@@ -190,7 +281,10 @@ async function runSuite(db: DatabaseManager, opts: SuiteOptions): Promise<void> 
   // --- ordering / paging / selection ---------------------------------------------------------
   const byPrice = (await Book.orderBy('price', 'DESC').limit(2).get()).map((b: any) => b.title);
   expect(byPrice).toEqual(['Analytical Engines', 'The Big Book']);
-  expect((await Book.orderBy('price').offset(3).get()).map((b: any) => b.title)).toEqual(['The Big Book', 'Analytical Engines']);
+  expect((await Book.orderBy('price').offset(3).get()).map((b: any) => b.title)).toEqual([
+    'The Big Book',
+    'Analytical Engines',
+  ]);
   const page = await Book.query().orderBy('price').paginate({ page: 2, pageSize: 2 });
   expect(page.total).toBe(5);
   expect(page.totalPages).toBe(3);
@@ -198,7 +292,9 @@ async function runSuite(db: DatabaseManager, opts: SuiteOptions): Promise<void> 
 
   expect((await Book.orderBy('price').pluck<string>('title'))[0]).toBe('Tiny Tales');
   expect(await Book.where('genre', 'kids').value<string>('title')).toBe('Bob Builds');
-  const genres = (await Book.select('genre').distinct().orderBy('genre').get()).map((b: any) => b.genre);
+  const genres = (await Book.select('genre').distinct().orderBy('genre').get()).map(
+    (b: any) => b.genre
+  );
   expect(genres).toEqual(['fiction', 'kids', 'science']);
   expect((await Author.findMany([ada.id, bob.id])).length).toBe(2);
   expect(((await Author.latest().first()) as any).name).toBe('Cy');
@@ -233,7 +329,11 @@ async function runSuite(db: DatabaseManager, opts: SuiteOptions): Promise<void> 
     { genre: 'kids', total: 8, books: 1, longest: 40 },
   ]);
   if (opts.supportsHaving !== false) {
-    const popular = await Book.query().groupBy(['genre'], { books: ['count'] }, { having: [['books', '>=', 2]], orderBy: [['genre', 'ASC']] });
+    const popular = await Book.query().groupBy(
+      ['genre'],
+      { books: ['count'] },
+      { having: [['books', '>=', 2]], orderBy: [['genre', 'ASC']] }
+    );
     expect(popular).toEqual([
       { genre: 'fiction', books: 2 },
       { genre: 'science', books: 2 },
@@ -244,7 +344,10 @@ async function runSuite(db: DatabaseManager, opts: SuiteOptions): Promise<void> 
   const withAuthor = (await Book.where('title', 'Bob Builds').with('author').first()) as any;
   expect(withAuthor.author.name).toBe('Bob');
   const withBooks = (await Author.where('email', 'ada@example.com').with('books').first()) as any;
-  expect(withBooks.books.map((b: any) => b.title).sort()).toEqual(['Analytical Engines', 'Notes on Programs']);
+  expect(withBooks.books.map((b: any) => b.title).sort()).toEqual([
+    'Analytical Engines',
+    'Notes on Programs',
+  ]);
 
   // --- updates ---------------------------------------------------------------------------
   expect(await Book.where('genre', 'fiction').update({ genre: 'novel' })).toBe(2);
@@ -258,9 +361,15 @@ async function runSuite(db: DatabaseManager, opts: SuiteOptions): Promise<void> 
 
   const first = (await Author.firstOrCreate({ email: 'ada@example.com' }, { name: 'Nope' })) as any;
   expect(first.id).toBe(ada.id);
-  const created = (await Author.firstOrCreate({ email: 'dee@example.com' }, { name: 'Dee' })) as any;
+  const created = (await Author.firstOrCreate(
+    { email: 'dee@example.com' },
+    { name: 'Dee' }
+  )) as any;
   expect(created.name).toBe('Dee');
-  const upserted = (await Author.updateOrCreate({ email: 'dee@example.com' }, { country: 'IN' })) as any;
+  const upserted = (await Author.updateOrCreate(
+    { email: 'dee@example.com' },
+    { country: 'IN' }
+  )) as any;
   expect(upserted.id).toBe(created.id);
   expect(((await Author.find(created.id)) as any).country).toBe('IN');
 
@@ -311,7 +420,10 @@ afterAll(() => clearDatabaseManager());
 
 describe('advanced queries: SQLite', () => {
   it('runs the full scenario', async () => {
-    const db = new DatabaseManager({ default: 'default', connections: { default: { driver: 'sqlite', filename: ':memory:' } } });
+    const db = new DatabaseManager({
+      default: 'default',
+      connections: { default: { driver: 'sqlite', filename: ':memory:' } },
+    });
     try {
       await runSuite(db, { rollsBack: true, isMongo: false });
     } finally {
@@ -323,7 +435,10 @@ describe('advanced queries: SQLite', () => {
 describe('advanced queries: PostgreSQL (pg-mem)', () => {
   it('runs the full scenario', async () => {
     const mem = newDb({ noAstCoverageCheck: true });
-    const db = new DatabaseManager({ default: 'default', connections: { default: { driver: 'postgres' } } });
+    const db = new DatabaseManager({
+      default: 'default',
+      connections: { default: { driver: 'postgres' } },
+    });
     db.registerDriver('postgres', new PostgresDatabaseDriver({}, { pg: mem.adapters.createPg() }));
     try {
       await runSuite(db, { rollsBack: false, isMongo: false, supportsHaving: false });
@@ -345,7 +460,9 @@ describe('advanced queries: MongoDB (replica set)', () => {
   it('runs the full scenario', async () => {
     const db = new DatabaseManager({
       default: 'default',
-      connections: { default: { driver: 'mongodb', url: replSet.getUri(), database: 'jsango_test' } },
+      connections: {
+        default: { driver: 'mongodb', url: replSet.getUri(), database: 'jsango_test' },
+      },
     });
     try {
       await runSuite(db, { rollsBack: true, isMongo: true });
@@ -357,7 +474,11 @@ describe('advanced queries: MongoDB (replica set)', () => {
         const names = indexes.rows.map((r: any) => r.name);
         expect(names).toContain('uq_q_authors_email');
         await expect(
-          conn.execute!({ op: 'insertOne', collection: 'q_authors', document: { email: 'x@example.com' } })
+          conn.execute!({
+            op: 'insertOne',
+            collection: 'q_authors',
+            document: { email: 'x@example.com' },
+          })
         ).rejects.toThrow(/Document failed validation/);
       } finally {
         await conn.release();
@@ -384,7 +505,11 @@ describe('advanced queries: MongoDB (replica set)', () => {
       await runner.migrate();
       const c2 = await db.connection();
       try {
-        await c2.execute!({ op: 'insertMany', collection: 'm_people', documents: [{ name: 'a' }, { name: 'b' }] });
+        await c2.execute!({
+          op: 'insertMany',
+          collection: 'm_people',
+          documents: [{ name: 'a' }, { name: 'b' }],
+        });
       } finally {
         await c2.release();
       }
@@ -392,7 +517,12 @@ describe('advanced queries: MongoDB (replica set)', () => {
         defineMigration({
           id: '20260202000000_evolve',
           async up(ctx) {
-            await ctx.addColumn('m_people', { name: 'tier', type: 'string', nullable: false, defaultValue: 'free' });
+            await ctx.addColumn('m_people', {
+              name: 'tier',
+              type: 'string',
+              nullable: false,
+              defaultValue: 'free',
+            });
             await ctx.renameColumn('m_people', 'name', 'fullName');
           },
           async down(ctx) {
@@ -404,14 +534,18 @@ describe('advanced queries: MongoDB (replica set)', () => {
       await runner.migrate();
       const c3 = await db.connection();
       try {
-        const docs = await c3.execute!({ op: 'find', collection: 'm_people', sort: { fullName: 1 } });
+        const docs = await c3.execute!({
+          op: 'find',
+          collection: 'm_people',
+          sort: { fullName: 1 },
+        });
         expect(docs.rows.map((d: any) => [d.fullName, d.tier, d.name])).toEqual([
           ['a', 'free', undefined],
           ['b', 'free', undefined],
         ]);
-        await expect(c3.execute!({ op: 'insertOne', collection: 'm_people', document: { fullName: 'c' } })).rejects.toThrow(
-          /failed validation/
-        );
+        await expect(
+          c3.execute!({ op: 'insertOne', collection: 'm_people', document: { fullName: 'c' } })
+        ).rejects.toThrow(/failed validation/);
       } finally {
         await c3.release();
       }

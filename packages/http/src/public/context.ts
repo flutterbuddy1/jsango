@@ -34,12 +34,17 @@ export class RequestContext {
   /* eslint-disable @typescript-eslint/no-explicit-any -- request data is untyped until validated; `any` keeps `({ body }) => body.title` ergonomic */
   /** Route parameters (`/posts/:id` → `ctx.params.id`). Validated values when `validate({ params })` ran. */
   public get params(): Readonly<Record<string, any>> {
-    return (this.state.get('validatedParams') as Record<string, any> | undefined) ?? this.request.params;
+    return (
+      (this.state.get('validatedParams') as Record<string, any> | undefined) ?? this.request.params
+    );
   }
 
   /** Query string as an object (`?page=2` → `ctx.query.page`). Validated values when `validate({ query })` ran. */
   public get query(): Readonly<Record<string, any>> {
-    return (this.state.get('validatedQuery') as Record<string, any> | undefined) ?? this.request.query.toRecord();
+    return (
+      (this.state.get('validatedQuery') as Record<string, any> | undefined) ??
+      this.request.query.toRecord()
+    );
   }
 
   /**

@@ -56,7 +56,9 @@ function defineModels() {
     {
       table: 'books',
       registry,
-      relations: { author: { type: 'belongsTo', target: () => Author as any, foreignKey: 'authorId' } },
+      relations: {
+        author: { type: 'belongsTo', target: () => Author as any, foreignKey: 'authorId' },
+      },
     }
   );
   return { registry, Author, Book };
@@ -69,7 +71,9 @@ async function scenario(db: DatabaseManager, rollsBack = true): Promise<void> {
 
   // Clean slate for real servers
   for (const t of ['books', 'authors', 'jsango_migrations', 'jsango_migration_lock']) {
-    await db.query(`DROP TABLE IF EXISTS ${db.getDialect().quoteIdentifier(t)}`).catch(() => undefined);
+    await db
+      .query(`DROP TABLE IF EXISTS ${db.getDialect().quoteIdentifier(t)}`)
+      .catch(() => undefined);
   }
 
   // 1. Generate the initial migration from models (exactly what makemigrations does)
@@ -152,8 +156,14 @@ afterEach(() => {
 describe('PostgreSQL (pg-mem)', () => {
   it('runs migrations and ORM operations', async () => {
     const mem = newDb({ noAstCoverageCheck: true });
-    const db = new DatabaseManager({ default: 'default', connections: { default: { driver: 'postgres', database: 'app' } } });
-    db.registerDriver('postgres', new PostgresDatabaseDriver({ database: 'app' }, { pg: mem.adapters.createPg() }));
+    const db = new DatabaseManager({
+      default: 'default',
+      connections: { default: { driver: 'postgres', database: 'app' } },
+    });
+    db.registerDriver(
+      'postgres',
+      new PostgresDatabaseDriver({ database: 'app' }, { pg: mem.adapters.createPg() })
+    );
     try {
       await scenario(db, false);
     } finally {
@@ -165,7 +175,10 @@ describe('PostgreSQL (pg-mem)', () => {
 const PG_URL = process.env['JSANGO_TEST_POSTGRES_URL'];
 describe.skipIf(!PG_URL)('PostgreSQL (real server)', () => {
   it('runs migrations and ORM operations', async () => {
-    const db = new DatabaseManager({ default: 'default', connections: { default: { url: PG_URL } } });
+    const db = new DatabaseManager({
+      default: 'default',
+      connections: { default: { url: PG_URL } },
+    });
     try {
       await scenario(db);
     } finally {
@@ -177,7 +190,10 @@ describe.skipIf(!PG_URL)('PostgreSQL (real server)', () => {
 const MYSQL_URL = process.env['JSANGO_TEST_MYSQL_URL'];
 describe.skipIf(!MYSQL_URL)('MySQL (real server)', () => {
   it('runs migrations and ORM operations', async () => {
-    const db = new DatabaseManager({ default: 'default', connections: { default: { url: MYSQL_URL } } });
+    const db = new DatabaseManager({
+      default: 'default',
+      connections: { default: { url: MYSQL_URL } },
+    });
     try {
       await scenario(db);
     } finally {
@@ -207,9 +223,11 @@ describe('MySQL SQL generation', () => {
   });
 
   it('compiles ALTER / DROP statements with MySQL syntax', () => {
-    expect(compiler.compile(new AddColumnOperation('books', { name: 'pages', type: 'integer', nullable: true }))).toBe(
-      'ALTER TABLE `books` ADD COLUMN `pages` INT;'
-    );
+    expect(
+      compiler.compile(
+        new AddColumnOperation('books', { name: 'pages', type: 'integer', nullable: true })
+      )
+    ).toBe('ALTER TABLE `books` ADD COLUMN `pages` INT;');
     const dialect = new SqlDialect('question', { name: 'mysql' });
     expect(dialect.quoteIdentifier('books')).toBe('`books`');
     expect(dialect.beginTransactionStatements({ isolationLevel: 'SERIALIZABLE' })).toEqual([

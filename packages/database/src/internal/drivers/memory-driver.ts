@@ -288,7 +288,10 @@ export class MemoryDriverConnection implements IDriverConnection {
 
         if (newRow['id'] === undefined || newRow['id'] === null) {
           const nextId =
-            table.reduce((max, r) => (typeof r['id'] === 'number' && r['id'] > max ? r['id'] : max), 0) + 1;
+            table.reduce(
+              (max, r) => (typeof r['id'] === 'number' && r['id'] > max ? r['id'] : max),
+              0
+            ) + 1;
           newRow['id'] = nextId;
           lastId = nextId;
         } else if (typeof newRow['id'] === 'number') {

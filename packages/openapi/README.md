@@ -13,7 +13,13 @@ pnpm add @jsango/openapi
 ## Usage
 
 ```typescript
-import { OpenApiGenerator, OpenApiRegistry, OpenApiFormatter, SchemaBuilder, createOpenApiHandler } from '@jsango/openapi';
+import {
+  OpenApiGenerator,
+  OpenApiRegistry,
+  OpenApiFormatter,
+  SchemaBuilder,
+  createOpenApiHandler,
+} from '@jsango/openapi';
 import { Router } from '@jsango/router';
 
 const router = new Router();
@@ -22,13 +28,21 @@ router.get('/users/:id', (ctx) => ({ id: ctx.request.params.id }), {
     openapi: {
       summary: 'Get a user',
       tags: ['users'],
-      responses: { '200': { description: 'The user', content: { 'application/json': { schema: SchemaBuilder.ref('User') } } } },
+      responses: {
+        '200': {
+          description: 'The user',
+          content: { 'application/json': { schema: SchemaBuilder.ref('User') } },
+        },
+      },
     },
   },
 });
 
 const registry = new OpenApiRegistry();
-registry.registerSchema('User', SchemaBuilder.object({ id: SchemaBuilder.uuid(), email: SchemaBuilder.email() }, ['id', 'email']));
+registry.registerSchema(
+  'User',
+  SchemaBuilder.object({ id: SchemaBuilder.uuid(), email: SchemaBuilder.email() }, ['id', 'email'])
+);
 
 const generator = new OpenApiGenerator({ info: { title: 'My API', version: '1.0.0' }, registry });
 const spec = generator.generate(router);

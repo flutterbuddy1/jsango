@@ -144,7 +144,15 @@ function modelFor(name: string) {
 export function createOrmAdminQueryAdapter(): IAdminQueryAdapter {
   return {
     // `query` arrives validated: sort/filter fields are allow-listed and pageSize is capped.
-    async list({ modelName, query, searchFields, primaryKey, defaultSortField, defaultSortDirection, pageSize }) {
+    async list({
+      modelName,
+      query,
+      searchFields,
+      primaryKey,
+      defaultSortField,
+      defaultSortDirection,
+      pageSize,
+    }) {
       let q = modelFor(modelName).query();
       const search = query.search;
       if (search && searchFields.length > 0) {
@@ -154,7 +162,10 @@ export function createOrmAdminQueryAdapter(): IAdminQueryAdapter {
       for (const [field, value] of Object.entries(query.filters ?? {})) q = q.where(field, value);
       const dir = (query.sortDirection ?? defaultSortDirection) === 'desc' ? 'DESC' : 'ASC';
       q = q.orderBy(query.sort ?? defaultSortField, dir).orderBy(primaryKey, 'ASC');
-      const result = await q.paginate({ page: query.page ?? 1, pageSize: query.pageSize ?? pageSize });
+      const result = await q.paginate({
+        page: query.page ?? 1,
+        pageSize: query.pageSize ?? pageSize,
+      });
       return { ...result, items: result.items.map((item) => item.toJSON()) };
     },
     async findById({ modelName, id }) {

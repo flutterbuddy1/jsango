@@ -154,14 +154,20 @@ export function driverFromUrl(url: string): string | undefined {
  * Validates a connection entry and fills in the driver from `url` when it is omitted.
  * Empty-string values (common with unset env vars) are treated as not set.
  */
-export function resolveConnectionConfig(name: string, config: ConnectionConfig): ConnectionConfig & { driver: string } {
+export function resolveConnectionConfig(
+  name: string,
+  config: ConnectionConfig
+): ConnectionConfig & { driver: string } {
   if (!config || typeof config !== 'object') {
     throw new DatabaseConfigurationError(`Database connection "${name}" must be an object.`);
   }
 
-  const url = typeof config.url === 'string' && config.url.trim() !== '' ? config.url.trim() : undefined;
+  const url =
+    typeof config.url === 'string' && config.url.trim() !== '' ? config.url.trim() : undefined;
   const explicitDriver =
-    typeof config.driver === 'string' && config.driver.trim() !== '' ? config.driver.trim() : undefined;
+    typeof config.driver === 'string' && config.driver.trim() !== ''
+      ? config.driver.trim()
+      : undefined;
   const driver = explicitDriver ?? (url ? driverFromUrl(url) : undefined);
 
   if (!driver) {
@@ -243,7 +249,8 @@ export function databaseConfigFromEnv(
   };
 
   const url = get('URL');
-  const driver = get('DRIVER') ?? (url ? driverFromUrl(url) : undefined) ?? options?.defaultDriver ?? 'sqlite';
+  const driver =
+    get('DRIVER') ?? (url ? driverFromUrl(url) : undefined) ?? options?.defaultDriver ?? 'sqlite';
   const poolMin = envNumber(get('POOL_MIN'));
   const poolMax = envNumber(get('POOL_MAX'));
 
@@ -256,9 +263,12 @@ export function databaseConfigFromEnv(
     username: get('USER'),
     password: get('PASSWORD'),
     filename:
-      driver === 'sqlite' && !url ? (get('FILE') ?? options?.defaultSqliteFile ?? './db.sqlite3') : undefined,
+      driver === 'sqlite' && !url
+        ? (get('FILE') ?? options?.defaultSqliteFile ?? './db.sqlite3')
+        : undefined,
     ssl: envFlagToSsl(get('SSL')),
-    pool: poolMin !== undefined || poolMax !== undefined ? { min: poolMin, max: poolMax } : undefined,
+    pool:
+      poolMin !== undefined || poolMax !== undefined ? { min: poolMin, max: poolMax } : undefined,
   };
 
   return { default: 'default', connections: { default: connection } };

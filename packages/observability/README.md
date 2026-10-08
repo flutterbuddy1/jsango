@@ -19,7 +19,10 @@ const logger = new StructuredLogger({ minLevel: 'info', context: { service: 'api
 logger.info('server started', { port: 3000, password: 'hidden' }); // sensitive keys are redacted
 
 const metrics = new MetricRegistry();
-const requests = metrics.counter('http_requests_total', 'Total HTTP requests', ['method', 'status']);
+const requests = metrics.counter('http_requests_total', 'Total HTTP requests', [
+  'method',
+  'status',
+]);
 requests.inc(1, { method: 'GET', status: '200' });
 console.log(metrics.toPrometheus());
 

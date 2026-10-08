@@ -39,9 +39,13 @@ function's destructured argument:
 ```typescript
 import { tool } from 'jsango';
 
-export const getWeather = tool('getWeather', 'Get current weather for a city', async ({ city }: { city: string }) => {
-  return { city, temperature: 22, condition: 'Sunny' };
-});
+export const getWeather = tool(
+  'getWeather',
+  'Get current weather for a city',
+  async ({ city }: { city: string }) => {
+    return { city, temperature: 22, condition: 'Sunny' };
+  }
+);
 ```
 
 ---

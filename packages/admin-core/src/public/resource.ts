@@ -84,7 +84,8 @@ export class AdminResource {
     this.defaultSortDirection = options.defaultSortDirection ?? 'asc';
     this.defaultPageSize = options.defaultPageSize ?? 25;
     this.maxPageSize = options.maxPageSize ?? 100;
-    this.canSoftDelete = options.canSoftDelete ?? options.modelMetadata?.softDelete.enabled ?? false;
+    this.canSoftDelete =
+      options.canSoftDelete ?? options.modelMetadata?.softDelete.enabled ?? false;
     this.exactCount = options.exactCount ?? true;
     this.exportBatchSize = options.exportBatchSize ?? 1000;
 
@@ -93,7 +94,13 @@ export class AdminResource {
       options.filters ??
       [...this.fields.values()]
         .filter((f) => f.filterable && (f.type === 'boolean' || f.enumChoices))
-        .map((f) => ({ name: f.name, field: f.name, type: f.type === 'boolean' ? ('boolean' as const) : ('enum' as const), label: f.label, choices: f.enumChoices }));
+        .map((f) => ({
+          name: f.name,
+          field: f.name,
+          type: f.type === 'boolean' ? ('boolean' as const) : ('enum' as const),
+          label: f.label,
+          choices: f.enumChoices,
+        }));
     for (const filter of filters) {
       this.filters.set(filter.name, new AdminFilter(filter));
     }
@@ -161,7 +168,8 @@ export function deriveFieldsFromModel(metadata: ModelMetadata): AdminFieldConfig
     fields.push({
       name,
       type,
-      required: !fieldMeta.nullable && !fieldMeta.primaryKey && fieldMeta.defaultValue === undefined,
+      required:
+        !fieldMeta.nullable && !fieldMeta.primaryKey && fieldMeta.defaultValue === undefined,
       readonly: fieldMeta.primaryKey || name === 'createdAt' || name === 'updatedAt',
       sensitive,
       hidden: sensitive,

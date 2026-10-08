@@ -48,7 +48,9 @@ async function readLiveTable(conn: Executor, table: string): Promise<LiveTable> 
   );
   const createSql = master.rows[0]?.sql;
   if (!createSql) {
-    throw new MigrationError({ message: `Cannot rebuild SQLite table '${table}': it does not exist.` });
+    throw new MigrationError({
+      message: `Cannot rebuild SQLite table '${table}': it does not exist.`,
+    });
   }
 
   const info = await conn.query<{
@@ -84,7 +86,7 @@ async function readLiveTable(conn: Executor, table: string): Promise<LiveTable> 
     on_delete: string;
   }>(`PRAGMA foreign_key_list(${q(table)})`);
 
-  const fkGroups = new Map<number, typeof fkRows.rows[number][]>();
+  const fkGroups = new Map<number, (typeof fkRows.rows)[number][]>();
   for (const row of fkRows.rows) {
     const list = fkGroups.get(Number(row.id)) ?? [];
     list.push(row);
@@ -155,7 +157,9 @@ export async function rebuildSqliteTable(
 ): Promise<void> {
   const tableName = (operation as { tableName?: string }).tableName;
   if (!tableName) {
-    throw new MigrationError({ message: `Operation '${operation.type}' cannot be applied by rebuilding a table.` });
+    throw new MigrationError({
+      message: `Operation '${operation.type}' cannot be applied by rebuilding a table.`,
+    });
   }
 
   const fkState = await conn.query<Record<string, unknown>>('PRAGMA foreign_keys');
@@ -187,7 +191,9 @@ export async function rebuildSqliteTable(
   } else if (operation instanceof DropColumnOperation) {
     const name = operation.columnName;
     if (!columns.some((c) => c.name === name)) {
-      throw new MigrationError({ message: `Column '${name}' does not exist on table '${tableName}'.` });
+      throw new MigrationError({
+        message: `Column '${name}' does not exist on table '${tableName}'.`,
+      });
     }
     columns = columns.filter((c) => c.name !== name);
     copyColumns.delete(name);
@@ -197,10 +203,15 @@ export async function rebuildSqliteTable(
     const target = operation.column;
     const existing = columns.find((c) => c.name === target.name);
     if (!existing) {
-      throw new MigrationError({ message: `Column '${target.name}' does not exist on table '${tableName}'.` });
+      throw new MigrationError({
+        message: `Column '${target.name}' does not exist on table '${tableName}'.`,
+      });
     }
     // Primary-key-ness is kept from the live table; the compiler emits type/null/default.
-    const def = compiler.compileColumnDef({ ...target, primaryKey: false, autoIncrement: false }, false);
+    const def = compiler.compileColumnDef(
+      { ...target, primaryKey: false, autoIncrement: false },
+      false
+    );
     columns = columns.map((c) => (c.name === target.name ? { ...c, sql: def } : c));
   } else if (operation instanceof AddForeignKeyOperation) {
     foreignKeys = foreignKeys.filter((fk) => fk.name !== operation.foreignKey.name);
@@ -222,7 +233,9 @@ export async function rebuildSqliteTable(
       });
     }
   } else {
-    throw new MigrationError({ message: `Operation '${operation.type}' does not require a table rebuild.` });
+    throw new MigrationError({
+      message: `Operation '${operation.type}' does not require a table rebuild.`,
+    });
   }
 
   const pkNames = new Set(pkColumns.map((c) => c.name));

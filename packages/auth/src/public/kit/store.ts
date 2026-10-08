@@ -41,17 +41,25 @@ export class MemoryAuthStore implements AuthStore {
   public async increment(key: string, ttlSeconds: number): Promise<number> {
     const entry = this.live(key);
     const next = entry ? Number(entry.value) + 1 : 1;
-    this.entries.set(key, { value: String(next), expiresAt: entry?.expiresAt ?? Date.now() + ttlSeconds * 1000 });
+    this.entries.set(key, {
+      value: String(next),
+      expiresAt: entry?.expiresAt ?? Date.now() + ttlSeconds * 1000,
+    });
     return next;
   }
 }
 
 /** The subset of jsango's DatabaseManager this store needs. */
 export interface AuthStoreDatabase {
-  query(sql: string, params?: readonly unknown[]): Promise<{ rows: readonly Record<string, unknown>[]; rowCount: number }>;
+  query(
+    sql: string,
+    params?: readonly unknown[]
+  ): Promise<{ rows: readonly Record<string, unknown>[]; rowCount: number }>;
   getDriverName?(name?: string): string;
   connection?(name?: string): Promise<{
-    execute?(command: Record<string, unknown>): Promise<{ rows: readonly Record<string, unknown>[]; rowCount: number }>;
+    execute?(
+      command: Record<string, unknown>
+    ): Promise<{ rows: readonly Record<string, unknown>[]; rowCount: number }>;
     release(): Promise<void>;
   }>;
 }
@@ -68,7 +76,9 @@ export class DatabaseAuthStore implements AuthStore {
 
   public constructor(options: { connection: AuthStoreDatabase; tableName?: string }) {
     if (!options?.connection || typeof options.connection.query !== 'function') {
-      throw new Error('DatabaseAuthStore requires your DatabaseManager: new DatabaseAuthStore({ connection: db }).');
+      throw new Error(
+        'DatabaseAuthStore requires your DatabaseManager: new DatabaseAuthStore({ connection: db }).'
+      );
     }
     if (options.tableName !== undefined && !/^[A-Za-z_][A-Za-z0-9_]*$/.test(options.tableName)) {
       throw new Error(`Invalid auth store table name '${options.tableName}'.`);
@@ -86,7 +96,11 @@ export class DatabaseAuthStore implements AuthStore {
   }
 
   private async mongo<T>(
-    fn: (execute: (command: Record<string, unknown>) => Promise<{ rows: readonly Record<string, unknown>[]; rowCount: number }>) => Promise<T>
+    fn: (
+      execute: (
+        command: Record<string, unknown>
+      ) => Promise<{ rows: readonly Record<string, unknown>[]; rowCount: number }>
+    ) => Promise<T>
   ): Promise<T> {
     const conn = await this.db.connection!();
     try {
@@ -117,7 +131,12 @@ export class DatabaseAuthStore implements AuthStore {
     const now = Date.now();
     if (this.driver === 'mongodb') {
       const res = await this.mongo((execute) =>
-        execute({ op: 'find', collection: this.table, filter: { _id: key, expires_at: { $gt: now } }, limit: 1 })
+        execute({
+          op: 'find',
+          collection: this.table,
+          filter: { _id: key, expires_at: { $gt: now } },
+          limit: 1,
+        })
       );
       const row = res.rows[0];
       return row ? String(row['store_value']) : undefined;
@@ -164,11 +183,15 @@ export class DatabaseAuthStore implements AuthStore {
 
   public async delete(key: string): Promise<void> {
     if (this.driver === 'mongodb') {
-      await this.mongo((execute) => execute({ op: 'deleteOne', collection: this.table, filter: { _id: key } }));
+      await this.mongo((execute) =>
+        execute({ op: 'deleteOne', collection: this.table, filter: { _id: key } })
+      );
       return;
     }
     await this.ensureTable();
-    await this.db.query(`DELETE FROM ${this.q(this.table)} WHERE ${this.q('store_key')} = ?`, [key]);
+    await this.db.query(`DELETE FROM ${this.q(this.table)} WHERE ${this.q('store_key')} = ?`, [
+      key,
+    ]);
   }
 
   public async increment(key: string, ttlSeconds: number): Promise<number> {
@@ -177,14 +200,21 @@ export class DatabaseAuthStore implements AuthStore {
     if (this.driver === 'mongodb') {
       // Expired window: reset first (no-op when live or absent).
       await this.mongo((execute) =>
-        execute({ op: 'deleteOne', collection: this.table, filter: { _id: key, expires_at: { $lte: now } } })
+        execute({
+          op: 'deleteOne',
+          collection: this.table,
+          filter: { _id: key, expires_at: { $lte: now } },
+        })
       );
       const res = await this.mongo((execute) =>
         execute({
           op: 'findOneAndUpdate',
           collection: this.table,
           filter: { _id: key },
-          update: { $inc: { counter: 1 }, $setOnInsert: { store_value: '', expires_at: expiresAt } },
+          update: {
+            $inc: { counter: 1 },
+            $setOnInsert: { store_value: '', expires_at: expiresAt },
+          },
           upsert: true,
           returnDocument: 'after',
         })
@@ -200,7 +230,10 @@ export class DatabaseAuthStore implements AuthStore {
     const bump = () => this.db.query(`UPDATE ${t} SET ${c} = ${c} + 1 WHERE ${k} = ?`, [key]);
     if ((await bump()).rowCount === 0) {
       try {
-        await this.db.query(`INSERT INTO ${t} (${k}, ${this.q('store_value')}, ${c}, ${e}) VALUES (?, '', 1, ?)`, [key, expiresAt]);
+        await this.db.query(
+          `INSERT INTO ${t} (${k}, ${this.q('store_value')}, ${c}, ${e}) VALUES (?, '', 1, ?)`,
+          [key, expiresAt]
+        );
         return 1;
       } catch {
         await bump(); // another request created the row first

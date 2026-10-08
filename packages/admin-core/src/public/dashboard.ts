@@ -63,7 +63,11 @@ interface PermissionAware {
   hasPermission?(permission: string): boolean;
 }
 
-const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const slug = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 
 export abstract class DashboardWidget {
   public readonly id: string;
@@ -123,7 +127,11 @@ export abstract class DashboardWidget {
 export class MetricWidget extends DashboardWidget {
   private readonly valueGetter: (ctx?: DashboardContext) => MaybePromise<MetricValue>;
 
-  constructor(config: DashboardWidgetConfig & { readonly getValue: (ctx?: DashboardContext) => MaybePromise<MetricValue> }) {
+  constructor(
+    config: DashboardWidgetConfig & {
+      readonly getValue: (ctx?: DashboardContext) => MaybePromise<MetricValue>;
+    }
+  ) {
     super({ ...config, type: 'metric', width: config.width ?? 'quarter' });
     this.valueGetter = config.getValue;
   }
@@ -137,7 +145,11 @@ export class MetricWidget extends DashboardWidget {
 export class TableWidget extends DashboardWidget {
   private readonly rowsGetter: (ctx?: DashboardContext) => MaybePromise<TableData>;
 
-  constructor(config: DashboardWidgetConfig & { readonly getTableData: (ctx?: DashboardContext) => MaybePromise<TableData> }) {
+  constructor(
+    config: DashboardWidgetConfig & {
+      readonly getTableData: (ctx?: DashboardContext) => MaybePromise<TableData>;
+    }
+  ) {
     super({ ...config, type: 'table' });
     this.rowsGetter = config.getTableData;
   }
@@ -176,7 +188,11 @@ export class ChartWidget extends DashboardWidget {
 export class ActivityWidget extends DashboardWidget {
   private readonly activityGetter: (ctx?: DashboardContext) => MaybePromise<ActivityItem[]>;
 
-  constructor(config: DashboardWidgetConfig & { readonly getActivity: (ctx?: DashboardContext) => MaybePromise<ActivityItem[]> }) {
+  constructor(
+    config: DashboardWidgetConfig & {
+      readonly getActivity: (ctx?: DashboardContext) => MaybePromise<ActivityItem[]>;
+    }
+  ) {
     super({ ...config, type: 'activity' });
     this.activityGetter = config.getActivity;
   }

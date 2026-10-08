@@ -48,7 +48,13 @@ export class DbStatusCommand extends BaseCommand {
       }
       try {
         await db.verify(name);
-        results.push({ connection: name, driver, target, status: 'healthy' as const, latencyMs: Date.now() - started });
+        results.push({
+          connection: name,
+          driver,
+          target,
+          status: 'healthy' as const,
+          latencyMs: Date.now() - started,
+        });
       } catch (err) {
         results.push({
           connection: name,

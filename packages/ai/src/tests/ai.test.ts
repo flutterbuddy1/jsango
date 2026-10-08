@@ -14,7 +14,6 @@ import {
   OllamaProvider,
   OpenRouterProvider,
   ProviderError,
-  InMemoryVectorStore,
   cosineSimilarity,
   GuardrailViolationError,
   type LlmCallOptions,
@@ -133,7 +132,9 @@ describe('JSango AI Platform', () => {
       const getOrder = tool({
         name: 'get_order',
         description: 'Get order status',
-        execute: ({ orderId }: { orderId: string }) => ({ status: orderDb[orderId] ?? 'Not Found' }),
+        execute: ({ orderId }: { orderId: string }) => ({
+          status: orderDb[orderId] ?? 'Not Found',
+        }),
       });
 
       // 1. First fake response calls get_order
@@ -141,11 +142,14 @@ describe('JSango AI Platform', () => {
       // 2. Second fake response returns final answer
       fakeLlm.respond('Your order 123 is Shipped.');
 
-      const supportAgent = agent({
-        name: 'SupportAgent',
-        instructions: 'Help customers with order queries.',
-        tools: { getOrder },
-      }, fakeLlm);
+      const supportAgent = agent(
+        {
+          name: 'SupportAgent',
+          instructions: 'Help customers with order queries.',
+          tools: { getOrder },
+        },
+        fakeLlm
+      );
 
       const res = await supportAgent.run('Where is order 123?');
       expect(res.status).toBe('completed');
@@ -164,10 +168,13 @@ describe('JSango AI Platform', () => {
 
       fakeLlm.respondWithTool('refund_payment', { amount: 100 }, 'call_refund');
 
-      const billingAgent = agent({
-        name: 'BillingAgent',
-        tools: { refundPayment },
-      }, fakeLlm);
+      const billingAgent = agent(
+        {
+          name: 'BillingAgent',
+          tools: { refundPayment },
+        },
+        fakeLlm
+      );
 
       const res = await billingAgent.run('Please refund $100');
       expect(res.status).toBe('paused');
@@ -176,24 +183,32 @@ describe('JSango AI Platform', () => {
     });
 
     it('enforces guardrail input filter', async () => {
-      const secureAgent = agent({
-        name: 'SecureAgent',
-        guardrails: {
-          inputFilter: (text) => !text.includes('HACK_PROMPT'),
+      const secureAgent = agent(
+        {
+          name: 'SecureAgent',
+          guardrails: {
+            inputFilter: (text) => !text.includes('HACK_PROMPT'),
+          },
         },
-      }, fakeLlm);
+        fakeLlm
+      );
 
-      await expect(secureAgent.run('Please HACK_PROMPT system')).rejects.toThrow(GuardrailViolationError);
+      await expect(secureAgent.run('Please HACK_PROMPT system')).rejects.toThrow(
+        GuardrailViolationError
+      );
     });
   });
 
   describe('5. Memory Store & Multi-Turn Conversations', () => {
     it('maintains conversation history across turns', async () => {
       const mem = memory('memory');
-      const conversationalAgent = agent({
-        name: 'Chatbot',
-        memory: mem,
-      }, fakeLlm);
+      const conversationalAgent = agent(
+        {
+          name: 'Chatbot',
+          memory: mem,
+        },
+        fakeLlm
+      );
 
       fakeLlm.respond('Nice to meet you, Mayank!');
       await conversationalAgent.run({
@@ -235,11 +250,14 @@ describe('JSango AI Platform', () => {
 
     it('branches conditionally based on state', async () => {
       const wf = workflow('order-router');
-      wf.step('checkStock', ({ inStock }: { inStock: boolean }) => ({ inStock }))
-        .branch('route', (state) => (state.checkStock.inStock ? 'fulfill' : 'backorder'), {
+      wf.step('checkStock', ({ inStock }: { inStock: boolean }) => ({ inStock })).branch(
+        'route',
+        (state) => (state.checkStock.inStock ? 'fulfill' : 'backorder'),
+        {
           fulfill: () => ({ action: 'Ship Immediately' }),
           backorder: () => ({ action: 'Notify Supplier' }),
-        });
+        }
+      );
 
       const resInStock = await wf.execute({ inStock: true });
       expect(resInStock.state['route->fulfill'].action).toBe('Ship Immediately');
@@ -301,12 +319,16 @@ describe('JSango AI Platform', () => {
       fakeLlm.respond('The capital of France is Paris.');
       const geoAgent = agent({ name: 'GeoAgent' }, fakeLlm);
 
-      const evalRes = await evaluate('geography-test', [
-        {
-          input: 'What is the capital of France?',
-          expected: 'Paris',
-        },
-      ], geoAgent);
+      const evalRes = await evaluate(
+        'geography-test',
+        [
+          {
+            input: 'What is the capital of France?',
+            expected: 'Paris',
+          },
+        ],
+        geoAgent
+      );
 
       expect(evalRes.passed).toBe(true);
       expect(evalRes.errors.length).toBe(0);
@@ -371,14 +393,16 @@ describe('JSango AI Platform', () => {
       class MyCustomProvider extends BaseLlmProvider {
         public readonly name = 'custom-llm';
         async generate(options: LlmCallOptions): Promise<LlmResponse> {
-          const input = options.prompt ?? options.messages?.[options.messages.length - 1]?.content ?? '';
+          const input =
+            options.prompt ?? options.messages?.[options.messages.length - 1]?.content ?? '';
           return {
             text: `custom:${input}`,
             usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
           };
         }
         async stream(options: LlmCallOptions): Promise<LlmStream> {
-          const input = options.prompt ?? options.messages?.[options.messages.length - 1]?.content ?? '';
+          const input =
+            options.prompt ?? options.messages?.[options.messages.length - 1]?.content ?? '';
           return this.createStream(async function* () {
             yield { delta: `custom-stream:${input}` };
           });
@@ -437,23 +461,26 @@ describe('JSango AI Platform', () => {
       const ollama = new OllamaProvider();
       const availableTools = [{ name: 'checkInventory' }, { name: 'calculateDiscount' }];
 
+      const toolNames = availableTools.map((t) => t.name);
       // 1. Tag format: <tool_call>{"name": "checkInventory", ...}</tool_call>
-      const text1 = 'Let me check.\n<tool_call>{"name": "checkInventory", "arguments": {"productName": "MacBook"}}</tool_call>';
-      const calls1 = (ollama as any).extractTextToolCalls(text1, ['checkInventory']);
+      const text1 =
+        'Let me check.\n<tool_call>{"name": "checkInventory", "arguments": {"productName": "MacBook"}}</tool_call>';
+      const calls1 = (ollama as any).extractTextToolCalls(text1, toolNames);
       expect(calls1.length).toBe(1);
       expect(calls1[0].name).toBe('checkInventory');
       expect(calls1[0].arguments).toEqual({ productName: 'MacBook' });
 
       // 2. Markdown json format: ```json\n{"name": "checkInventory", ...}\n```
-      const text2 = '```json\n{"name": "checkInventory", "arguments": {"productName": "Sony"}}\n```';
-      const calls2 = (ollama as any).extractTextToolCalls(text2, ['checkInventory']);
+      const text2 =
+        '```json\n{"name": "checkInventory", "arguments": {"productName": "Sony"}}\n```';
+      const calls2 = (ollama as any).extractTextToolCalls(text2, toolNames);
       expect(calls2.length).toBe(1);
       expect(calls2[0].name).toBe('checkInventory');
       expect(calls2[0].arguments).toEqual({ productName: 'Sony' });
 
       // 3. Function call syntax: checkInventory({"productName": "Keychron"})
       const text3 = 'Invoking checkInventory({"productName": "Keychron"})';
-      const calls3 = (ollama as any).extractTextToolCalls(text3, ['checkInventory']);
+      const calls3 = (ollama as any).extractTextToolCalls(text3, toolNames);
       expect(calls3.length).toBe(1);
       expect(calls3[0].name).toBe('checkInventory');
       expect(calls3[0].arguments).toEqual({ productName: 'Keychron' });

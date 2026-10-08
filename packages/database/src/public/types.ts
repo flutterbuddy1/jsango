@@ -133,16 +133,32 @@ export type MongoCommand =
       readonly skip?: number | undefined;
       readonly limit?: number | undefined;
     }
-  | { readonly op: 'aggregate'; readonly collection: string; readonly pipeline: readonly Record<string, unknown>[] }
-  | { readonly op: 'count'; readonly collection: string; readonly filter?: Record<string, unknown> | undefined }
+  | {
+      readonly op: 'aggregate';
+      readonly collection: string;
+      readonly pipeline: readonly Record<string, unknown>[];
+    }
+  | {
+      readonly op: 'count';
+      readonly collection: string;
+      readonly filter?: Record<string, unknown> | undefined;
+    }
   | {
       readonly op: 'distinct';
       readonly collection: string;
       readonly field: string;
       readonly filter?: Record<string, unknown> | undefined;
     }
-  | { readonly op: 'insertOne'; readonly collection: string; readonly document: Record<string, unknown> }
-  | { readonly op: 'insertMany'; readonly collection: string; readonly documents: readonly Record<string, unknown>[] }
+  | {
+      readonly op: 'insertOne';
+      readonly collection: string;
+      readonly document: Record<string, unknown>;
+    }
+  | {
+      readonly op: 'insertMany';
+      readonly collection: string;
+      readonly documents: readonly Record<string, unknown>[];
+    }
   | {
       readonly op: 'updateOne' | 'updateMany';
       readonly collection: string;
@@ -150,7 +166,11 @@ export type MongoCommand =
       readonly update: Record<string, unknown> | readonly Record<string, unknown>[];
       readonly upsert?: boolean | undefined;
     }
-  | { readonly op: 'deleteOne' | 'deleteMany'; readonly collection: string; readonly filter: Record<string, unknown> }
+  | {
+      readonly op: 'deleteOne' | 'deleteMany';
+      readonly collection: string;
+      readonly filter: Record<string, unknown>;
+    }
   | {
       readonly op: 'findOneAndUpdate';
       readonly collection: string;

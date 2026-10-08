@@ -44,14 +44,16 @@ export class MigrationLock {
 
   public async ensureTable(): Promise<void> {
     if (isMongoExecutor(this.connection)) return;
-    await this.connection.query(this.sql(`
+    await this.connection.query(
+      this.sql(`
       CREATE TABLE IF NOT EXISTS "${MigrationLock.TABLE_NAME}" (
         "id" VARCHAR(64) PRIMARY KEY,
         "is_locked" INTEGER NOT NULL,
         "owner_id" VARCHAR(255) NOT NULL,
         "acquired_at" VARCHAR(64) NOT NULL
       )
-    `));
+    `)
+    );
   }
 
   public async acquire(): Promise<void> {
@@ -125,7 +127,11 @@ export class MigrationLock {
           collection: MigrationLock.TABLE_NAME,
           filter: {
             _id: 'lock',
-            $or: [{ is_locked: 0 }, { acquired_at: { $lt: staleBefore } }, { owner_id: this.ownerId }],
+            $or: [
+              { is_locked: 0 },
+              { acquired_at: { $lt: staleBefore } },
+              { owner_id: this.ownerId },
+            ],
           },
           update: { $set: { is_locked: 1, owner_id: this.ownerId, acquired_at: nowIso } },
           upsert: true,

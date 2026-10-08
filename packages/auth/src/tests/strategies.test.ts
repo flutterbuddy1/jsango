@@ -25,7 +25,10 @@ describe('Authentication Strategies & Manager', () => {
 
   describe('BearerTokenAuthenticationStrategy', () => {
     it('authenticates valid bearer token', async () => {
-      const token = await jwt.sign({ sub: 'user-token', roles: ['admin'] }, { expiresInSeconds: 3600 });
+      const token = await jwt.sign(
+        { sub: 'user-token', roles: ['admin'] },
+        { expiresInSeconds: 3600 }
+      );
       const req = new HttpRequest({
         method: 'GET',
         url: 'http://localhost/',
@@ -72,7 +75,11 @@ describe('Authentication Strategies & Manager', () => {
     });
 
     it('returns expired_credentials for expired token', async () => {
-      const expiredToken = await jwt.sign({ sub: 'u-1' }, { expiresInSeconds: -60 }, { expiresInSeconds: 3600 });
+      const expiredToken = await jwt.sign(
+        { sub: 'u-1' },
+        { expiresInSeconds: -60 },
+        { expiresInSeconds: 3600 }
+      );
       const req = new HttpRequest({
         method: 'GET',
         url: 'http://localhost/',

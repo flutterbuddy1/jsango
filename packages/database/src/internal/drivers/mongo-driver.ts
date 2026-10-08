@@ -48,7 +48,11 @@ function revive(value: unknown, ObjectId: any): unknown {
     const hex = value['$oid'];
     return HEX_OBJECT_ID.test(hex) ? new ObjectId(hex) : hex;
   }
-  if (keys.length === 1 && keys[0] === '$date' && (typeof value['$date'] === 'string' || typeof value['$date'] === 'number')) {
+  if (
+    keys.length === 1 &&
+    keys[0] === '$date' &&
+    (typeof value['$date'] === 'string' || typeof value['$date'] === 'number')
+  ) {
     return new Date(value['$date']);
   }
   const out: Record<string, unknown> = {};
@@ -100,7 +104,9 @@ function plain(value: unknown): unknown {
 function mongoHint(err: unknown, inTransaction = false): string | undefined {
   const message = err instanceof Error ? err.message : String(err);
   if (
-    /Transaction numbers are only allowed|replica set member or mongos|does not support transactions/i.test(message) ||
+    /Transaction numbers are only allowed|replica set member or mongos|does not support transactions/i.test(
+      message
+    ) ||
     (inTransaction && /does not support retryable writes/i.test(message))
   ) {
     return 'MongoDB transactions need a replica set or sharded cluster. For local development start mongod with --replSet rs0 and run rs.initiate() once (or use a hosted cluster such as Atlas).';
@@ -124,13 +130,20 @@ export class MongoDriverConnection implements IDriverConnection {
   private readonly ObjectId: any;
   private session: any = null;
 
-  constructor(config: ConnectionConfig | MongoDriverOptions, client?: any, db?: any, ObjectId?: any) {
+  constructor(
+    config: ConnectionConfig | MongoDriverOptions,
+    client?: any,
+    db?: any,
+    ObjectId?: any
+  ) {
     this.config = config;
     this.client = client ?? null;
     this.db = db ?? null;
-    this.ObjectId = ObjectId ?? class {
-      constructor(public readonly hex: string) {}
-    };
+    this.ObjectId =
+      ObjectId ??
+      class {
+        constructor(public readonly hex: string) {}
+      };
   }
 
   public get isClosed(): boolean {
@@ -169,7 +182,11 @@ export class MongoDriverConnection implements IDriverConnection {
       await this.endSession('abort');
       return { rows: Object.freeze([] as T[]), rowCount: 0 };
     }
-    if (upper.startsWith('SAVEPOINT') || upper.startsWith('RELEASE') || upper.startsWith('ROLLBACK TO')) {
+    if (
+      upper.startsWith('SAVEPOINT') ||
+      upper.startsWith('RELEASE') ||
+      upper.startsWith('ROLLBACK TO')
+    ) {
       throw new TransactionError('MongoDB does not support savepoints (nested transactions).');
     }
     if (upper === 'SELECT 1' || upper.startsWith('SELECT 1 ')) {
@@ -187,7 +204,10 @@ export class MongoDriverConnection implements IDriverConnection {
       );
     }
 
-    const legacy = parsed as { collection?: string; action?: string; op?: string } & Record<string, unknown>;
+    const legacy = parsed as { collection?: string; action?: string; op?: string } & Record<
+      string,
+      unknown
+    >;
     if (legacy && typeof legacy.op === 'string') {
       return this.execute<T>(legacy as unknown as MongoCommand);
     }
@@ -202,18 +222,32 @@ export class MongoDriverConnection implements IDriverConnection {
     );
   }
 
-  private fromLegacy(cmd: { collection?: string; action?: string } & Record<string, unknown>): Record<string, unknown> {
+  private fromLegacy(
+    cmd: { collection?: string; action?: string } & Record<string, unknown>
+  ): Record<string, unknown> {
     const collection = cmd.collection!;
     switch (cmd.action) {
       case 'find':
-        return { op: 'find', collection, filter: cmd['filter'], sort: cmd['sort'], skip: cmd['skip'], limit: cmd['limit'] };
+        return {
+          op: 'find',
+          collection,
+          filter: cmd['filter'],
+          sort: cmd['sort'],
+          skip: cmd['skip'],
+          limit: cmd['limit'],
+        };
       case 'insertOne':
         return { op: 'insertOne', collection, document: cmd['doc'] ?? cmd['document'] };
       case 'insertMany':
         return { op: 'insertMany', collection, documents: cmd['docs'] ?? cmd['documents'] };
       case 'updateOne':
       case 'updateMany':
-        return { op: cmd.action, collection, filter: cmd['filter'] ?? {}, update: { $set: cmd['update'] } };
+        return {
+          op: cmd.action,
+          collection,
+          filter: cmd['filter'] ?? {},
+          update: { $set: cmd['update'] },
+        };
       case 'deleteOne':
       case 'deleteMany':
         return { op: cmd.action, collection, filter: cmd['filter'] ?? {} };
@@ -222,7 +256,10 @@ export class MongoDriverConnection implements IDriverConnection {
       case 'aggregate':
         return { op: 'aggregate', collection, pipeline: cmd['pipeline'] ?? [] };
       default:
-        throw new QueryError(`Unsupported MongoDB action '${String(cmd.action)}'.`, JSON.stringify(cmd));
+        throw new QueryError(
+          `Unsupported MongoDB action '${String(cmd.action)}'.`,
+          JSON.stringify(cmd)
+        );
     }
   }
 
@@ -253,7 +290,9 @@ export class MongoDriverConnection implements IDriverConnection {
     }
   }
 
-  public async execute<T = Record<string, unknown>>(command: MongoCommand): Promise<DatabaseResult<T>> {
+  public async execute<T = Record<string, unknown>>(
+    command: MongoCommand
+  ): Promise<DatabaseResult<T>> {
     if (this._isClosed) {
       throw new QueryError('Cannot execute command on closed MongoDB connection.', command.op);
     }
@@ -287,7 +326,9 @@ export class MongoDriverConnection implements IDriverConnection {
           return rows(docs);
         }
         case 'count': {
-          const n = await this.db.collection(command.collection).countDocuments(r(command.filter ?? {}), opts);
+          const n = await this.db
+            .collection(command.collection)
+            .countDocuments(r(command.filter ?? {}), opts);
           return { rows: Object.freeze([{ count: n }] as T[]), rowCount: 1 };
         }
         case 'distinct': {
@@ -300,20 +341,34 @@ export class MongoDriverConnection implements IDriverConnection {
           const doc = r(command.document);
           const res = await this.db.collection(command.collection).insertOne(doc, opts);
           const inserted = { ...doc, _id: res.insertedId };
-          return { rows: Object.freeze([plain(inserted)] as T[]), rowCount: 1, lastInsertId: plain(res.insertedId) as string };
+          return {
+            rows: Object.freeze([plain(inserted)] as T[]),
+            rowCount: 1,
+            lastInsertId: plain(res.insertedId) as string,
+          };
         }
         case 'insertMany': {
-          if (command.documents.length === 0) return { rows: Object.freeze([] as T[]), rowCount: 0 };
+          if (command.documents.length === 0)
+            return { rows: Object.freeze([] as T[]), rowCount: 0 };
           const docs = command.documents.map((d) => r(d));
-          const res = await this.db.collection(command.collection).insertMany(docs, { ...opts, ordered: true });
-          const inserted = docs.map((d: Record<string, unknown>, i: number) => ({ ...d, _id: res.insertedIds[i] }));
+          const res = await this.db
+            .collection(command.collection)
+            .insertMany(docs, { ...opts, ordered: true });
+          const inserted = docs.map((d: Record<string, unknown>, i: number) => ({
+            ...d,
+            _id: res.insertedIds[i],
+          }));
           return { rows: Object.freeze(inserted.map(plain) as T[]), rowCount: res.insertedCount };
         }
         case 'updateOne':
         case 'updateMany': {
           const col = this.db.collection(command.collection);
-          const fn = command.op === 'updateOne' ? col.updateOne.bind(col) : col.updateMany.bind(col);
-          const res = await fn(r(command.filter), r(command.update), { ...opts, upsert: command.upsert ?? false });
+          const fn =
+            command.op === 'updateOne' ? col.updateOne.bind(col) : col.updateMany.bind(col);
+          const res = await fn(r(command.filter), r(command.update), {
+            ...opts,
+            upsert: command.upsert ?? false,
+          });
           return {
             rows: Object.freeze([] as T[]),
             rowCount: (res.matchedCount ?? 0) + (res.upsertedCount ?? 0),
@@ -323,21 +378,26 @@ export class MongoDriverConnection implements IDriverConnection {
         case 'deleteOne':
         case 'deleteMany': {
           const col = this.db.collection(command.collection);
-          const fn = command.op === 'deleteOne' ? col.deleteOne.bind(col) : col.deleteMany.bind(col);
+          const fn =
+            command.op === 'deleteOne' ? col.deleteOne.bind(col) : col.deleteMany.bind(col);
           const res = await fn(r(command.filter), opts);
           return { rows: Object.freeze([] as T[]), rowCount: res.deletedCount ?? 0 };
         }
         case 'findOneAndUpdate': {
-          const res = await this.db.collection(command.collection).findOneAndUpdate(r(command.filter), r(command.update), {
-            ...opts,
-            upsert: command.upsert ?? false,
-            returnDocument: command.returnDocument ?? 'after',
-            includeResultMetadata: false,
-          });
+          const res = await this.db
+            .collection(command.collection)
+            .findOneAndUpdate(r(command.filter), r(command.update), {
+              ...opts,
+              upsert: command.upsert ?? false,
+              returnDocument: command.returnDocument ?? 'after',
+              includeResultMetadata: false,
+            });
           return res ? rows([res]) : { rows: Object.freeze([] as T[]), rowCount: 0 };
         }
         case 'createCollection': {
-          const existing = await this.db.listCollections({ name: command.collection }, { nameOnly: true }).toArray();
+          const existing = await this.db
+            .listCollections({ name: command.collection }, { nameOnly: true })
+            .toArray();
           const validation = command.validator
             ? {
                 validator: command.validator,
@@ -346,7 +406,8 @@ export class MongoDriverConnection implements IDriverConnection {
               }
             : {};
           if (existing.length > 0) {
-            if (command.validator) await this.db.command({ collMod: command.collection, ...validation }, opts);
+            if (command.validator)
+              await this.db.command({ collMod: command.collection, ...validation }, opts);
           } else {
             await this.db.createCollection(command.collection, { ...opts, ...validation });
           }
@@ -365,7 +426,9 @@ export class MongoDriverConnection implements IDriverConnection {
           return { rows: Object.freeze([] as T[]), rowCount: 0 };
         }
         case 'dropCollection': {
-          const existing = await this.db.listCollections({ name: command.collection }, { nameOnly: true }).toArray();
+          const existing = await this.db
+            .listCollections({ name: command.collection }, { nameOnly: true })
+            .toArray();
           if (existing.length > 0) await this.db.collection(command.collection).drop(opts);
           return { rows: Object.freeze([] as T[]), rowCount: 0 };
         }
@@ -379,7 +442,9 @@ export class MongoDriverConnection implements IDriverConnection {
             name: command.name,
             unique: command.unique ?? false,
             sparse: command.sparse ?? false,
-            ...(command.partialFilterExpression ? { partialFilterExpression: command.partialFilterExpression } : {}),
+            ...(command.partialFilterExpression
+              ? { partialFilterExpression: command.partialFilterExpression }
+              : {}),
           });
           return { rows: Object.freeze([] as T[]), rowCount: 0 };
         }
@@ -400,7 +465,10 @@ export class MongoDriverConnection implements IDriverConnection {
           return rows([res]);
         }
         default:
-          throw new QueryError(`Unsupported MongoDB operation '${(command as { op: string }).op}'.`, JSON.stringify(command));
+          throw new QueryError(
+            `Unsupported MongoDB operation '${(command as { op: string }).op}'.`,
+            JSON.stringify(command)
+          );
       }
     } catch (err: unknown) {
       if (err instanceof QueryError || err instanceof ConnectionError) throw err;
@@ -452,7 +520,10 @@ export class MongoDatabaseDriver implements IDatabaseDriver {
   private readonly config: ConnectionConfig | MongoDriverOptions;
   private readonly deps: MongoDriverDependencies;
 
-  constructor(config: ConnectionConfig | MongoDriverOptions = {}, deps: MongoDriverDependencies = {}) {
+  constructor(
+    config: ConnectionConfig | MongoDriverOptions = {},
+    deps: MongoDriverDependencies = {}
+  ) {
     this.config = config;
     this.deps = deps;
   }

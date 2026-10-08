@@ -191,7 +191,11 @@ export interface VectorSearchResult {
 
 export interface IVectorStore {
   insert(docs: VectorDocument[]): Promise<void>;
-  search(queryEmbedding: number[], limit?: number, minScore?: number): Promise<VectorSearchResult[]>;
+  search(
+    queryEmbedding: number[],
+    limit?: number,
+    minScore?: number
+  ): Promise<VectorSearchResult[]>;
   delete(id: string): Promise<void>;
   clear(): Promise<void>;
 }
@@ -219,4 +223,3 @@ export interface EvaluationResult {
   usage: LlmUsage;
   errors: string[];
 }
-

@@ -24,7 +24,10 @@ const DB_FILE = path.join(STAGE1, 'data', 'app.sqlite3');
 /** The CLI closes its own connections when a command finishes, like a separate process would. */
 let appDb: DatabaseManager;
 function openAppDatabase(): DatabaseManager {
-  appDb = new DatabaseManager({ default: 'default', connections: { default: { driver: 'sqlite', filename: DB_FILE } } });
+  appDb = new DatabaseManager({
+    default: 'default',
+    connections: { default: { driver: 'sqlite', filename: DB_FILE } },
+  });
   setDatabaseManager(appDb);
   return appDb;
 }
@@ -79,8 +82,8 @@ export const Post = defineModel('Post', {
 
 // v2: new nullable column + wider name column (SQLite needs a table rebuild for the latter)
 const USER_V2 = USER_V1.replace(
-  "name: fields.string({ maxLength: 50 }),",
-  "name: fields.string({ maxLength: 120 }),\n  age: fields.integer({ nullable: true }),"
+  'name: fields.string({ maxLength: 50 }),',
+  'name: fields.string({ maxLength: 120 }),\n  age: fields.integer({ nullable: true }),'
 );
 
 describe('database workflow (SQLite, end to end)', () => {
@@ -89,7 +92,10 @@ describe('database workflow (SQLite, end to end)', () => {
     clearDatabaseManager();
     defaultModelRegistry.clear();
 
-    write(path.join(STAGE1, 'package.json'), JSON.stringify({ name: 'e2e', type: 'module', dependencies: { jsango: '*' } }));
+    write(
+      path.join(STAGE1, 'package.json'),
+      JSON.stringify({ name: 'e2e', type: 'module', dependencies: { jsango: '*' } })
+    );
     write(path.join(STAGE1, '.env'), 'DATABASE_URL=sqlite:./data/app.sqlite3\n');
     write(
       path.join(STAGE1, 'jsango.config.ts'),
@@ -100,7 +106,10 @@ export default defineConfig({ database: databaseConfigFromEnv(), models: './src/
     write(path.join(STAGE1, 'src/models/user.ts'), USER_V1);
     write(path.join(STAGE1, 'src/models/post.ts'), POST);
 
-    write(path.join(STAGE2, 'package.json'), JSON.stringify({ name: 'e2e2', type: 'module', dependencies: { jsango: '*' } }));
+    write(
+      path.join(STAGE2, 'package.json'),
+      JSON.stringify({ name: 'e2e2', type: 'module', dependencies: { jsango: '*' } })
+    );
     write(
       path.join(STAGE2, 'jsango.config.ts'),
       `import { defineConfig } from 'jsango';
@@ -177,7 +186,11 @@ export default defineConfig({
     const User = orm.defaultModelRegistry.getModel('User')!;
     const Post = orm.defaultModelRegistry.getModel('Post')!;
 
-    const alice = (await User.create({ email: 'alice@example.com', name: 'Alice', settings: { theme: 'dark', tags: ['a'] } })) as any;
+    const alice = (await User.create({
+      email: 'alice@example.com',
+      name: 'Alice',
+      settings: { theme: 'dark', tags: ['a'] },
+    })) as any;
     expect(typeof alice.id).toBe('number');
     expect(alice.isActive).toBe(true);
     expect(alice.createdAt).toBeInstanceOf(Date);
@@ -189,10 +202,16 @@ export default defineConfig({
     expect(found.createdAt).toBeInstanceOf(Date);
 
     // unique constraint is enforced by the database
-    await expect(User.create({ email: 'alice@example.com', name: 'Dup' })).rejects.toThrow(/UNIQUE/i);
+    await expect(User.create({ email: 'alice@example.com', name: 'Dup' })).rejects.toThrow(
+      /UNIQUE/i
+    );
 
     // unknown keys (e.g. from a request body) are ignored instead of breaking the INSERT
-    const bob = (await User.create({ email: 'bob@example.com', name: 'Bob', notAColumn: 1 })) as any;
+    const bob = (await User.create({
+      email: 'bob@example.com',
+      name: 'Bob',
+      notAColumn: 1,
+    })) as any;
     bob.name = 'Robert';
     await bob.save();
     expect(((await User.find(bob.id)) as any).name).toBe('Robert');
@@ -204,7 +223,11 @@ export default defineConfig({
     ]);
     expect(await Post.count()).toBe(3);
 
-    const posts = (await Post.query().where('userId', alice.id).with('author').orderBy('id').get()) as any[];
+    const posts = (await Post.query()
+      .where('userId', alice.id)
+      .with('author')
+      .orderBy('id')
+      .get()) as any[];
     expect(posts.map((p) => p.title)).toEqual(['Hello', 'Second']);
     expect(posts[0].author.email).toBe('alice@example.com');
     expect(posts[0].publishedAt).toBeInstanceOf(Date);
@@ -220,7 +243,10 @@ export default defineConfig({
     expect(await Post.count()).toBe(2);
     expect(await Post.withTrashed().count()).toBe(3);
     expect(await Post.onlyTrashed().count()).toBe(1);
-    const search = await Post.query().where('title', 'LIKE', '%Second%').orWhere('title', 'LIKE', '%Bob%').get();
+    const search = await Post.query()
+      .where('title', 'LIKE', '%Second%')
+      .orWhere('title', 'LIKE', '%Bob%')
+      .get();
     expect(search.map((p: any) => p.title)).toEqual(['Bob post']);
 
     // a failing transaction rolls back every model write inside it
@@ -266,7 +292,11 @@ export default defineConfig({
     // data and constraints survived the SQLite table rebuild
     const rows = await db.query<{ email: string }>('SELECT email FROM users ORDER BY id');
     expect(rows.rows.map((r) => r.email)).toEqual(['alice@example.com', 'dave@example.com']);
-    await expect(db.query("INSERT INTO users (email, name, isActive, createdAt, updatedAt) VALUES ('alice@example.com', 'x', 1, 'now', 'now')")).rejects.toThrow(/UNIQUE/i);
+    await expect(
+      db.query(
+        "INSERT INTO users (email, name, isActive, createdAt, updatedAt) VALUES ('alice@example.com', 'x', 1, 'now', 'now')"
+      )
+    ).rejects.toThrow(/UNIQUE/i);
     const posts = await db.query('SELECT * FROM posts');
     expect(posts.rows).toHaveLength(2);
 
@@ -293,7 +323,10 @@ export default defineConfig({
 
   it('explains how to configure a database when none is set up', async () => {
     const empty = path.join(ROOT, 'no-db');
-    write(path.join(empty, 'package.json'), JSON.stringify({ name: 'x', dependencies: { jsango: '*' } }));
+    write(
+      path.join(empty, 'package.json'),
+      JSON.stringify({ name: 'x', dependencies: { jsango: '*' } })
+    );
     const saved = process.env['DATABASE_URL'];
     delete process.env['DATABASE_URL'];
     try {

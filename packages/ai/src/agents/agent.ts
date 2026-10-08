@@ -67,12 +67,18 @@ export class Agent<TOutput = string> {
   }
 
   public async run(optionsOrInput: AgentRunOptions | string): Promise<AgentRunResult<TOutput>> {
-    const options: AgentRunOptions = typeof optionsOrInput === 'string' ? { input: optionsOrInput } : optionsOrInput;
+    const options: AgentRunOptions =
+      typeof optionsOrInput === 'string' ? { input: optionsOrInput } : optionsOrInput;
     const runId = `run_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const startTime = Date.now();
     const context: AgentContext = options.context ?? {};
     const maxSteps = options.maxSteps ?? this.config.maxSteps ?? 10;
-    const toolCallRecords: Array<{ name: string; input: unknown; output: unknown; durationMs: number }> = [];
+    const toolCallRecords: Array<{
+      name: string;
+      input: unknown;
+      output: unknown;
+      durationMs: number;
+    }> = [];
 
     const emit = (event: Omit<AgentEvent, 'timestamp' | 'runId'>) => {
       const fullEvent: AgentEvent = {
@@ -106,7 +112,10 @@ export class Agent<TOutput = string> {
     // 3. Prepare messages & memory
     // History is isolated per tenant and user, so two users can never read each other's
     // conversation even if they pick the same conversationId.
-    const userId = context.user && typeof context.user === 'object' ? (context.user as { id?: unknown }).id : context.user;
+    const userId =
+      context.user && typeof context.user === 'object'
+        ? (context.user as { id?: unknown }).id
+        : context.user;
     const conversationKey = [
       context.tenantId !== undefined ? `t:${context.tenantId}` : undefined,
       userId !== undefined && userId !== null ? `u:${String(userId)}` : undefined,
@@ -114,7 +123,9 @@ export class Agent<TOutput = string> {
     ]
       .filter((part) => part !== undefined)
       .join('|');
-    const history: LlmMessage[] = this.memoryStore ? await this.memoryStore.get(conversationKey) : [];
+    const history: LlmMessage[] = this.memoryStore
+      ? await this.memoryStore.get(conversationKey)
+      : [];
     const messages: LlmMessage[] = [...history];
 
     if (instructions && (messages.length === 0 || messages[0]?.role !== 'system')) {
@@ -156,7 +167,7 @@ export class Agent<TOutput = string> {
       }
     }
 
-    let usage: LlmUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+    const usage: LlmUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
     let currentStep = 0;
     let finalAnswer = '';
 
@@ -180,7 +191,9 @@ export class Agent<TOutput = string> {
       // Check execution time guardrails
       if (this.config.guardrails?.maxExecutionTimeMs) {
         if (Date.now() - startTime > this.config.guardrails.maxExecutionTimeMs) {
-          throw new GuardrailViolationError(`Agent exceeded maximum execution time of ${this.config.guardrails.maxExecutionTimeMs}ms`);
+          throw new GuardrailViolationError(
+            `Agent exceeded maximum execution time of ${this.config.guardrails.maxExecutionTimeMs}ms`
+          );
         }
       }
 
@@ -275,7 +288,10 @@ export class Agent<TOutput = string> {
           if (execResult.error) {
             emit({ type: 'tool.failed', data: { toolName: tc.name, error: execResult.error } });
           } else {
-            emit({ type: 'tool.completed', data: { toolName: tc.name, output: execResult.output } });
+            emit({
+              type: 'tool.completed',
+              data: { toolName: tc.name, output: execResult.output },
+            });
           }
 
           messages.push({
@@ -314,7 +330,8 @@ export class Agent<TOutput = string> {
 
   public async *stream(optionsOrInput: AgentRunOptions | string): AsyncIterable<AgentEvent> {
     const events: AgentEvent[] = [];
-    const options: AgentRunOptions = typeof optionsOrInput === 'string' ? { input: optionsOrInput } : optionsOrInput;
+    const options: AgentRunOptions =
+      typeof optionsOrInput === 'string' ? { input: optionsOrInput } : optionsOrInput;
 
     const streamPromise = this.run({
       ...options,

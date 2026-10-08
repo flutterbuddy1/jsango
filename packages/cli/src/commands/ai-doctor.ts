@@ -15,7 +15,12 @@ export class AiDoctorCommand extends BaseCommand {
       { name: 'OpenAI', envVar: 'OPENAI_API_KEY', defaultModel: 'gpt-4o' },
       { name: 'Anthropic', envVar: 'ANTHROPIC_API_KEY', defaultModel: 'claude-3-5-sonnet' },
       { name: 'Google Gemini', envVar: 'GEMINI_API_KEY', defaultModel: 'gemini-1.5-flash' },
-      { name: 'Ollama (Local)', envVar: 'OLLAMA_BASE_URL', defaultModel: 'llama3.2', optional: true },
+      {
+        name: 'Ollama (Local)',
+        envVar: 'OLLAMA_BASE_URL',
+        defaultModel: 'llama3.2',
+        optional: true,
+      },
     ];
 
     let readyCount = 0;
@@ -32,10 +37,14 @@ export class AiDoctorCommand extends BaseCommand {
       }
     }
 
-    context.output.info(`\n  Fake Provider (Testing): Ready for deterministic zero-cost offline tests.`);
+    context.output.info(
+      `\n  Fake Provider (Testing): Ready for deterministic zero-cost offline tests.`
+    );
 
     if (readyCount === 0) {
-      context.output.info('\n💡 Tip: Set OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY to connect live LLMs.');
+      context.output.info(
+        '\n💡 Tip: Set OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY to connect live LLMs.'
+      );
     } else {
       context.output.success(`\n🚀 ${readyCount} live AI provider(s) ready.`);
     }

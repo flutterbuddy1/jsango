@@ -59,7 +59,12 @@ export function writeAgentFiles(dir: string): AgentFileResult[] {
 }
 
 /** Adds the `jsango` server under `key` without touching the rest of an existing config file. */
-function mergeJson(dir: string, file: string, key: string, server: Record<string, unknown>): AgentFileResult {
+function mergeJson(
+  dir: string,
+  file: string,
+  key: string,
+  server: Record<string, unknown>
+): AgentFileResult {
   const full = path.join(dir, file);
   let config: Record<string, Record<string, unknown>> = {};
   if (fs.existsSync(full)) {
@@ -68,7 +73,8 @@ function mergeJson(dir: string, file: string, key: string, server: Record<string
     } catch {
       return { file, action: 'skipped' }; // JSON with comments or invalid: leave it to the user
     }
-    if (JSON.stringify(config[key]?.['jsango']) === JSON.stringify(server)) return { file, action: 'unchanged' };
+    if (JSON.stringify(config[key]?.['jsango']) === JSON.stringify(server))
+      return { file, action: 'unchanged' };
   }
   const existed = fs.existsSync(full);
   config[key] = { ...config[key], jsango: server };

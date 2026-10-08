@@ -36,7 +36,9 @@ export interface QueryBuilderOptions {
 }
 
 /** Callback form of where()/orWhere() used to build a parenthesized group. */
-export type WhereGroupCallback<TModel extends Model> = (query: QueryBuilder<TModel>) => QueryBuilder<TModel>;
+export type WhereGroupCallback<TModel extends Model> = (
+  query: QueryBuilder<TModel>
+) => QueryBuilder<TModel>;
 
 /** Aggregates for groupBy(): `{ total: ['sum', 'amount'], orders: ['count'] }`. */
 export type GroupAggregates = Readonly<
@@ -157,7 +159,13 @@ export class QueryBuilder<TModel extends Model = Model> {
     value?: unknown
   ): QueryBuilder<TModel> {
     const inner = this.freshQuery().addWhere('AND', columnOrCallback, operatorOrValue, value);
-    return this.push({ type: 'group', column: '', operator: 'NOT', boolean: 'AND', children: inner.ast.where });
+    return this.push({
+      type: 'group',
+      column: '',
+      operator: 'NOT',
+      boolean: 'AND',
+      children: inner.ast.where,
+    });
   }
 
   public orWhereNot(
@@ -166,7 +174,13 @@ export class QueryBuilder<TModel extends Model = Model> {
     value?: unknown
   ): QueryBuilder<TModel> {
     const inner = this.freshQuery().addWhere('AND', columnOrCallback, operatorOrValue, value);
-    return this.push({ type: 'group', column: '', operator: 'NOT', boolean: 'OR', children: inner.ast.where });
+    return this.push({
+      type: 'group',
+      column: '',
+      operator: 'NOT',
+      boolean: 'OR',
+      children: inner.ast.where,
+    });
   }
 
   /** A builder for the same model without conditions, used to build nested groups. */
@@ -185,7 +199,13 @@ export class QueryBuilder<TModel extends Model = Model> {
       if (!(inner instanceof QueryBuilder)) {
         throw new QueryError('A where() callback must return the query builder it receives.');
       }
-      return this.push({ type: 'group', column: '', operator: 'AND', boolean, children: inner.ast.where });
+      return this.push({
+        type: 'group',
+        column: '',
+        operator: 'AND',
+        boolean,
+        children: inner.ast.where,
+      });
     }
 
     const newWhere = [...this.ast.where];
@@ -195,8 +215,20 @@ export class QueryBuilder<TModel extends Model = Model> {
         val === null
           ? { type: 'null', column: this.col(key), operator: 'IS NULL', boolean: 'AND' }
           : Array.isArray(val)
-            ? { type: 'in', column: this.col(key), operator: 'IN', values: [...val], boolean: 'AND' }
-            : { type: 'comparison', column: this.col(key), operator: '=', value: val, boolean: 'AND' }
+            ? {
+                type: 'in',
+                column: this.col(key),
+                operator: 'IN',
+                values: [...val],
+                boolean: 'AND',
+              }
+            : {
+                type: 'comparison',
+                column: this.col(key),
+                operator: '=',
+                value: val,
+                boolean: 'AND',
+              }
       );
       if (nodes.length === 0) return this;
       if (boolean === 'OR' && nodes.length > 1) {
@@ -217,7 +249,13 @@ export class QueryBuilder<TModel extends Model = Model> {
       } else if ((op === 'IN' || op === 'NOT IN') && Array.isArray(value)) {
         newWhere.push({ type: 'in', column, operator: op, values: [...value], boolean });
       } else if ((op === 'BETWEEN' || op === 'NOT BETWEEN') && Array.isArray(value)) {
-        newWhere.push({ type: 'between', column, operator: op, values: [value[0], value[1]], boolean });
+        newWhere.push({
+          type: 'between',
+          column,
+          operator: op,
+          values: [value[0], value[1]],
+          boolean,
+        });
       } else {
         newWhere.push({ type: 'comparison', column, operator: op, value, boolean });
       }
@@ -231,51 +269,111 @@ export class QueryBuilder<TModel extends Model = Model> {
   }
 
   public whereIn(column: string, values: readonly unknown[]): QueryBuilder<TModel> {
-    return this.push({ type: 'in', column: this.col(column), operator: 'IN', values: [...values], boolean: 'AND' });
+    return this.push({
+      type: 'in',
+      column: this.col(column),
+      operator: 'IN',
+      values: [...values],
+      boolean: 'AND',
+    });
   }
 
   public orWhereIn(column: string, values: readonly unknown[]): QueryBuilder<TModel> {
-    return this.push({ type: 'in', column: this.col(column), operator: 'IN', values: [...values], boolean: 'OR' });
+    return this.push({
+      type: 'in',
+      column: this.col(column),
+      operator: 'IN',
+      values: [...values],
+      boolean: 'OR',
+    });
   }
 
   public whereNotIn(column: string, values: readonly unknown[]): QueryBuilder<TModel> {
-    return this.push({ type: 'in', column: this.col(column), operator: 'NOT IN', values: [...values], boolean: 'AND' });
+    return this.push({
+      type: 'in',
+      column: this.col(column),
+      operator: 'NOT IN',
+      values: [...values],
+      boolean: 'AND',
+    });
   }
 
   public whereNull(column: string): QueryBuilder<TModel> {
-    return this.push({ type: 'null', column: this.col(column), operator: 'IS NULL', boolean: 'AND' });
+    return this.push({
+      type: 'null',
+      column: this.col(column),
+      operator: 'IS NULL',
+      boolean: 'AND',
+    });
   }
 
   public orWhereNull(column: string): QueryBuilder<TModel> {
-    return this.push({ type: 'null', column: this.col(column), operator: 'IS NULL', boolean: 'OR' });
+    return this.push({
+      type: 'null',
+      column: this.col(column),
+      operator: 'IS NULL',
+      boolean: 'OR',
+    });
   }
 
   public whereNotNull(column: string): QueryBuilder<TModel> {
-    return this.push({ type: 'null', column: this.col(column), operator: 'IS NOT NULL', boolean: 'AND' });
+    return this.push({
+      type: 'null',
+      column: this.col(column),
+      operator: 'IS NOT NULL',
+      boolean: 'AND',
+    });
   }
 
   public orWhereNotNull(column: string): QueryBuilder<TModel> {
-    return this.push({ type: 'null', column: this.col(column), operator: 'IS NOT NULL', boolean: 'OR' });
+    return this.push({
+      type: 'null',
+      column: this.col(column),
+      operator: 'IS NOT NULL',
+      boolean: 'OR',
+    });
   }
 
   /** Inclusive range: `whereBetween('price', [10, 20])`. */
   public whereBetween(column: string, range: readonly [unknown, unknown]): QueryBuilder<TModel> {
-    return this.push({ type: 'between', column: this.col(column), operator: 'BETWEEN', values: [range[0], range[1]], boolean: 'AND' });
+    return this.push({
+      type: 'between',
+      column: this.col(column),
+      operator: 'BETWEEN',
+      values: [range[0], range[1]],
+      boolean: 'AND',
+    });
   }
 
   public orWhereBetween(column: string, range: readonly [unknown, unknown]): QueryBuilder<TModel> {
-    return this.push({ type: 'between', column: this.col(column), operator: 'BETWEEN', values: [range[0], range[1]], boolean: 'OR' });
+    return this.push({
+      type: 'between',
+      column: this.col(column),
+      operator: 'BETWEEN',
+      values: [range[0], range[1]],
+      boolean: 'OR',
+    });
   }
 
   public whereNotBetween(column: string, range: readonly [unknown, unknown]): QueryBuilder<TModel> {
-    return this.push({ type: 'between', column: this.col(column), operator: 'NOT BETWEEN', values: [range[0], range[1]], boolean: 'AND' });
+    return this.push({
+      type: 'between',
+      column: this.col(column),
+      operator: 'NOT BETWEEN',
+      values: [range[0], range[1]],
+      boolean: 'AND',
+    });
   }
 
   /**
    * Pattern match with `%` (any run) and `_` (one character). Case-insensitive by default on
    * every database.
    */
-  public whereLike(column: string, pattern: string, options?: { caseSensitive?: boolean }): QueryBuilder<TModel> {
+  public whereLike(
+    column: string,
+    pattern: string,
+    options?: { caseSensitive?: boolean }
+  ): QueryBuilder<TModel> {
     return this.push({
       type: 'comparison',
       column: this.col(column),
@@ -285,7 +383,11 @@ export class QueryBuilder<TModel extends Model = Model> {
     });
   }
 
-  public orWhereLike(column: string, pattern: string, options?: { caseSensitive?: boolean }): QueryBuilder<TModel> {
+  public orWhereLike(
+    column: string,
+    pattern: string,
+    options?: { caseSensitive?: boolean }
+  ): QueryBuilder<TModel> {
     return this.push({
       type: 'comparison',
       column: this.col(column),
@@ -300,10 +402,20 @@ export class QueryBuilder<TModel extends Model = Model> {
    * - SQL databases: `whereRaw('LOWER(email) = ?', [email])` (always use placeholders)
    * - MongoDB: `whereRaw({ tags: { $all: ['a', 'b'] } })`
    */
-  public whereRaw(sqlOrFilter: string | Record<string, unknown>, params: readonly unknown[] = []): QueryBuilder<TModel> {
+  public whereRaw(
+    sqlOrFilter: string | Record<string, unknown>,
+    params: readonly unknown[] = []
+  ): QueryBuilder<TModel> {
     return this.push(
       typeof sqlOrFilter === 'string'
-        ? { type: 'raw', column: '', operator: 'RAW', sql: sqlOrFilter, params: [...params], boolean: 'AND' }
+        ? {
+            type: 'raw',
+            column: '',
+            operator: 'RAW',
+            sql: sqlOrFilter,
+            params: [...params],
+            boolean: 'AND',
+          }
         : { type: 'raw', column: '', operator: 'RAW', filter: { ...sqlOrFilter }, boolean: 'AND' }
     );
   }
@@ -314,7 +426,10 @@ export class QueryBuilder<TModel extends Model = Model> {
 
   public orderBy(column: string, direction: OrderDirection = 'ASC'): QueryBuilder<TModel> {
     const dir = direction.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
-    const newOrder: OrderByNode[] = [...this.ast.orderBy, { column: this.col(column), direction: dir }];
+    const newOrder: OrderByNode[] = [
+      ...this.ast.orderBy,
+      { column: this.col(column), direction: dir },
+    ];
     return this.clone({ orderBy: newOrder });
   }
 
@@ -429,7 +544,12 @@ export class QueryBuilder<TModel extends Model = Model> {
       const models = Hydrator.hydrateModels(rows, this.modelClass);
 
       if (this.eagerRelations.length > 0) {
-        await EagerLoader.loadRelations(models, this.eagerRelations, this.registry, this.context ?? conn);
+        await EagerLoader.loadRelations(
+          models,
+          this.eagerRelations,
+          this.registry,
+          this.context ?? conn
+        );
       }
 
       return Object.freeze(models);
@@ -516,7 +636,13 @@ export class QueryBuilder<TModel extends Model = Model> {
     return this.executeWithConnection((conn, engine) =>
       engine.aggregate(
         conn,
-        { table: this.ast.table, fn, column: this.col(column), where: this.ast.where, scope: this.softDeleteScope },
+        {
+          table: this.ast.table,
+          fn,
+          column: this.col(column),
+          where: this.ast.where,
+          scope: this.softDeleteScope,
+        },
         modelInfo(this.modelClass.metadata)
       )
     );
@@ -577,7 +703,11 @@ export class QueryBuilder<TModel extends Model = Model> {
           aggregates: aggs,
           where: this.ast.where,
           scope: this.softDeleteScope,
-          having: (options?.having ?? []).map(([alias, operator, value]) => ({ alias, operator, value })),
+          having: (options?.having ?? []).map(([alias, operator, value]) => ({
+            alias,
+            operator,
+            value,
+          })),
           orderBy,
           limit: options?.limit,
         },
@@ -645,7 +775,9 @@ export class QueryBuilder<TModel extends Model = Model> {
 
   /** No custom order, limit or offset: batches can seek by primary key instead of OFFSET. */
   private canUseKeyset(): boolean {
-    return this.ast.orderBy.length === 0 && this.ast.limit === undefined && this.ast.offset === undefined;
+    return (
+      this.ast.orderBy.length === 0 && this.ast.limit === undefined && this.ast.offset === undefined
+    );
   }
 
   /**
@@ -656,7 +788,17 @@ export class QueryBuilder<TModel extends Model = Model> {
     const pk = this.modelClass.metadata.primaryKey;
     // Wrap existing conditions in a group so `OR`s can't escape the `pk > last` condition.
     const base = this.ast.where.length
-      ? this.clone({ where: [{ type: 'group', column: '', operator: 'AND', boolean: 'AND', children: this.ast.where }] })
+      ? this.clone({
+          where: [
+            {
+              type: 'group',
+              column: '',
+              operator: 'AND',
+              boolean: 'AND',
+              children: this.ast.where,
+            },
+          ],
+        })
       : this.clone();
     let last: unknown;
     for (;;) {
@@ -666,7 +808,9 @@ export class QueryBuilder<TModel extends Model = Model> {
       if (batch.length === 0) return;
       yield batch;
       if (batch.length < size) return;
-      last = (batch[batch.length - 1] as unknown as { getAttributes(): Record<string, unknown> }).getAttributes()[pk];
+      last = (
+        batch[batch.length - 1] as unknown as { getAttributes(): Record<string, unknown> }
+      ).getAttributes()[pk];
     }
   }
 
@@ -688,7 +832,10 @@ export class QueryBuilder<TModel extends Model = Model> {
     }
     let page = 1;
     for (;;) {
-      const batch = await this.clone().limit(size).offset((page - 1) * size).get();
+      const batch = await this.clone()
+        .limit(size)
+        .offset((page - 1) * size)
+        .get();
       if (batch.length === 0) return;
       if ((await callback(batch, page)) === false) return;
       if (batch.length < size) return;
@@ -705,11 +852,19 @@ export class QueryBuilder<TModel extends Model = Model> {
   }
 
   /** Atomically adds `amount` to a column on every matching row. Returns the affected count. */
-  public async increment(column: string, amount = 1, extra: Record<string, unknown> = {}): Promise<number> {
+  public async increment(
+    column: string,
+    amount = 1,
+    extra: Record<string, unknown> = {}
+  ): Promise<number> {
     return this.runUpdate(extra, { [column]: amount });
   }
 
-  public async decrement(column: string, amount = 1, extra: Record<string, unknown> = {}): Promise<number> {
+  public async decrement(
+    column: string,
+    amount = 1,
+    extra: Record<string, unknown> = {}
+  ): Promise<number> {
     return this.runUpdate(extra, { [column]: -amount });
   }
 

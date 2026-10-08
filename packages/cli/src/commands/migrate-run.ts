@@ -53,7 +53,9 @@ export class MigrateRunCommand extends BaseCommand {
       registry: context.getMigrationRegistry(),
       onProgress: (event) => {
         if (!context.output.isJson) {
-          context.output.text(`  ${colors.green('✓')} ${event.id} ${colors.dim(`(${event.durationMs}ms)`)}`);
+          context.output.text(
+            `  ${colors.green('✓')} ${event.id} ${colors.dim(`(${event.durationMs}ms)`)}`
+          );
         }
       },
     });
@@ -72,7 +74,9 @@ export class MigrateRunCommand extends BaseCommand {
           return ExitCode.SUCCESS;
         }
         context.output.text(
-          colors.bold(`${plan.length} pending migration(s) on [${connName}] (${runner.getDialect(connName)}):`)
+          colors.bold(
+            `${plan.length} pending migration(s) on [${connName}] (${runner.getDialect(connName)}):`
+          )
         );
         for (const step of plan) {
           context.output.text();
@@ -80,7 +84,9 @@ export class MigrateRunCommand extends BaseCommand {
             `${colors.cyan(`-- ${step.id}`)}${step.isDestructive ? ' ' + colors.yellow('[DESTRUCTIVE]') : ''}`
           );
           if (step.statements.length === 0) {
-            context.output.text(colors.dim('-- (custom migration: SQL issued via ctx.sql() is not shown)'));
+            context.output.text(
+              colors.dim('-- (custom migration: SQL issued via ctx.sql() is not shown)')
+            );
           }
           for (const statement of step.statements) {
             context.output.text(statement);

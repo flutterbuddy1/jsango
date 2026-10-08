@@ -16,7 +16,11 @@ const WORK = fs.mkdtempSync(path.join(os.tmpdir(), 'jsango-mcp-'));
 const PROJECT = path.join(WORK, 'shop');
 
 function cli(cwd: string, ...args: string[]) {
-  return spawnSync(process.execPath, [BIN, ...args], { cwd, encoding: 'utf8', env: { ...process.env, NO_COLOR: '1' } });
+  return spawnSync(process.execPath, [BIN, ...args], {
+    cwd,
+    encoding: 'utf8',
+    env: { ...process.env, NO_COLOR: '1' },
+  });
 }
 
 class McpProcess {
@@ -72,7 +76,17 @@ beforeAll(async () => {
   fakeGitHub = http.createServer((req, res) => {
     searches.push(decodeURIComponent(req.url ?? ''));
     res.setHeader('content-type', 'application/json');
-    res.end(JSON.stringify({ items: [{ title: 'paginate ignores orderBy', html_url: 'https://github.com/flutterbuddy1/jsango/issues/42', state: 'open' }] }));
+    res.end(
+      JSON.stringify({
+        items: [
+          {
+            title: 'paginate ignores orderBy',
+            html_url: 'https://github.com/flutterbuddy1/jsango/issues/42',
+            state: 'open',
+          },
+        ],
+      })
+    );
   });
   await new Promise<void>((r) => fakeGitHub.listen(0, '127.0.0.1', r));
   expect(cli(WORK, 'new', 'shop').status).toBe(0);
@@ -94,12 +108,21 @@ afterAll(async () => {
 
 describe('jsango mcp', () => {
   it('handshakes with instructions and lists its tools', async () => {
-    const init = await mcp.request('initialize', { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'test', version: '1' } });
+    const init = await mcp.request('initialize', {
+      protocolVersion: '2025-03-26',
+      capabilities: {},
+      clientInfo: { name: 'test', version: '1' },
+    });
     expect(init.result.serverInfo.name).toBe('jsango');
     expect(init.result.instructions).toContain('get_api');
     mcp.notify('notifications/initialized');
     const { result } = await mcp.request('tools/list');
-    expect(result.tools.map((t: { name: string }) => t.name)).toEqual(['get_api', 'search_docs', 'run_check', 'report_issue']);
+    expect(result.tools.map((t: { name: string }) => t.name)).toEqual([
+      'get_api',
+      'search_docs',
+      'run_check',
+      'report_issue',
+    ]);
   });
 
   it('get_api returns real signatures and corrects wrong names', async () => {
@@ -107,17 +130,27 @@ describe('jsango mcp', () => {
     expect(createAuth).toContain('from @jsango/auth');
     expect(createAuth).toMatch(/export declare function createAuth/);
 
-    expect(await mcp.tool('get_api', { name: 'fields.string' })).toMatch(/string: <T = string>\(options\?/);
-    expect(await mcp.tool('get_api', { name: 'QueryBuilder.paginate' })).toContain('paginate(options: PaginationOptions)');
+    expect(await mcp.tool('get_api', { name: 'fields.string' })).toMatch(
+      /string: <T = string>\(options\?/
+    );
+    expect(await mcp.tool('get_api', { name: 'QueryBuilder.paginate' })).toContain(
+      'paginate(options: PaginationOptions)'
+    );
 
-    expect(await mcp.tool('get_api', { name: 'createAuh' })).toMatch(/No export named "createAuh".*Did you mean: .*createAuth/);
-    expect(await mcp.tool('get_api', { name: 'QueryBuilder.paginated' })).toMatch(/has no member "paginated"\. Did you mean: paginate/);
+    expect(await mcp.tool('get_api', { name: 'createAuh' })).toMatch(
+      /No export named "createAuh".*Did you mean: .*createAuth/
+    );
+    expect(await mcp.tool('get_api', { name: 'QueryBuilder.paginated' })).toMatch(
+      /has no member "paginated"\. Did you mean: paginate/
+    );
   });
 
   it('search_docs finds the right guide sections', async () => {
     const res = await mcp.tool('search_docs', { query: 'refresh token rotation reuse' });
     expect(res).toContain('docs/auth/README.md');
-    expect(await mcp.tool('search_docs', { query: 'makemigrations rename column' })).toContain('docs/database/README.md');
+    expect(await mcp.tool('search_docs', { query: 'makemigrations rename column' })).toContain(
+      'docs/database/README.md'
+    );
   });
 
   it('run_check reports failures with jsango hints, then passes once fixed', async () => {
@@ -157,15 +190,23 @@ describe('jsango ai:init MCP configs', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jsango-mcpcfg-'));
     try {
       fs.mkdirSync(path.join(dir, '.vscode'));
-      fs.writeFileSync(path.join(dir, '.vscode/mcp.json'), JSON.stringify({ servers: { other: { command: 'x' } } }));
+      fs.writeFileSync(
+        path.join(dir, '.vscode/mcp.json'),
+        JSON.stringify({ servers: { other: { command: 'x' } } })
+      );
       fs.mkdirSync(path.join(dir, '.cursor'));
       fs.writeFileSync(path.join(dir, '.cursor/mcp.json'), '{ // comments\n}');
       expect(cli(dir, 'ai:init').status).toBe(0);
 
       const claude = JSON.parse(fs.readFileSync(path.join(dir, '.mcp.json'), 'utf8'));
-      expect(claude).toEqual({ mcpServers: { jsango: { command: 'npx', args: ['jsango', 'mcp'] } } });
+      expect(claude).toEqual({
+        mcpServers: { jsango: { command: 'npx', args: ['jsango', 'mcp'] } },
+      });
       const vscode = JSON.parse(fs.readFileSync(path.join(dir, '.vscode/mcp.json'), 'utf8'));
-      expect(vscode.servers).toEqual({ other: { command: 'x' }, jsango: { type: 'stdio', command: 'npx', args: ['jsango', 'mcp'] } });
+      expect(vscode.servers).toEqual({
+        other: { command: 'x' },
+        jsango: { type: 'stdio', command: 'npx', args: ['jsango', 'mcp'] },
+      });
       expect(fs.readFileSync(path.join(dir, '.cursor/mcp.json'), 'utf8')).toBe('{ // comments\n}'); // left alone
       expect(fs.existsSync(path.join(PROJECT, '.mcp.json'))).toBe(true); // `jsango new` writes them too
     } finally {
@@ -186,7 +227,9 @@ describe('report_issue', () => {
     });
     expect(res).toContain('Do not submit anything yourself');
     expect(res).toContain('https://github.com/flutterbuddy1/jsango/issues/42'); // duplicate surfaced
-    expect(searches.at(-1)).toContain('repo:flutterbuddy1/jsango is:issue paginate ignores orderby');
+    expect(searches.at(-1)).toContain(
+      'repo:flutterbuddy1/jsango is:issue paginate ignores orderby'
+    );
     expect(res).not.toContain('s3cr3t-value-from-env-file-123');
     expect(res).not.toContain('me@company.com');
     expect(res).not.toContain(PROJECT);
@@ -212,7 +255,14 @@ describe('report_issue', () => {
         'npm i jsango@1.4.0 and import from @jsango/auth',
       ].join('\n');
       const { text, count } = redact(input, cwd);
-      for (const secret of ['hunter2', 'pw123', 'abcdefghijklmnopqrstuvwxyz123456', 'eyJhbGci', 'ghp_', os.homedir()]) {
+      for (const secret of [
+        'hunter2',
+        'pw123',
+        'abcdefghijklmnopqrstuvwxyz123456',
+        'eyJhbGci',
+        'ghp_',
+        os.homedir(),
+      ]) {
         expect(text, secret).not.toContain(secret);
       }
       expect(text).toContain('jsango@1.4.0');
@@ -224,7 +274,11 @@ describe('report_issue', () => {
   });
 
   it('keeps the prefilled link short enough for GitHub', () => {
-    const draft = draftIssue({ kind: 'docs', title: 'Long', summary: 'x'.repeat(20000) }, os.tmpdir(), '1.4.0');
+    const draft = draftIssue(
+      { kind: 'docs', title: 'Long', summary: 'x'.repeat(20000) },
+      os.tmpdir(),
+      '1.4.0'
+    );
     expect(draft.truncated).toBe(true);
     expect(draft.url.length).toBeLessThanOrEqual(7500);
   });
@@ -233,6 +287,9 @@ describe('report_issue', () => {
     const failing = (async () => {
       throw new Error('offline');
     }) as unknown as typeof fetch;
-    expect(await findSimilarIssues('admin export crashes', { fetch: failing })).toEqual({ ok: false, reason: 'offline' });
+    expect(await findSimilarIssues('admin export crashes', { fetch: failing })).toEqual({
+      ok: false,
+      reason: 'offline',
+    });
   });
 });

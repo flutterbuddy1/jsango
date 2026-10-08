@@ -27,7 +27,8 @@ export class ApiIndex {
       for (const decl of scanDeclarations(text)) {
         const list = this.entries.get(decl.name) ?? [];
         // Re-declared in several packages (re-exports): keep one per package.
-        if (!list.some((e) => e.pkg === pkg && e.text === decl.text)) list.push({ ...decl, pkg, file });
+        if (!list.some((e) => e.pkg === pkg && e.text === decl.text))
+          list.push({ ...decl, pkg, file });
         this.entries.set(decl.name, list);
       }
     }
@@ -53,7 +54,8 @@ export class ApiIndex {
   public lookup(query: string): string {
     const [base = '', member] = query.trim().split('.', 2) as [string, string | undefined];
     const found =
-      this.entries.get(base) ?? [...this.entries.entries()].find(([n]) => n.toLowerCase() === base.toLowerCase())?.[1];
+      this.entries.get(base) ??
+      [...this.entries.entries()].find(([n]) => n.toLowerCase() === base.toLowerCase())?.[1];
     if (!found) {
       return `No export named "${base}" in jsango.${this.suggest(base)}`;
     }
@@ -71,17 +73,23 @@ export class ApiIndex {
             .sort((a, b) => a[1] - b[1])
             .slice(0, 5)
             .map(([n]) => n);
-          parts.push(`${entry.kind} ${entry.name} has no member "${member}". Did you mean: ${close.join(', ')}?\nMembers: ${names.join(', ')}`);
+          parts.push(
+            `${entry.kind} ${entry.name} has no member "${member}". Did you mean: ${close.join(', ')}?\nMembers: ${names.join(', ')}`
+          );
           continue;
         }
         text = matches.map((m) => m.text).join('\n');
       } else if (text.length > MAX_OUTPUT) {
         text = outline(entry);
       }
-      parts.push(`// ${entry.kind} ${entry.name}${member ? `.${member}` : ''} from ${entry.pkg}\n${text}`);
+      parts.push(
+        `// ${entry.kind} ${entry.name}${member ? `.${member}` : ''} from ${entry.pkg}\n${text}`
+      );
     }
     const out = parts.join('\n\n');
-    return out.length > MAX_OUTPUT ? out.slice(0, MAX_OUTPUT) + '\n… (truncated; ask for a member, e.g. Name.method)' : out;
+    return out.length > MAX_OUTPUT
+      ? out.slice(0, MAX_OUTPUT) + '\n… (truncated; ask for a member, e.g. Name.method)'
+      : out;
   }
 
   private suggest(name: string): string {
@@ -89,7 +97,10 @@ export class ApiIndex {
     const scored = this.names()
       .map((n) => {
         const l = n.toLowerCase();
-        const score = l.includes(lower) || (lower.length > 3 && lower.includes(l)) ? 0 : levenshteinDistance(l, lower);
+        const score =
+          l.includes(lower) || (lower.length > 3 && lower.includes(l))
+            ? 0
+            : levenshteinDistance(l, lower);
         return [n, score] as const;
       })
       .filter(([, s]) => s <= Math.max(3, Math.floor(name.length / 2)))
@@ -103,7 +114,9 @@ export class ApiIndex {
 /** Class/interface body as member signatures only (no JSDoc), for very large declarations. */
 function outline(entry: ApiEntry): string {
   const members = splitMembers(entry.text);
-  const head = entry.text.slice(0, entry.text.indexOf('{') + 1).replace(/\/\*\*[\s\S]*?\*\/\s*/g, '');
+  const head = entry.text
+    .slice(0, entry.text.indexOf('{') + 1)
+    .replace(/\/\*\*[\s\S]*?\*\/\s*/g, '');
   return `${head}\n${members.map((m) => '    ' + m.signature).join('\n')}\n}\n// Ask for ${entry.name}.<member> to see a member's documentation.`;
 }
 
@@ -111,10 +124,13 @@ function outline(entry: ApiEntry): string {
 // .d.ts scanning
 // ---------------------------------------------------------------------------
 
-const DECL = /^export\s+(?:declare\s+)?(?:abstract\s+)?(function|class|interface|type|const|let|var|enum|namespace)\s+([A-Za-z_$][\w$]*)/;
+const DECL =
+  /^export\s+(?:declare\s+)?(?:abstract\s+)?(function|class|interface|type|const|let|var|enum|namespace)\s+([A-Za-z_$][\w$]*)/;
 
 /** Splits a .d.ts into top-level exported declarations (with the JSDoc right before them). */
-export function scanDeclarations(text: string): Array<{ name: string; kind: string; text: string }> {
+export function scanDeclarations(
+  text: string
+): Array<{ name: string; kind: string; text: string }> {
   const out: Array<{ name: string; kind: string; text: string }> = [];
   let i = 0;
   let doc = '';
@@ -156,7 +172,10 @@ function nextLine(text: string, i: number): number {
 function statementEnd(text: string, start: number): number {
   let depth = 0;
   let sawBlock = false;
-  const isBlockDecl = /^(export\s+)?(declare\s+)?(abstract\s+)?(class|interface|enum|namespace|module)\b/.test(text.slice(start, start + 80));
+  const isBlockDecl =
+    /^(export\s+)?(declare\s+)?(abstract\s+)?(class|interface|enum|namespace|module)\b/.test(
+      text.slice(start, start + 80)
+    );
   for (let i = start; i < text.length; i++) {
     const c = text[i]!;
     if (c === '"' || c === "'" || c === '`') {
@@ -194,10 +213,13 @@ function skipString(text: string, i: number): number {
   return text.length;
 }
 
-const MEMBER = /^(?:(?:public|protected|static|readonly|abstract|declare|get|set|async)\s+)*([A-Za-z_$][\w$]*)\??\s*[<(:]/;
+const MEMBER =
+  /^(?:(?:public|protected|static|readonly|abstract|declare|get|set|async)\s+)*([A-Za-z_$][\w$]*)\??\s*[<(:]/;
 
 /** Members of a class/interface/object-type declaration, with their JSDoc. Private members are skipped. */
-export function splitMembers(decl: string): Array<{ name: string; text: string; signature: string }> {
+export function splitMembers(
+  decl: string
+): Array<{ name: string; text: string; signature: string }> {
   const open = decl.search(/[{]/);
   if (open === -1) return [];
   const members: Array<{ name: string; text: string; signature: string }> = [];
@@ -223,7 +245,10 @@ export function splitMembers(decl: string): Array<{ name: string; text: string; 
       depth--;
       if (depth === 0) break;
     } else if (c === ';' && depth === 1) {
-      const signature = decl.slice(segStart, i + 1).trim().replace(/\s+/g, ' ');
+      const signature = decl
+        .slice(segStart, i + 1)
+        .trim()
+        .replace(/\s+/g, ' ');
       const m = MEMBER.exec(signature);
       if (m && !/^(private|#)/.test(signature)) {
         members.push({ name: m[1]!, signature, text: (doc ? doc + '\n' : '') + signature });
@@ -269,7 +294,13 @@ export function collectDtsFiles(cwd: string): Array<{ pkg: string; file: string;
   const roots = new Map<string, string>();
   if (jsangoDir) {
     roots.set('jsango', jsangoDir);
-    const deps = Object.keys((JSON.parse(fs.readFileSync(path.join(jsangoDir, 'package.json'), 'utf8')) as { dependencies?: Record<string, string> }).dependencies ?? {});
+    const deps = Object.keys(
+      (
+        JSON.parse(fs.readFileSync(path.join(jsangoDir, 'package.json'), 'utf8')) as {
+          dependencies?: Record<string, string>;
+        }
+      ).dependencies ?? {}
+    );
     for (const dep of deps.filter((d) => d.startsWith('@jsango/'))) {
       const dir = findUp(jsangoDir, `node_modules/${dep}`);
       if (dir) roots.set(dep, dir);
@@ -281,7 +312,8 @@ export function collectDtsFiles(cwd: string): Array<{ pkg: string; file: string;
     const siblings = path.dirname(cliDir);
     for (const name of fs.readdirSync(siblings)) {
       const pkgDir = path.join(siblings, name);
-      if (fs.existsSync(path.join(pkgDir, 'dist'))) roots.set(name === 'jsango' ? 'jsango' : `@jsango/${name}`, fs.realpathSync(pkgDir));
+      if (fs.existsSync(path.join(pkgDir, 'dist')))
+        roots.set(name === 'jsango' ? 'jsango' : `@jsango/${name}`, fs.realpathSync(pkgDir));
     }
   }
   const files: Array<{ pkg: string; file: string; text: string }> = [];

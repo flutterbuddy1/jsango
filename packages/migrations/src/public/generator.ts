@@ -19,7 +19,10 @@ export class MigrationGenerator {
   /**
    * Generates an empty, hand-written migration with up/down functions using the schema builder.
    */
-  public static generateEmpty(name: string, options?: GenerateMigrationOptions): GeneratedMigration {
+  public static generateEmpty(
+    name: string,
+    options?: GenerateMigrationOptions
+  ): GeneratedMigration {
     const cleanName = name.replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase();
     const timestamp = options?.timestamp ?? MigrationGenerator.generateTimestamp();
     const id = `${timestamp}_${cleanName}`;

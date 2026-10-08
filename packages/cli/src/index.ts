@@ -33,5 +33,9 @@ export { AiInitCommand } from './commands/ai-init.js';
 export { McpCommand, createJsangoMcpServer, type JsangoMcpHandlers } from './commands/mcp.js';
 export { ApiIndex } from './internal/mcp/api-index.js';
 export { DocsSearch } from './internal/mcp/docs-search.js';
-export { redact, draftIssue, findSimilarIssues, type IssueDraftInput } from './internal/mcp/report-issue.js';
-
+export {
+  redact,
+  draftIssue,
+  findSimilarIssues,
+  type IssueDraftInput,
+} from './internal/mcp/report-issue.js';

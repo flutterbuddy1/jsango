@@ -44,10 +44,15 @@ export class InMemoryMemoryStore implements MemoryStore {
  * `connection()` / `getDriverName()` so MongoDB can be used too.
  */
 export interface MemoryDatabase {
-  query(sql: string, params?: readonly unknown[]): Promise<{ rows: readonly Record<string, unknown>[]; rowCount: number }>;
+  query(
+    sql: string,
+    params?: readonly unknown[]
+  ): Promise<{ rows: readonly Record<string, unknown>[]; rowCount: number }>;
   getDriverName?(name?: string): string;
   connection?(name?: string): Promise<{
-    execute?(command: Record<string, unknown>): Promise<{ rows: readonly Record<string, unknown>[]; rowCount: number }>;
+    execute?(
+      command: Record<string, unknown>
+    ): Promise<{ rows: readonly Record<string, unknown>[]; rowCount: number }>;
     release(): Promise<void>;
   }>;
 }
@@ -74,7 +79,7 @@ export class DatabaseMemoryStore implements MemoryStore {
   constructor(options: DatabaseMemoryOptions) {
     if (!options?.connection || typeof options.connection.query !== 'function') {
       throw new Error(
-        "DatabaseMemoryStore requires your DatabaseManager: new DatabaseMemoryStore({ connection: db })."
+        'DatabaseMemoryStore requires your DatabaseManager: new DatabaseMemoryStore({ connection: db }).'
       );
     }
     if (options.tableName !== undefined && !/^[A-Za-z_][A-Za-z0-9_]*$/.test(options.tableName)) {
@@ -89,7 +94,13 @@ export class DatabaseMemoryStore implements MemoryStore {
     return this.db.getDriverName?.() ?? 'sql';
   }
 
-  private async mongo<T>(fn: (execute: NonNullable<Awaited<ReturnType<NonNullable<MemoryDatabase['connection']>>>['execute']>) => Promise<T>): Promise<T> {
+  private async mongo<T>(
+    fn: (
+      execute: NonNullable<
+        Awaited<ReturnType<NonNullable<MemoryDatabase['connection']>>>['execute']
+      >
+    ) => Promise<T>
+  ): Promise<T> {
     const conn = await this.db.connection!();
     try {
       return await fn(conn.execute!.bind(conn));
@@ -171,11 +182,15 @@ export class DatabaseMemoryStore implements MemoryStore {
 
   public async clear(key: string): Promise<void> {
     if (this.driver === 'mongodb') {
-      await this.mongo((execute) => execute({ op: 'deleteOne', collection: this.table, filter: { _id: key } }));
+      await this.mongo((execute) =>
+        execute({ op: 'deleteOne', collection: this.table, filter: { _id: key } })
+      );
       return;
     }
     await this.ensureTable();
-    await this.db.query(`DELETE FROM ${this.q(this.table)} WHERE ${this.q('memory_key')} = ?`, [key]);
+    await this.db.query(`DELETE FROM ${this.q(this.table)} WHERE ${this.q('memory_key')} = ?`, [
+      key,
+    ]);
   }
 }
 
@@ -184,7 +199,10 @@ export class DatabaseMemoryStore implements MemoryStore {
  */
 export function memory(type?: 'memory'): MemoryStore;
 export function memory(type: 'database', options: DatabaseMemoryOptions): MemoryStore;
-export function memory(type: 'memory' | 'database' = 'memory', options?: DatabaseMemoryOptions): MemoryStore {
+export function memory(
+  type: 'memory' | 'database' = 'memory',
+  options?: DatabaseMemoryOptions
+): MemoryStore {
   if (type === 'database') {
     return new DatabaseMemoryStore(options as DatabaseMemoryOptions);
   }

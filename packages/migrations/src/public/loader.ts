@@ -5,7 +5,8 @@ import { Migration, type MigrationOptions } from './migration.js';
 import { MigrationRegistry } from './registry.js';
 import { MigrationError } from './errors.js';
 
-const MIGRATION_FILE = /^(?!.*\.d\.[cm]?ts$)(?!.*\.(test|spec)\.)(?!index\.).+\.(ts|mts|cts|js|mjs|cjs)$/;
+const MIGRATION_FILE =
+  /^(?!.*\.d\.[cm]?ts$)(?!.*\.(test|spec)\.)(?!index\.).+\.(ts|mts|cts|js|mjs|cjs)$/;
 
 export interface LoadedMigrations {
   readonly registry: MigrationRegistry;
@@ -57,16 +58,22 @@ export async function loadMigrationsFromDirectory(
       mod = (await import(pathToFileURL(file).href)) as Record<string, unknown>;
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
-      const hint = /\.[cm]?ts$/.test(file) && /Unknown file extension/.test(reason)
-        ? ' TypeScript migrations must be loaded through the jsango CLI (npx jsango migrate) or a TypeScript loader such as tsx.'
-        : '';
+      const hint =
+        /\.[cm]?ts$/.test(file) && /Unknown file extension/.test(reason)
+          ? ' TypeScript migrations must be loaded through the jsango CLI (npx jsango migrate) or a TypeScript loader such as tsx.'
+          : '';
       throw new MigrationError({
         message: `Failed to load migration file ${path.relative(process.cwd(), file)}: ${reason}${hint}`,
         cause: err,
       });
     }
 
-    const candidates = [mod['default'], ...Object.entries(mod).filter(([k]) => k !== 'default').map(([, v]) => v)];
+    const candidates = [
+      mod['default'],
+      ...Object.entries(mod)
+        .filter(([k]) => k !== 'default')
+        .map(([, v]) => v),
+    ];
     const found = candidates.filter(
       (value, index, all) =>
         (value instanceof Migration || isMigrationOptions(value)) && all.indexOf(value) === index
@@ -79,7 +86,8 @@ export async function loadMigrationsFromDirectory(
     }
 
     for (const value of found) {
-      const migration = value instanceof Migration ? value : new Migration(value as MigrationOptions);
+      const migration =
+        value instanceof Migration ? value : new Migration(value as MigrationOptions);
       const previous = files.get(migration.id);
       if (previous) {
         throw new MigrationError({

@@ -43,7 +43,11 @@ export abstract class BaseLlmProvider implements ILlmProvider {
           }
           if (chunk.toolCallDelta) {
             const id = chunk.toolCallDelta.id ?? 'call_0';
-            const existing = toolCallsMap.get(id) ?? { id, name: chunk.toolCallDelta.name ?? '', argumentsStr: '' };
+            const existing = toolCallsMap.get(id) ?? {
+              id,
+              name: chunk.toolCallDelta.name ?? '',
+              argumentsStr: '',
+            };
             if (chunk.toolCallDelta.name) existing.name = chunk.toolCallDelta.name;
             if (chunk.toolCallDelta.arguments) {
               existing.argumentsStr += JSON.stringify(chunk.toolCallDelta.arguments);
@@ -79,7 +83,11 @@ export abstract class BaseLlmProvider implements ILlmProvider {
     };
   }
 
-  protected normalizeMessages(messages?: LlmMessage[], prompt?: string, system?: string): LlmMessage[] {
+  protected normalizeMessages(
+    messages?: LlmMessage[],
+    prompt?: string,
+    system?: string
+  ): LlmMessage[] {
     const list: LlmMessage[] = [];
     if (system) {
       list.push({ role: 'system', content: system });

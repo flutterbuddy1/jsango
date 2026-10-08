@@ -31,7 +31,10 @@ ws.manager.on<{ room: string }>('chat.join', async (ctx, message) => {
 });
 
 ws.manager.on<{ room: string; text: string }>('chat.message', async (ctx, message) => {
-  await ws.manager.broadcast(message.payload.room, { type: 'chat.message', payload: { text: message.payload.text } });
+  await ws.manager.broadcast(message.payload.room, {
+    type: 'chat.message',
+    payload: { text: message.payload.text },
+  });
 });
 ```
 

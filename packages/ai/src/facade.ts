@@ -19,9 +19,12 @@ import { FakeLlmProvider } from './providers/fake-provider.js';
 export class AiFacade {
   private fakeInstance?: FakeLlmProvider | undefined;
 
-  public async generate<T = string>(optionsOrPrompt: LlmCallOptions | string): Promise<LlmResponse<T>> {
+  public async generate<T = string>(
+    optionsOrPrompt: LlmCallOptions | string
+  ): Promise<LlmResponse<T>> {
     const router = getDefaultRouter();
-    const options: LlmCallOptions = typeof optionsOrPrompt === 'string' ? { prompt: optionsOrPrompt } : optionsOrPrompt;
+    const options: LlmCallOptions =
+      typeof optionsOrPrompt === 'string' ? { prompt: optionsOrPrompt } : optionsOrPrompt;
 
     const res = await router.generate(options);
     let parsed: any = undefined;
@@ -51,10 +54,10 @@ export class AiFacade {
     };
   }
 
-
   public async stream(optionsOrPrompt: LlmCallOptions | string): Promise<LlmStream> {
     const router = getDefaultRouter();
-    const options: LlmCallOptions = typeof optionsOrPrompt === 'string' ? { prompt: optionsOrPrompt } : optionsOrPrompt;
+    const options: LlmCallOptions =
+      typeof optionsOrPrompt === 'string' ? { prompt: optionsOrPrompt } : optionsOrPrompt;
     return router.stream(options);
   }
 
@@ -84,7 +87,10 @@ export class AiFacade {
   }
 
   /** `ai.memory()` (in-process) or `ai.memory('database', { connection: db })` (persisted). */
-  public memory(type: 'memory' | 'database' = 'memory', options?: DatabaseMemoryOptions): MemoryStore {
+  public memory(
+    type: 'memory' | 'database' = 'memory',
+    options?: DatabaseMemoryOptions
+  ): MemoryStore {
     return type === 'database' ? memory('database', options as DatabaseMemoryOptions) : memory();
   }
 

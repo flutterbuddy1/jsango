@@ -1,5 +1,10 @@
 import type { MongoCommand } from '@jsango/database';
-import type { ColumnDefinition, ColumnType, IndexDefinition, TableDefinition } from '../public/types.js';
+import type {
+  ColumnDefinition,
+  ColumnType,
+  IndexDefinition,
+  TableDefinition,
+} from '../public/types.js';
 import {
   AddColumnOperation,
   AddForeignKeyOperation,
@@ -75,7 +80,11 @@ export function buildValidator(table: TableDefinition): Record<string, unknown> 
   };
 }
 
-function indexCommand(table: TableDefinition | undefined, tableName: string, index: IndexDefinition): MongoCommand {
+function indexCommand(
+  table: TableDefinition | undefined,
+  tableName: string,
+  index: IndexDefinition
+): MongoCommand {
   const keys: Record<string, 1> = {};
   for (const c of index.columns) keys[docField(table, c)] = 1;
   let partialFilterExpression: Record<string, unknown> | undefined;
@@ -84,7 +93,10 @@ function indexCommand(table: TableDefinition | undefined, tableName: string, ind
     // Only index documents where every column holds a non-null value.
     const nullable = index.columns
       .map((c) => table.columns.find((col) => col.name === c))
-      .filter((c): c is ColumnDefinition => c !== undefined && c.nullable !== false && !isPrimaryKey(table, c.name));
+      .filter(
+        (c): c is ColumnDefinition =>
+          c !== undefined && c.nullable !== false && !isPrimaryKey(table, c.name)
+      );
     if (nullable.length > 0) {
       partialFilterExpression = {};
       for (const col of nullable) {
@@ -140,7 +152,9 @@ export function compileMongoOperation(
       },
     ];
     for (const uc of table.uniqueConstraints ?? []) {
-      commands.push(indexCommand(table, table.name, { name: uc.name, columns: uc.columns, unique: true }));
+      commands.push(
+        indexCommand(table, table.name, { name: uc.name, columns: uc.columns, unique: true })
+      );
     }
     for (const idx of table.indexes ?? []) {
       commands.push(indexCommand(table, table.name, idx));
@@ -199,10 +213,12 @@ export function compileMongoOperation(
     // New validator first ('moderate' does not block updates to documents that do not match it
     // yet), then move the data.
     const commands: MongoCommand[] = [...withValidator(newTable, op.tableName)];
-    const affected = [...(oldTable?.indexes ?? []), ...(oldTable?.uniqueConstraints ?? []).map((u) => ({ ...u, unique: true }))].filter(
-      (idx) => idx.columns.includes(op.oldName)
-    );
-    for (const idx of affected) commands.push({ op: 'dropIndex', collection: op.tableName, name: idx.name });
+    const affected = [
+      ...(oldTable?.indexes ?? []),
+      ...(oldTable?.uniqueConstraints ?? []).map((u) => ({ ...u, unique: true })),
+    ].filter((idx) => idx.columns.includes(op.oldName));
+    for (const idx of affected)
+      commands.push({ op: 'dropIndex', collection: op.tableName, name: idx.name });
     commands.push({
       op: 'updateMany',
       collection: op.tableName,
@@ -248,9 +264,12 @@ export function compileMongoOperation(
 
   if (op instanceof RawSqlOperation) {
     throw new MigrationError({
-      message: 'Raw SQL migrations cannot run on MongoDB. Use ctx.execute({ op: ..., collection: ... }) in a hand-written migration instead.',
+      message:
+        'Raw SQL migrations cannot run on MongoDB. Use ctx.execute({ op: ..., collection: ... }) in a hand-written migration instead.',
     });
   }
 
-  throw new MigrationError({ message: `Unsupported migration operation type '${op.type}' for MongoDB.` });
+  throw new MigrationError({
+    message: `Unsupported migration operation type '${op.type}' for MongoDB.`,
+  });
 }

@@ -113,13 +113,15 @@ export interface CreateAuthOptions<TUser> {
    * Accept tokens from an external identity provider (Auth0, Clerk, Cognito, Firebase, Azure AD...).
    * `identity` maps the verified claims; by default `sub` becomes the id.
    */
-  readonly external?: (JwksVerifierOptions & { identity?: (claims: JwtPayload) => IdentityFields }) | undefined;
+  readonly external?:
+    (JwksVerifierOptions & { identity?: (claims: JwtPayload) => IdentityFields }) | undefined;
 
   /** Social login providers (`google()`, `github()`, `oauthProvider()`). */
   readonly oauth?: readonly OAuthProvider[] | undefined;
 
   /** Brute-force protection for password and MFA attempts. Default 5 failures per 15 minutes. */
-  readonly bruteForce?: { readonly maxAttempts?: number; readonly windowSeconds?: number } | false | undefined;
+  readonly bruteForce?:
+    { readonly maxAttempts?: number; readonly windowSeconds?: number } | false | undefined;
 
   /** TOTP two-factor authentication: field holding the user's TOTP secret. Default `totpSecret`. */
   readonly mfa?: { readonly field?: string | undefined } | undefined;
@@ -193,23 +195,33 @@ export class Auth<TUser = Record<string, unknown>> {
 
   public constructor(options: CreateAuthOptions<TUser>) {
     if (!options?.secret || options.secret.length < 32) {
-      throw new Error('createAuth() needs a `secret` of at least 32 characters (e.g. `openssl rand -base64 48`).');
+      throw new Error(
+        'createAuth() needs a `secret` of at least 32 characters (e.g. `openssl rand -base64 48`).'
+      );
     }
     if (!options.users || typeof options.users.findById !== 'function') {
       throw new Error('createAuth() needs `users.findById(id)` to load users.');
     }
     this.options = options;
     // Independent keys per purpose, derived from the one secret.
-    const derive = (label: string) => crypto.createHmac('sha256', options.secret).update(label).digest();
-    this.jwt = new JwtService({ secret: derive('jsango:jwt').toString('base64'), allowedAlgorithms: ['HS256'] });
+    const derive = (label: string) =>
+      crypto.createHmac('sha256', options.secret).update(label).digest();
+    this.jwt = new JwtService({
+      secret: derive('jsango:jwt').toString('base64'),
+      allowedAlgorithms: ['HS256'],
+    });
     this.cookieKey = derive('jsango:cookie');
     this.hasher = options.password?.hasher ?? new ScryptPasswordHasher();
     this.store = options.store ?? new MemoryAuthStore();
-    this.external = options.external ? new JwksVerifier({ fetch: options.fetch, ...options.external }) : undefined;
+    this.external = options.external
+      ? new JwksVerifier({ fetch: options.fetch, ...options.external })
+      : undefined;
     for (const p of options.oauth ?? []) this.providers.set(p.name, p);
     if (!options.store && process.env['NODE_ENV'] === 'production') {
       // eslint-disable-next-line no-console -- one-time startup warning
-      console.warn('[jsango auth] Using the in-memory auth store in production: sessions, refresh tokens and lockouts are lost on restart and not shared between instances. Pass `store: new DatabaseAuthStore({ connection: db })`.');
+      console.warn(
+        '[jsango auth] Using the in-memory auth store in production: sessions, refresh tokens and lockouts are lost on restart and not shared between instances. Pass `store: new DatabaseAuthStore({ connection: db })`.'
+      );
     }
   }
 
@@ -247,10 +259,18 @@ export class Auth<TUser = Record<string, unknown>> {
   public async hashPassword(password: string): Promise<string> {
     const min = this.options.password?.minLength ?? 8;
     if (typeof password !== 'string' || password.length < min) {
-      throw new AuthenticationError({ code: 'ERR_AUTH_WEAK_PASSWORD', message: `Password must be at least ${min} characters.`, statusCode: 422 });
+      throw new AuthenticationError({
+        code: 'ERR_AUTH_WEAK_PASSWORD',
+        message: `Password must be at least ${min} characters.`,
+        statusCode: 422,
+      });
     }
     if (password.length > 1024) {
-      throw new AuthenticationError({ code: 'ERR_AUTH_WEAK_PASSWORD', message: 'Password is too long.', statusCode: 422 });
+      throw new AuthenticationError({
+        code: 'ERR_AUTH_WEAK_PASSWORD',
+        message: 'Password is too long.',
+        statusCode: 422,
+      });
     }
     return this.hasher.hash(password);
   }
@@ -266,7 +286,11 @@ export class Auth<TUser = Record<string, unknown>> {
   private fields(user: TUser): IdentityFields {
     if (this.options.identity) return this.options.identity(user);
     const u = user as Record<string, unknown>;
-    const roles = Array.isArray(u['roles']) ? (u['roles'] as string[]) : typeof u['role'] === 'string' ? [u['role']] : [];
+    const roles = Array.isArray(u['roles'])
+      ? (u['roles'] as string[])
+      : typeof u['role'] === 'string'
+        ? [u['role']]
+        : [];
     return {
       id: u['id'] as string | number,
       roles,
@@ -329,12 +353,21 @@ export class Auth<TUser = Record<string, unknown>> {
    * two-factor authentication enabled. Throws a generic InvalidCredentialsError (401) on any
    * failure and TooManyAttemptsError (429) when locked out.
    */
-  public async login(login: string, password: string, ctx?: RequestContext): Promise<TokenPair<TUser> | MfaChallenge> {
+  public async login(
+    login: string,
+    password: string,
+    ctx?: RequestContext
+  ): Promise<TokenPair<TUser> | MfaChallenge> {
     if (!this.options.users.findByLogin) {
       throw new Error('Password login needs `users.findByLogin(login)` in createAuth().');
     }
-    const normalized = String(login ?? '').trim().toLowerCase();
-    const keys = [`login:${sha256(normalized)}`, ...(ctx?.request.ip ? [`ip:${ctx.request.ip}`] : [])];
+    const normalized = String(login ?? '')
+      .trim()
+      .toLowerCase();
+    const keys = [
+      `login:${sha256(normalized)}`,
+      ...(ctx?.request.ip ? [`ip:${ctx.request.ip}`] : []),
+    ];
     await this.guard(keys);
 
     const user = normalized ? await this.options.users.findByLogin(normalized) : undefined;
@@ -360,7 +393,10 @@ export class Auth<TUser = Record<string, unknown>> {
 
     if (this.mfaEnabled(user)) {
       const sub = String(this.fields(user).id);
-      const mfaToken = this.jwt.sign({ sub, typ: 'mfa' }, { expiresInSeconds: 300, issuer: this.issuer, jwtId: random(12) });
+      const mfaToken = this.jwt.sign(
+        { sub, typ: 'mfa' },
+        { expiresInSeconds: 300, issuer: this.issuer, jwtId: random(12) }
+      );
       return { mfaRequired: true, mfaToken };
     }
     return this.issueTokens(user);
@@ -374,12 +410,15 @@ export class Auth<TUser = Record<string, unknown>> {
   /** Completes a login that returned `mfaRequired` with the user's 6-digit TOTP code. */
   public async verifyMfa(mfaToken: string, code: string): Promise<TokenPair<TUser>> {
     const claims = await this.jwt.verify(mfaToken, { issuer: this.issuer });
-    if (claims['typ'] !== 'mfa' || !claims.sub) throw new InvalidCredentialsError('Invalid MFA token.');
+    if (claims['typ'] !== 'mfa' || !claims.sub)
+      throw new InvalidCredentialsError('Invalid MFA token.');
     const keys = [`mfa:${claims.sub}`];
     await this.guard(keys);
     const user = await this.options.users.findById(claims.sub);
     const secret = user ? (user as Record<string, unknown>)[this.mfaField] : undefined;
-    const valid = typeof secret === 'string' && this.totp.verifyToken(String(code ?? ''), secret, { window: 1 });
+    const valid =
+      typeof secret === 'string' &&
+      this.totp.verifyToken(String(code ?? ''), secret, { window: 1 });
     // Each code works once (replay protection within its validity window).
     const usedKey = `mfa-used:${claims.sub}:${String(code)}`;
     if (!valid || !user || (await this.store.get(usedKey)) || !(await this.isActive(user))) {
@@ -397,7 +436,11 @@ export class Auth<TUser = Record<string, unknown>> {
     const sub = String(fields.id);
     const family = random(18);
     const refreshToken = `${family}.${random(32)}`;
-    await this.store.set(`rf:${family}`, JSON.stringify({ sub, hash: sha256(refreshToken), iat: Date.now() }), this.refreshTtl);
+    await this.store.set(
+      `rf:${family}`,
+      JSON.stringify({ sub, hash: sha256(refreshToken), iat: Date.now() }),
+      this.refreshTtl
+    );
     return withHiddenUser(user, {
       tokenType: 'Bearer',
       accessToken: this.accessToken(fields, family),
@@ -438,7 +481,9 @@ export class Auth<TUser = Record<string, unknown>> {
     const record = JSON.parse(raw) as { sub: string; hash: string; iat: number };
     if (!equal(record.hash, sha256(refreshToken))) {
       await this.store.delete(`rf:${family}`);
-      throw new InvalidCredentialsError('Refresh token was already used. All sessions of this login were revoked; please sign in again.');
+      throw new InvalidCredentialsError(
+        'Refresh token was already used. All sessions of this login were revoked; please sign in again.'
+      );
     }
     if (await this.revokedBefore(record.sub, record.iat)) {
       await this.store.delete(`rf:${family}`);
@@ -450,9 +495,18 @@ export class Auth<TUser = Record<string, unknown>> {
       throw new InvalidCredentialsError('User is no longer active.');
     }
     const next = `${family}.${random(32)}`;
-    await this.store.set(`rf:${family}`, JSON.stringify({ sub: record.sub, hash: sha256(next), iat: record.iat }), this.refreshTtl);
+    await this.store.set(
+      `rf:${family}`,
+      JSON.stringify({ sub: record.sub, hash: sha256(next), iat: record.iat }),
+      this.refreshTtl
+    );
     const fields = this.fields(user);
-    return withHiddenUser(user, { tokenType: 'Bearer', accessToken: this.accessToken(fields, family), expiresIn: this.accessTtl, refreshToken: next });
+    return withHiddenUser(user, {
+      tokenType: 'Bearer',
+      accessToken: this.accessToken(fields, family),
+      expiresIn: this.accessTtl,
+      refreshToken: next,
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -466,7 +520,11 @@ export class Auth<TUser = Record<string, unknown>> {
   public async logout(ctx: RequestContext, response?: HttpResponse): Promise<void> {
     const meta = getIdentity(ctx).metadata;
     if (typeof meta['jti'] === 'string' && typeof meta['exp'] === 'number') {
-      await this.store.set(`rv:${meta['jti']}`, '1', Math.max(1, meta['exp'] - Math.floor(Date.now() / 1000)));
+      await this.store.set(
+        `rv:${meta['jti']}`,
+        '1',
+        Math.max(1, meta['exp'] - Math.floor(Date.now() / 1000))
+      );
     }
     if (typeof meta['sid'] === 'string') await this.store.delete(`rf:${meta['sid']}`);
     if (typeof meta['sessionId'] === 'string') await this.store.delete(`s:${meta['sessionId']}`);
@@ -504,7 +562,11 @@ export class Auth<TUser = Record<string, unknown>> {
   public async startSession<R extends HttpResponse>(response: R, user: TUser): Promise<R> {
     const id = random(32);
     const sub = String(this.fields(user).id);
-    await this.store.set(`s:${id}`, JSON.stringify({ sub, iat: Date.now(), seen: Date.now() }), this.sessionTtl);
+    await this.store.set(
+      `s:${id}`,
+      JSON.stringify({ sub, iat: Date.now(), seen: Date.now() }),
+      this.sessionTtl
+    );
     response.setCookie(this.cookieName, this.signCookie(id), {
       httpOnly: true,
       secure: this.options.session?.secure ?? process.env['NODE_ENV'] === 'production',
@@ -517,12 +579,17 @@ export class Auth<TUser = Record<string, unknown>> {
   }
 
   public clearSessionCookie<R extends HttpResponse>(response: R): R {
-    response.deleteCookie(this.cookieName, { path: '/', ...(this.options.session?.domain ? { domain: this.options.session.domain } : {}) });
+    response.deleteCookie(this.cookieName, {
+      path: '/',
+      ...(this.options.session?.domain ? { domain: this.options.session.domain } : {}),
+    });
     return response;
   }
 
   private signCookie(value: string): string {
-    const mac = Base64Url.encode(crypto.createHmac('sha256', this.cookieKey).update(value).digest());
+    const mac = Base64Url.encode(
+      crypto.createHmac('sha256', this.cookieKey).update(value).digest()
+    );
     return `${value}.${mac}`;
   }
 
@@ -542,8 +609,14 @@ export class Auth<TUser = Record<string, unknown>> {
    * Generates an API key. Show `key` to the user once; store only `hash` (and `prefix` / `last4`
    * to help users recognize it).
    */
-  public createApiKey(prefix = 'jsk'): { key: string; hash: string; prefix: string; last4: string } {
-    if (!/^[a-z0-9]{1,12}$/i.test(prefix)) throw new Error('API key prefix must be 1-12 letters or digits.');
+  public createApiKey(prefix = 'jsk'): {
+    key: string;
+    hash: string;
+    prefix: string;
+    last4: string;
+  } {
+    if (!/^[a-z0-9]{1,12}$/i.test(prefix))
+      throw new Error('API key prefix must be 1-12 letters or digits.');
     const key = `${prefix}_${random(32)}`;
     return { key, hash: sha256(key), prefix, last4: key.slice(-4) };
   }
@@ -564,13 +637,17 @@ export class Auth<TUser = Record<string, unknown>> {
       const provider = this.provider(providerName);
       const { url, state, verifier } = buildAuthorizeRequest(provider);
       const response = HttpResponse.redirect(url);
-      response.setCookie(OAUTH_COOKIE, this.signCookie(Base64Url.encode(JSON.stringify({ p: provider.name, state, verifier }))), {
-        httpOnly: true,
-        secure: this.options.session?.secure ?? process.env['NODE_ENV'] === 'production',
-        sameSite: 'Lax', // must survive the top-level redirect back from the provider
-        path: '/',
-        maxAge: 600,
-      });
+      response.setCookie(
+        OAUTH_COOKIE,
+        this.signCookie(Base64Url.encode(JSON.stringify({ p: provider.name, state, verifier }))),
+        {
+          httpOnly: true,
+          secure: this.options.session?.secure ?? process.env['NODE_ENV'] === 'production',
+          sameSite: 'Lax', // must survive the top-level redirect back from the provider
+          path: '/',
+          maxAge: 600,
+        }
+      );
       return response;
     },
 
@@ -586,8 +663,13 @@ export class Auth<TUser = Record<string, unknown>> {
       const code = ctx.request.query.get('code');
       const state = ctx.request.query.get('state');
       const cookie = this.unsignCookie(ctx.request.cookies[OAUTH_COOKIE]);
-      if (!code || !state || !cookie) throw new OAuthError('Missing OAuth code or state; start the sign-in again.');
-      const saved = JSON.parse(Base64Url.decode(cookie)) as { p: string; state: string; verifier: string };
+      if (!code || !state || !cookie)
+        throw new OAuthError('Missing OAuth code or state; start the sign-in again.');
+      const saved = JSON.parse(Base64Url.decode(cookie)) as {
+        p: string;
+        state: string;
+        verifier: string;
+      };
       if (saved.p !== provider.name || !equal(saved.state, state)) {
         throw new OAuthError('OAuth state mismatch; start the sign-in again.');
       }
@@ -597,7 +679,10 @@ export class Auth<TUser = Record<string, unknown>> {
 
   private provider(name: string): OAuthProvider {
     const provider = this.providers.get(name);
-    if (!provider) throw new Error(`OAuth provider '${name}' is not configured. Add it to createAuth({ oauth: [...] }).`);
+    if (!provider)
+      throw new Error(
+        `OAuth provider '${name}' is not configured. Add it to createAuth({ oauth: [...] }).`
+      );
     return provider;
   }
 
@@ -610,10 +695,20 @@ export class Auth<TUser = Record<string, unknown>> {
    * external provider). Credentials that are present but wrong always fail; they never fall back
    * to anonymous access.
    */
-  public async authenticate(ctx: RequestContext, methods?: readonly AuthMethod[]): Promise<AuthenticationResult> {
+  public async authenticate(
+    ctx: RequestContext,
+    methods?: readonly AuthMethod[]
+  ): Promise<AuthenticationResult> {
     const allow = (m: AuthMethod) => !methods || methods.includes(m);
-    const anonymous = (): AuthenticationResult => ({ status: 'unauthenticated', identity: new AnonymousIdentity() });
-    const failed = (status: AuthenticationResult['status'], strategy: string, message: string): AuthenticationResult => ({
+    const anonymous = (): AuthenticationResult => ({
+      status: 'unauthenticated',
+      identity: new AnonymousIdentity(),
+    });
+    const failed = (
+      status: AuthenticationResult['status'],
+      strategy: string,
+      message: string
+    ): AuthenticationResult => ({
       status,
       strategy,
       identity: new AnonymousIdentity(),
@@ -631,24 +726,38 @@ export class Auth<TUser = Record<string, unknown>> {
           const fields = this.options.external?.identity?.(claims) ?? {
             id: String(claims.sub),
             roles: Array.isArray(claims['roles']) ? (claims['roles'] as string[]) : [],
-            permissions: Array.isArray(claims['permissions']) ? (claims['permissions'] as string[]) : [],
+            permissions: Array.isArray(claims['permissions'])
+              ? (claims['permissions'] as string[])
+              : [],
           };
           if (!fields.id) return failed('invalid_credentials', 'external', 'Token has no subject.');
-          return { status: 'authenticated', strategy: 'external', identity: this.toIdentity(fields, { ...claims }) };
+          return {
+            status: 'authenticated',
+            strategy: 'external',
+            identity: this.toIdentity(fields, { ...claims }),
+          };
         } catch (err) {
-          return failed(err instanceof TokenExpiredError ? 'expired_credentials' : 'invalid_credentials', 'external', err instanceof Error ? err.message : String(err));
+          return failed(
+            err instanceof TokenExpiredError ? 'expired_credentials' : 'invalid_credentials',
+            'external',
+            err instanceof Error ? err.message : String(err)
+          );
         }
       }
       if (allow('bearer')) {
         try {
-          const claims = await this.jwt.verify(bearer, { issuer: this.issuer, audience: this.options.tokens?.audience });
+          const claims = await this.jwt.verify(bearer, {
+            issuer: this.issuer,
+            audience: this.options.tokens?.audience,
+          });
           if (claims['typ'] !== 'access' || !claims.sub || typeof claims.exp !== 'number') {
             return failed('invalid_credentials', 'bearer', 'Not an access token.');
           }
           if (claims.jti && (await this.store.get(`rv:${claims.jti}`))) {
             return failed('invalid_credentials', 'bearer', 'Token was revoked.');
           }
-          const issuedAt = typeof claims['iatMs'] === 'number' ? claims['iatMs'] : (claims.iat ?? 0) * 1000;
+          const issuedAt =
+            typeof claims['iatMs'] === 'number' ? claims['iatMs'] : (claims.iat ?? 0) * 1000;
           if (await this.revokedBefore(claims.sub, issuedAt)) {
             return failed('invalid_credentials', 'bearer', 'Token was revoked.');
           }
@@ -667,7 +776,11 @@ export class Auth<TUser = Record<string, unknown>> {
             ),
           };
         } catch (err) {
-          return failed(err instanceof TokenExpiredError ? 'expired_credentials' : 'invalid_credentials', 'bearer', err instanceof Error ? err.message : String(err));
+          return failed(
+            err instanceof TokenExpiredError ? 'expired_credentials' : 'invalid_credentials',
+            'bearer',
+            err instanceof Error ? err.message : String(err)
+          );
         }
       }
     }
@@ -682,7 +795,12 @@ export class Auth<TUser = Record<string, unknown>> {
         const identity = new ServiceAccountIdentity({
           id: String(fields.id),
           roles: [...(fields.roles ?? [])],
-          permissions: [...new Set([...(fields.permissions ?? []), ...(fields.roles ?? []).flatMap((r) => this.options.roles?.[r] ?? [])])],
+          permissions: [
+            ...new Set([
+              ...(fields.permissions ?? []),
+              ...(fields.roles ?? []).flatMap((r) => this.options.roles?.[r] ?? []),
+            ]),
+          ],
           tenantId: fields.tenantId,
           metadata: { apiKeyHashPrefix: sha256(key).slice(0, 8) },
         });
@@ -701,7 +819,11 @@ export class Auth<TUser = Record<string, unknown>> {
         return failed('expired_credentials', 'session', 'Session was signed out.');
       }
       if (UNSAFE_METHODS.has(ctx.request.method) && !this.trustedOrigin(ctx)) {
-        return failed('invalid_credentials', 'session', 'Cross-site request blocked (untrusted Origin).');
+        return failed(
+          'invalid_credentials',
+          'session',
+          'Cross-site request blocked (untrusted Origin).'
+        );
       }
       const user = await this.options.users.findById(session.sub);
       if (!user || !(await this.isActive(user))) {
@@ -710,10 +832,18 @@ export class Auth<TUser = Record<string, unknown>> {
       }
       // Sliding expiration, refreshed at most every few minutes.
       if (Date.now() - session.seen > 5 * 60_000) {
-        await this.store.set(`s:${id}`, JSON.stringify({ ...session, seen: Date.now() }), this.sessionTtl);
+        await this.store.set(
+          `s:${id}`,
+          JSON.stringify({ ...session, seen: Date.now() }),
+          this.sessionTtl
+        );
       }
       ctx.state.set(USER_STATE_KEY, user);
-      return { status: 'authenticated', strategy: 'session', identity: this.toIdentity(this.fields(user), { sessionId: id }) };
+      return {
+        status: 'authenticated',
+        strategy: 'session',
+        identity: this.toIdentity(this.fields(user), { sessionId: id }),
+      };
     }
 
     return anonymous();
@@ -728,14 +858,16 @@ export class Auth<TUser = Record<string, unknown>> {
   }
 
   private trustedOrigin(ctx: RequestContext): boolean {
-    const origin = ctx.request.headers.get('origin') ?? (() => {
-      const referer = ctx.request.headers.get('referer');
-      try {
-        return referer ? new URL(referer).origin : undefined;
-      } catch {
-        return undefined;
-      }
-    })();
+    const origin =
+      ctx.request.headers.get('origin') ??
+      (() => {
+        const referer = ctx.request.headers.get('referer');
+        try {
+          return referer ? new URL(referer).origin : undefined;
+        } catch {
+          return undefined;
+        }
+      })();
     if (!origin) return false;
     const trusted = this.options.session?.trustedOrigins ?? [ctx.request.url.origin];
     return trusted.includes(origin);
@@ -751,22 +883,35 @@ export class Auth<TUser = Record<string, unknown>> {
     readonly permissions?: readonly string[];
     readonly methods?: readonly AuthMethod[];
   }) {
-    return async (ctx: RequestContext, next: () => Promise<HttpResponse>): Promise<HttpResponse> => {
+    return async (
+      ctx: RequestContext,
+      next: () => Promise<HttpResponse>
+    ): Promise<HttpResponse> => {
       const result = await this.authenticate(ctx, options?.methods);
       this.store_(ctx, result);
       if (result.status !== 'authenticated') {
         if (result.status === 'expired_credentials') {
           throw result.strategy === 'session' ? new SessionExpiredError() : new TokenExpiredError();
         }
-        if (result.status === 'unauthenticated') throw new UnauthenticatedError('Authentication required.');
+        if (result.status === 'unauthenticated')
+          throw new UnauthenticatedError('Authentication required.');
         throw new InvalidCredentialsError(result.error?.message ?? 'Invalid credentials.');
       }
       const identity = result.identity;
-      if (options?.roles?.length && !identity.isSuperuser && !options.roles.some((r) => identity.hasRole(r))) {
+      if (
+        options?.roles?.length &&
+        !identity.isSuperuser &&
+        !options.roles.some((r) => identity.hasRole(r))
+      ) {
         throw new ForbiddenError(`Requires one of the roles: ${options.roles.join(', ')}.`);
       }
-      if (options?.permissions?.length && !options.permissions.every((p) => identity.hasPermission(p))) {
-        throw new ForbiddenError(`Missing permission: ${options.permissions.filter((p) => !identity.hasPermission(p)).join(', ')}.`);
+      if (
+        options?.permissions?.length &&
+        !options.permissions.every((p) => identity.hasPermission(p))
+      ) {
+        throw new ForbiddenError(
+          `Missing permission: ${options.permissions.filter((p) => !identity.hasPermission(p)).join(', ')}.`
+        );
       }
       return next();
     };
@@ -774,11 +919,16 @@ export class Auth<TUser = Record<string, unknown>> {
 
   /** Middleware that authenticates when credentials are sent but also allows anonymous requests. Invalid credentials still fail. */
   public optional(options?: { readonly methods?: readonly AuthMethod[] }) {
-    return async (ctx: RequestContext, next: () => Promise<HttpResponse>): Promise<HttpResponse> => {
+    return async (
+      ctx: RequestContext,
+      next: () => Promise<HttpResponse>
+    ): Promise<HttpResponse> => {
       const result = await this.authenticate(ctx, options?.methods);
       this.store_(ctx, result);
       if (result.status !== 'authenticated' && result.status !== 'unauthenticated') {
-        throw result.status === 'expired_credentials' ? new TokenExpiredError() : new InvalidCredentialsError(result.error?.message ?? 'Invalid credentials.');
+        throw result.status === 'expired_credentials'
+          ? new TokenExpiredError()
+          : new InvalidCredentialsError(result.error?.message ?? 'Invalid credentials.');
       }
       return next();
     };
@@ -813,8 +963,14 @@ export class Auth<TUser = Record<string, unknown>> {
 
 const USER_STATE_KEY = 'jsango:auth:user';
 
-function withHiddenUser<TUser>(user: TUser, pair: Omit<TokenPair<TUser>, 'user'>): TokenPair<TUser> {
-  return Object.defineProperty(pair, 'user', { value: user, enumerable: false }) as TokenPair<TUser>;
+function withHiddenUser<TUser>(
+  user: TUser,
+  pair: Omit<TokenPair<TUser>, 'user'>
+): TokenPair<TUser> {
+  return Object.defineProperty(pair, 'user', {
+    value: user,
+    enumerable: false,
+  }) as TokenPair<TUser>;
 }
 
 /**
@@ -836,6 +992,8 @@ function withHiddenUser<TUser>(user: TUser, pair: Omit<TokenPair<TUser>, 'user'>
  * app.get('/me', auth.required(), (ctx) => auth.user(ctx));
  * ```
  */
-export function createAuth<TUser = Record<string, unknown>>(options: CreateAuthOptions<TUser>): Auth<TUser> {
+export function createAuth<TUser = Record<string, unknown>>(
+  options: CreateAuthOptions<TUser>
+): Auth<TUser> {
   return new Auth<TUser>(options);
 }

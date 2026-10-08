@@ -35,11 +35,19 @@ export interface InsertResult {
  */
 export interface QueryEngine {
   readonly kind: 'sql' | 'mongo';
-  select(ctx: QueryContext, ast: SelectAst, info: EngineModelInfo): Promise<readonly Record<string, unknown>[]>;
+  select(
+    ctx: QueryContext,
+    ast: SelectAst,
+    info: EngineModelInfo
+  ): Promise<readonly Record<string, unknown>[]>;
   count(ctx: QueryContext, ast: CountAst, info: EngineModelInfo): Promise<number>;
   exists(ctx: QueryContext, ast: ExistsAst, info: EngineModelInfo): Promise<boolean>;
   aggregate(ctx: QueryContext, ast: AggregateAst, info: EngineModelInfo): Promise<number | null>;
-  group(ctx: QueryContext, ast: GroupAst, info: EngineModelInfo): Promise<readonly Record<string, unknown>[]>;
+  group(
+    ctx: QueryContext,
+    ast: GroupAst,
+    info: EngineModelInfo
+  ): Promise<readonly Record<string, unknown>[]>;
   insert(ctx: QueryContext, ast: InsertAst, info: EngineModelInfo): Promise<InsertResult>;
   update(ctx: QueryContext, ast: UpdateAst, info: EngineModelInfo): Promise<number>;
   delete(ctx: QueryContext, ast: DeleteAst, info: EngineModelInfo): Promise<number>;
@@ -85,7 +93,10 @@ export class SqlEngine implements QueryEngine {
     return this.explicit ?? SqlCompiler.forContext(ctx);
   }
 
-  public async select(ctx: QueryContext, ast: SelectAst): Promise<readonly Record<string, unknown>[]> {
+  public async select(
+    ctx: QueryContext,
+    ast: SelectAst
+  ): Promise<readonly Record<string, unknown>[]> {
     const { sql, params } = this.compiler(ctx).compileSelect(ast);
     return (await ctx.query<Record<string, unknown>>(sql, params)).rows;
   }
@@ -108,7 +119,10 @@ export class SqlEngine implements QueryEngine {
     return numberOrNull(row ? (row['aggregate'] ?? Object.values(row)[0]) : null);
   }
 
-  public async group(ctx: QueryContext, ast: GroupAst): Promise<readonly Record<string, unknown>[]> {
+  public async group(
+    ctx: QueryContext,
+    ast: GroupAst
+  ): Promise<readonly Record<string, unknown>[]> {
     const { sql, params } = this.compiler(ctx).compileGroup(ast);
     const rows = (await ctx.query<Record<string, unknown>>(sql, params)).rows;
     // Aggregates come back as strings on PostgreSQL (NUMERIC / BIGINT); normalize to numbers.
@@ -206,7 +220,9 @@ export class MongoTranslator {
       }
       case 'raw': {
         if (!node.filter) {
-          throw new QueryError('whereRaw() with an SQL string is not supported on MongoDB; pass a filter object instead.');
+          throw new QueryError(
+            'whereRaw() with an SQL string is not supported on MongoDB; pass a filter object instead.'
+          );
         }
         return { ...node.filter };
       }
@@ -217,14 +233,16 @@ export class MongoTranslator {
       case 'in': {
         const values = (node.values ?? []).map((v) => this.value(node.column, v));
         return {
-          [this.field(node.column)]: node.operator.toUpperCase() === 'NOT IN' ? { $nin: values } : { $in: values },
+          [this.field(node.column)]:
+            node.operator.toUpperCase() === 'NOT IN' ? { $nin: values } : { $in: values },
         };
       }
       case 'between': {
         const [low, high] = node.values ?? [];
         const range = { $gte: this.value(node.column, low), $lte: this.value(node.column, high) };
         return {
-          [this.field(node.column)]: node.operator.toUpperCase() === 'NOT BETWEEN' ? { $not: range } : range,
+          [this.field(node.column)]:
+            node.operator.toUpperCase() === 'NOT BETWEEN' ? { $not: range } : range,
         };
       }
       case 'comparison':
@@ -278,7 +296,10 @@ export class MongoTranslator {
     return combined.length === 1 ? combined[0]! : { $or: combined };
   }
 
-  public filter(scope: readonly WhereConditionNode[] | undefined, where: readonly WhereConditionNode[]): Filter {
+  public filter(
+    scope: readonly WhereConditionNode[] | undefined,
+    where: readonly WhereConditionNode[]
+  ): Filter {
     const s = scope && scope.length > 0 ? this.where(scope) : undefined;
     const w = where.length > 0 ? this.where(where) : undefined;
     if (s && w) return { $and: [s, w] };
@@ -296,21 +317,31 @@ export class MongoEngine implements QueryEngine {
   public readonly kind = 'mongo' as const;
 
   private exec<T = Record<string, unknown>>(ctx: QueryContext, command: MongoCommand) {
-    const executor = ctx as QueryContext & { execute?: (c: MongoCommand) => Promise<{ rows: readonly T[]; rowCount: number; lastInsertId?: unknown }> };
+    const executor = ctx as QueryContext & {
+      execute?: (
+        c: MongoCommand
+      ) => Promise<{ rows: readonly T[]; rowCount: number; lastInsertId?: unknown }>;
+    };
     if (typeof executor.execute !== 'function') {
       throw new QueryError('This connection cannot execute MongoDB commands.');
     }
     return executor.execute(command);
   }
 
-  public async select(ctx: QueryContext, ast: SelectAst, info: EngineModelInfo): Promise<readonly Record<string, unknown>[]> {
+  public async select(
+    ctx: QueryContext,
+    ast: SelectAst,
+    info: EngineModelInfo
+  ): Promise<readonly Record<string, unknown>[]> {
     const t = new MongoTranslator(info);
     const filter = t.filter(ast.scope, ast.where);
     const sort: Record<string, 1 | -1> = {};
     for (const o of ast.orderBy) sort[t.field(o.column)] = o.direction === 'DESC' ? -1 : 1;
 
     if (ast.joins && ast.joins.length > 0) {
-      throw new QueryError('SQL joins are not supported on MongoDB; use relations with .with() instead.');
+      throw new QueryError(
+        'SQL joins are not supported on MongoDB; use relations with .with() instead.'
+      );
     }
 
     if (ast.distinct && ast.columns.length > 0) {
@@ -351,7 +382,11 @@ export class MongoEngine implements QueryEngine {
     if (ast.column) {
       Object.assign(filter, { [t.field(ast.column)]: { $ne: null } });
     }
-    const res = await this.exec<{ count: number }>(ctx, { op: 'count', collection: ast.table, filter });
+    const res = await this.exec<{ count: number }>(ctx, {
+      op: 'count',
+      collection: ast.table,
+      filter,
+    });
     return Number(res.rows[0]?.count ?? 0);
   }
 
@@ -367,23 +402,43 @@ export class MongoEngine implements QueryEngine {
     return res.rows.length > 0;
   }
 
-  public async aggregate(ctx: QueryContext, ast: AggregateAst, info: EngineModelInfo): Promise<number | null> {
+  public async aggregate(
+    ctx: QueryContext,
+    ast: AggregateAst,
+    info: EngineModelInfo
+  ): Promise<number | null> {
     const t = new MongoTranslator(info);
     const filter = t.filter(ast.scope, ast.where);
     if (ast.fn === 'count') {
-      return this.count(ctx, { table: ast.table, scope: ast.scope, where: ast.where, column: ast.column === '*' ? undefined : ast.column }, info);
+      return this.count(
+        ctx,
+        {
+          table: ast.table,
+          scope: ast.scope,
+          where: ast.where,
+          column: ast.column === '*' ? undefined : ast.column,
+        },
+        info
+      );
     }
     const res = await this.exec<{ value: unknown }>(ctx, {
       op: 'aggregate',
       collection: ast.table,
-      pipeline: [{ $match: filter }, { $group: { _id: null, value: { [`$${ast.fn}`]: `$${t.field(ast.column)}` } } }],
+      pipeline: [
+        { $match: filter },
+        { $group: { _id: null, value: { [`$${ast.fn}`]: `$${t.field(ast.column)}` } } },
+      ],
     });
     const value = res.rows[0]?.value;
     if (ast.fn === 'sum' && (value === undefined || value === null)) return 0;
     return numberOrNull(value);
   }
 
-  public async group(ctx: QueryContext, ast: GroupAst, info: EngineModelInfo): Promise<readonly Record<string, unknown>[]> {
+  public async group(
+    ctx: QueryContext,
+    ast: GroupAst,
+    info: EngineModelInfo
+  ): Promise<readonly Record<string, unknown>[]> {
     const t = new MongoTranslator(info);
     const id: Record<string, string> = {};
     for (const key of ast.groupBy) id[key] = `$${t.field(key)}`;
@@ -399,9 +454,20 @@ export class MongoEngine implements QueryEngine {
           : { [`$${agg.fn}`]: `$${t.field(agg.column ?? '')}` };
       project[alias] = 1;
     }
-    const pipeline: Record<string, unknown>[] = [{ $match: t.filter(ast.scope, ast.where) }, { $group: group }, { $project: project }];
+    const pipeline: Record<string, unknown>[] = [
+      { $match: t.filter(ast.scope, ast.where) },
+      { $group: group },
+      { $project: project },
+    ];
     if (ast.having && ast.having.length > 0) {
-      const ops: Record<string, string> = { '=': '$eq', '!=': '$ne', '>': '$gt', '>=': '$gte', '<': '$lt', '<=': '$lte' };
+      const ops: Record<string, string> = {
+        '=': '$eq',
+        '!=': '$ne',
+        '>': '$gt',
+        '>=': '$gte',
+        '<': '$lt',
+        '<=': '$lte',
+      };
       const match: Record<string, unknown> = {};
       for (const h of ast.having) {
         const op = ops[h.operator];
@@ -419,7 +485,11 @@ export class MongoEngine implements QueryEngine {
     return (await this.exec(ctx, { op: 'aggregate', collection: ast.table, pipeline })).rows;
   }
 
-  public async insert(ctx: QueryContext, ast: InsertAst, info: EngineModelInfo): Promise<InsertResult> {
+  public async insert(
+    ctx: QueryContext,
+    ast: InsertAst,
+    info: EngineModelInfo
+  ): Promise<InsertResult> {
     const t = new MongoTranslator(info);
     const documents = ast.rows.map((row) => {
       const doc: Record<string, unknown> = {};

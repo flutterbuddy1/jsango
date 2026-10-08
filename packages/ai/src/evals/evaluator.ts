@@ -44,7 +44,9 @@ export async function evaluate(
       if (c.expected !== undefined) {
         if (typeof c.expected === 'string') {
           if (!outputText.includes(c.expected)) {
-            errors.push(`Case #${i + 1} failed: output does not contain expected substring "${c.expected}".`);
+            errors.push(
+              `Case #${i + 1} failed: output does not contain expected substring "${c.expected}".`
+            );
           }
         } else if (c.expected instanceof RegExp) {
           if (!c.expected.test(outputText)) {
@@ -69,7 +71,9 @@ export async function evaluate(
         passedCount++;
       }
     } catch (err: unknown) {
-      errors.push(`Case #${i + 1} threw error: ${err instanceof Error ? err.message : String(err)}`);
+      errors.push(
+        `Case #${i + 1} threw error: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   }
 
@@ -85,4 +89,3 @@ export async function evaluate(
     errors,
   };
 }
-

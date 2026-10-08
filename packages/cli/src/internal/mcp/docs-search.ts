@@ -8,10 +8,16 @@ interface Chunk {
   readonly terms: Map<string, number>;
 }
 
-const STOP = new Set('a an and are as at be by can do does for from how i in is it of on or the to use using what when with you your'.split(' '));
+const STOP = new Set(
+  'a an and are as at be by can do does for from how i in is it of on or the to use using what when with you your'.split(
+    ' '
+  )
+);
 
 function terms(text: string): string[] {
-  return (text.toLowerCase().match(/[a-z0-9_$]+/g) ?? []).filter((t) => t.length > 1 && !STOP.has(t));
+  return (text.toLowerCase().match(/[a-z0-9_$]+/g) ?? []).filter(
+    (t) => t.length > 1 && !STOP.has(t)
+  );
 }
 
 /**
@@ -27,7 +33,10 @@ export class DocsSearch {
     let current: string[] = [];
     let inCode = false;
     const flush = () => {
-      const text = current.join('\n').replace(/^\s*---\s*$/gm, '').trim();
+      const text = current
+        .join('\n')
+        .replace(/^\s*---\s*$/gm, '')
+        .trim();
       if (text.length > 40) {
         const counts = new Map<string, number>();
         for (const t of terms(text)) counts.set(t, (counts.get(t) ?? 0) + 1);
@@ -66,7 +75,8 @@ export class DocsSearch {
 
   public search(query: string, limit = 4): string {
     const q = [...new Set(terms(query))];
-    if (q.length === 0) return 'Give a few keywords, e.g. "soft delete restore" or "refresh token rotation".';
+    if (q.length === 0)
+      return 'Give a few keywords, e.g. "soft delete restore" or "refresh token rotation".';
     // TF-IDF-ish: rare query terms count more; sections matching more distinct terms rank first.
     const df = new Map(q.map((t) => [t, this.chunks.filter((c) => c.terms.has(t)).length]));
     const scored = this.chunks
@@ -85,9 +95,13 @@ export class DocsSearch {
       .filter((r) => r.score > 0)
       .sort((a, b) => b.score - a.score)
       .slice(0, limit);
-    if (scored.length === 0) return `No docs match "${query}". Try other words, or get_api for exact signatures.`;
+    if (scored.length === 0)
+      return `No docs match "${query}". Try other words, or get_api for exact signatures.`;
     return scored
-      .map(({ c }) => `### ${c.heading || c.source}\n(source: ${c.source})\n\n${c.text.length > 3500 ? c.text.slice(0, 3500) + '\n…' : c.text}`)
+      .map(
+        ({ c }) =>
+          `### ${c.heading || c.source}\n(source: ${c.source})\n\n${c.text.length > 3500 ? c.text.slice(0, 3500) + '\n…' : c.text}`
+      )
       .join('\n\n---\n\n');
   }
 }

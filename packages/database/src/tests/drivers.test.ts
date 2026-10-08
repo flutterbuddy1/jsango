@@ -41,7 +41,9 @@ describe('Database Drivers Suite', () => {
       const conn = await driver.connect();
       expect(conn).toBeInstanceOf(PostgresDriverConnection);
 
-      await conn.query('CREATE TABLE items (id SERIAL PRIMARY KEY, name TEXT NOT NULL, meta JSONB)');
+      await conn.query(
+        'CREATE TABLE items (id SERIAL PRIMARY KEY, name TEXT NOT NULL, meta JSONB)'
+      );
       const inserted = await conn.query<{ id: number }>(
         'INSERT INTO items (name, meta) VALUES ($1, $2) RETURNING id',
         ['Keyboard', { tags: ['usb', 'mech'] }]
@@ -161,12 +163,10 @@ describe('Database Drivers Suite', () => {
         'CREATE TABLE items (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, active INTEGER, created DATETIME, meta TEXT)'
       );
       const created = new Date('2026-01-02T03:04:05.000Z');
-      const ins = await conn.query('INSERT INTO items (name, active, created, meta) VALUES (?, ?, ?, ?)', [
-        'Keyboard',
-        true,
-        created,
-        { a: 1 },
-      ]);
+      const ins = await conn.query(
+        'INSERT INTO items (name, active, created, meta) VALUES (?, ?, ?, ?)',
+        ['Keyboard', true, created, { a: 1 }]
+      );
       expect(ins.rowCount).toBe(1);
       expect(ins.lastInsertId).toBe(1);
 
@@ -214,7 +214,9 @@ describe('Database Drivers Suite', () => {
         pool: { connectionTimeoutMs: 300 },
       });
       expect(driver.name).toBe('mongodb');
-      await expect(driver.connect()).rejects.toThrow(/Failed to connect to MongoDB at 127\.0\.0\.1:1\/test/);
+      await expect(driver.connect()).rejects.toThrow(
+        /Failed to connect to MongoDB at 127\.0\.0\.1:1\/test/
+      );
     });
 
     it('explains how to install the client package when it is missing', async () => {
@@ -263,20 +265,25 @@ describe('Database Drivers Suite', () => {
         },
       });
       expect(manager.getDialect('my').quoteIdentifier('users')).toBe('`users`');
-      expect(manager.getDialect('pg').normalizePlaceholders('a = ? AND b = ?')).toBe('a = $1 AND b = $2');
+      expect(manager.getDialect('pg').normalizePlaceholders('a = ? AND b = ?')).toBe(
+        'a = $1 AND b = $2'
+      );
       expect(manager.getDialect('pg').supportsReturning).toBe(true);
       expect(manager.getDialect('my').supportsReturning).toBe(false);
     });
 
     it('rejects unusable configuration with a clear message', () => {
-      expect(() => new DatabaseManager({ default: 'x', connections: { x: { driver: '' } } })).toThrow(
-        DatabaseConfigurationError
-      );
+      expect(
+        () => new DatabaseManager({ default: 'x', connections: { x: { driver: '' } } })
+      ).toThrow(DatabaseConfigurationError);
       expect(
         () => new DatabaseManager({ default: 'missing', connections: { a: { driver: 'memory' } } })
       ).toThrow(/Default database connection "missing" is not defined/);
 
-      const manager = new DatabaseManager({ default: 'a', connections: { a: { driver: 'oracle' } } });
+      const manager = new DatabaseManager({
+        default: 'a',
+        connections: { a: { driver: 'oracle' } },
+      });
       expect(() => manager.getDialect()).toThrow(/Unknown database driver "oracle"/);
     });
   });

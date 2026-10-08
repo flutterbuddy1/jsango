@@ -23,7 +23,10 @@ import { withQueryContext } from './connection.js';
 function isPersistedAttribute(meta: ModelMetadata, key: string): boolean {
   if (meta.fields.size === 0) return true;
   if (meta.hasField(key)) return true;
-  if (meta.timestamps.enabled && (key === meta.timestamps.createdAt || key === meta.timestamps.updatedAt)) {
+  if (
+    meta.timestamps.enabled &&
+    (key === meta.timestamps.createdAt || key === meta.timestamps.updatedAt)
+  ) {
     return true;
   }
   return meta.softDelete.enabled && key === meta.softDelete.deletedAt;
@@ -240,7 +243,9 @@ export class Model {
         {
           table: meta.table,
           values: updateValues,
-          where: [{ type: 'comparison', column: pkCol, operator: '=', value: pkVal, boolean: 'AND' }],
+          where: [
+            { type: 'comparison', column: pkCol, operator: '=', value: pkVal, boolean: 'AND' },
+          ],
         },
         info
       );
@@ -269,7 +274,9 @@ export class Model {
         conn,
         {
           table: meta.table,
-          where: [{ type: 'comparison', column: pkCol, operator: '=', value: pkVal, boolean: 'AND' }],
+          where: [
+            { type: 'comparison', column: pkCol, operator: '=', value: pkVal, boolean: 'AND' },
+          ],
         },
         modelInfo(meta)
       );
@@ -310,7 +317,13 @@ export class Model {
           values,
           increments: { [meta.fieldToColumn(field)]: amount },
           where: [
-            { type: 'comparison', column: meta.fieldToColumn(meta.primaryKey), operator: '=', value: pkVal, boolean: 'AND' },
+            {
+              type: 'comparison',
+              column: meta.fieldToColumn(meta.primaryKey),
+              operator: '=',
+              value: pkVal,
+              boolean: 'AND',
+            },
           ],
         },
         modelInfo(meta)
@@ -441,9 +454,19 @@ export interface DefinedModelStatic<
     operatorOrValue?: unknown,
     value?: unknown
   ): QueryBuilder<ModelInstance<TFields, TRelations>>;
-  whereBetween(column: string, range: readonly [unknown, unknown]): QueryBuilder<ModelInstance<TFields, TRelations>>;
-  whereLike(column: string, pattern: string, options?: { caseSensitive?: boolean }): QueryBuilder<ModelInstance<TFields, TRelations>>;
-  whereRaw(sqlOrFilter: string | Record<string, unknown>, params?: readonly unknown[]): QueryBuilder<ModelInstance<TFields, TRelations>>;
+  whereBetween(
+    column: string,
+    range: readonly [unknown, unknown]
+  ): QueryBuilder<ModelInstance<TFields, TRelations>>;
+  whereLike(
+    column: string,
+    pattern: string,
+    options?: { caseSensitive?: boolean }
+  ): QueryBuilder<ModelInstance<TFields, TRelations>>;
+  whereRaw(
+    sqlOrFilter: string | Record<string, unknown>,
+    params?: readonly unknown[]
+  ): QueryBuilder<ModelInstance<TFields, TRelations>>;
   latest(column?: string): QueryBuilder<ModelInstance<TFields, TRelations>>;
   oldest(column?: string): QueryBuilder<ModelInstance<TFields, TRelations>>;
   findMany(ids: readonly unknown[]): Promise<readonly ModelInstance<TFields, TRelations>[]>;
@@ -605,15 +628,25 @@ export function defineModel<
       return this.query().whereNot(columnOrConditions, operatorOrValue, value);
     }
 
-    public static whereBetween(column: string, range: readonly [unknown, unknown]): QueryBuilder<Model> {
+    public static whereBetween(
+      column: string,
+      range: readonly [unknown, unknown]
+    ): QueryBuilder<Model> {
       return this.query().whereBetween(column, range);
     }
 
-    public static whereLike(column: string, pattern: string, options?: { caseSensitive?: boolean }): QueryBuilder<Model> {
+    public static whereLike(
+      column: string,
+      pattern: string,
+      options?: { caseSensitive?: boolean }
+    ): QueryBuilder<Model> {
       return this.query().whereLike(column, pattern, options);
     }
 
-    public static whereRaw(sqlOrFilter: string | Record<string, unknown>, params?: readonly unknown[]): QueryBuilder<Model> {
+    public static whereRaw(
+      sqlOrFilter: string | Record<string, unknown>,
+      params?: readonly unknown[]
+    ): QueryBuilder<Model> {
       return this.query().whereRaw(sqlOrFilter, params);
     }
 
@@ -800,4 +833,3 @@ export function defineModel<
 }
 
 export const model = defineModel;
-

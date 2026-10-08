@@ -10,7 +10,8 @@ import { CreateTableOperation, Migration, MigrationRegistry } from '@jsango/migr
 import { ExitCode } from '../public/types.js';
 import { createRequire } from 'node:module';
 
-const PKG_VERSION = (createRequire(import.meta.url)('../../package.json') as { version: string }).version;
+const PKG_VERSION = (createRequire(import.meta.url)('../../package.json') as { version: string })
+  .version;
 
 describe('Built-in Commands', () => {
   let app: CliApplication;

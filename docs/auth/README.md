@@ -2,14 +2,14 @@
 
 `createAuth()` gives you complete authentication in one object, with secure defaults:
 
-| Method | Use it for |
-| --- | --- |
-| [Password login + JWT](#3-tokens-for-apis-and-mobile-apps) | APIs, SPAs, mobile apps |
-| [Cookie sessions](#5-cookie-sessions-for-web-apps) | Server-rendered / same-site web apps |
-| [API keys](#6-api-keys) | Server-to-server integrations, CLI tools |
-| [Social login (OAuth2)](#7-social-login-google-github-) | "Sign in with Google / GitHub / …" |
+| Method                                                                                      | Use it for                                          |
+| ------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| [Password login + JWT](#3-tokens-for-apis-and-mobile-apps)                                  | APIs, SPAs, mobile apps                             |
+| [Cookie sessions](#5-cookie-sessions-for-web-apps)                                          | Server-rendered / same-site web apps                |
+| [API keys](#6-api-keys)                                                                     | Server-to-server integrations, CLI tools            |
+| [Social login (OAuth2)](#7-social-login-google-github-)                                     | "Sign in with Google / GitHub / …"                  |
 | [External identity providers](#8-external-identity-providers-auth0-clerk-cognito-firebase-) | Auth0, Clerk, Cognito, Firebase, Azure AD, Keycloak |
-| [Two-factor (TOTP)](#9-two-factor-authentication-totp) | Authenticator-app codes on top of passwords |
+| [Two-factor (TOTP)](#9-two-factor-authentication-totp)                                      | Authenticator-app codes on top of passwords         |
 
 All of them are checked by the same middleware, `auth.required()`, so one route can
 accept a session cookie from your web app, a bearer token from your mobile app, and an API key
@@ -82,25 +82,29 @@ role or permission, and `429` when locked out.
 jsango doesn't own your user table. You tell it how to load users, and it reads these
 fields from them (configurable):
 
-| Field | Purpose | Option to rename |
-| --- | --- | --- |
-| `id` | User id (stored in tokens and sessions) | `identity` |
-| `passwordHash` | scrypt hash from `auth.hashPassword()` | `password.field` |
-| `role` or `roles` | Roles for `auth.required({ roles })` | `identity` |
-| `permissions` | Extra permissions | `identity` |
-| `tenantId` | Multi-tenant apps | `identity` |
-| `isSuperuser` | Bypasses role/permission checks | `identity` |
-| `totpSecret` | Enables two-factor login | `mfa.field` |
+| Field             | Purpose                                 | Option to rename |
+| ----------------- | --------------------------------------- | ---------------- |
+| `id`              | User id (stored in tokens and sessions) | `identity`       |
+| `passwordHash`    | scrypt hash from `auth.hashPassword()`  | `password.field` |
+| `role` or `roles` | Roles for `auth.required({ roles })`    | `identity`       |
+| `permissions`     | Extra permissions                       | `identity`       |
+| `tenantId`        | Multi-tenant apps                       | `identity`       |
+| `isSuperuser`     | Bypasses role/permission checks         | `identity`       |
+| `totpSecret`      | Enables two-factor login                | `mfa.field`      |
 
 ```ts
-export const User = defineModel('User', {
-  id: fields.id(),
-  email: fields.string({ maxLength: 255, unique: true }),
-  passwordHash: fields.string({ nullable: true }), // null for social-login-only users
-  role: fields.string({ maxLength: 20, defaultValue: 'member' }),
-  totpSecret: fields.string({ nullable: true }),
-  isActive: fields.boolean({ defaultValue: true }),
-}, { table: 'users', timestamps: true });
+export const User = defineModel(
+  'User',
+  {
+    id: fields.id(),
+    email: fields.string({ maxLength: 255, unique: true }),
+    passwordHash: fields.string({ nullable: true }), // null for social-login-only users
+    role: fields.string({ maxLength: 20, defaultValue: 'member' }),
+    totpSecret: fields.string({ nullable: true }),
+    isActive: fields.boolean({ defaultValue: true }),
+  },
+  { table: 'users', timestamps: true }
+);
 ```
 
 **Sign-up:**
@@ -136,7 +140,9 @@ each user's next successful login:
 ```ts
 createAuth({
   // ...secret, users
-  password: { onRehash: (user, hash) => User.query().where('id', user.id).update({ passwordHash: hash }) },
+  password: {
+    onRehash: (user, hash) => User.query().where('id', user.id).update({ passwordHash: hash }),
+  },
 });
 ```
 
@@ -185,11 +191,11 @@ force it immediately.
 ## 4. Protecting routes
 
 ```ts
-app.get('/me', auth.required(), handler);                                // any signed-in user
-app.get('/admin', auth.required({ roles: ['admin'] }), handler);         // any of these roles
+app.get('/me', auth.required(), handler); // any signed-in user
+app.get('/admin', auth.required({ roles: ['admin'] }), handler); // any of these roles
 app.delete('/posts/:id', auth.required({ permissions: ['posts.delete'] }), handler); // all of these
-app.get('/feed', auth.optional(), handler);                              // anonymous allowed
-app.post('/webhook', auth.required({ methods: ['apiKey'] }), handler);   // only API keys here
+app.get('/feed', auth.optional(), handler); // anonymous allowed
+app.post('/webhook', auth.required({ methods: ['apiKey'] }), handler); // only API keys here
 ```
 
 Map roles to permissions once:
@@ -208,7 +214,7 @@ Inside handlers:
 
 ```ts
 const identity = auth.identity(ctx); // { id, roles, permissions, tenantId, hasRole(), hasPermission() }
-const user = await auth.user(ctx);   // your user record (loaded once per request), null if anonymous
+const user = await auth.user(ctx); // your user record (loaded once per request), null if anonymous
 ```
 
 `auth.optional()` still rejects credentials that are present but invalid. A bad or expired token
@@ -311,12 +317,20 @@ app.get('/auth/:provider/callback', async (ctx) => {
   const profile = await auth.oauth.callback(ctx.request.params['provider']!, ctx);
   // { provider, id, email, emailVerified, name, avatarUrl }
 
-  let account = await SocialAccount.where({ provider: profile.provider, providerId: profile.id }).first();
+  let account = await SocialAccount.where({
+    provider: profile.provider,
+    providerId: profile.id,
+  }).first();
   let user = account ? await User.find(account.userId) : null;
   if (!user) {
-    if (!profile.email || !profile.emailVerified) return HttpResponse.badRequest('A verified email is required.');
+    if (!profile.email || !profile.emailVerified)
+      return HttpResponse.badRequest('A verified email is required.');
     user = await User.firstOrCreate({ email: profile.email.toLowerCase() }, { name: profile.name });
-    await SocialAccount.create({ provider: profile.provider, providerId: profile.id, userId: user.id });
+    await SocialAccount.create({
+      provider: profile.provider,
+      providerId: profile.id,
+      userId: user.id,
+    });
   }
   return auth.startSession(HttpResponse.redirect('https://app.example.com/'), user);
 });
@@ -363,13 +377,13 @@ createAuth({
 });
 ```
 
-| Provider | `jwksUrl` | `issuer` |
-| --- | --- | --- |
-| Auth0 | `https://TENANT.auth0.com/.well-known/jwks.json` | `https://TENANT.auth0.com/` |
-| Clerk | `https://YOUR_FRONTEND_API/.well-known/jwks.json` | `https://YOUR_FRONTEND_API` |
-| AWS Cognito | `https://cognito-idp.REGION.amazonaws.com/POOL_ID/.well-known/jwks.json` | `https://cognito-idp.REGION.amazonaws.com/POOL_ID` |
-| Firebase | `https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com` | `https://securetoken.google.com/PROJECT_ID` |
-| Keycloak | `https://HOST/realms/REALM/protocol/openid-connect/certs` | `https://HOST/realms/REALM` |
+| Provider    | `jwksUrl`                                                                                   | `issuer`                                           |
+| ----------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| Auth0       | `https://TENANT.auth0.com/.well-known/jwks.json`                                            | `https://TENANT.auth0.com/`                        |
+| Clerk       | `https://YOUR_FRONTEND_API/.well-known/jwks.json`                                           | `https://YOUR_FRONTEND_API`                        |
+| AWS Cognito | `https://cognito-idp.REGION.amazonaws.com/POOL_ID/.well-known/jwks.json`                    | `https://cognito-idp.REGION.amazonaws.com/POOL_ID` |
+| Firebase    | `https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com` | `https://securetoken.google.com/PROJECT_ID`        |
+| Keycloak    | `https://HOST/realms/REALM/protocol/openid-connect/certs`                                   | `https://HOST/realms/REALM`                        |
 
 Keys are cached for 10 minutes and refetched when the provider rotates them. Expiry,
 `iss` and `aud` are always checked. Your own tokens and the provider's can be accepted side
@@ -392,8 +406,11 @@ app.post('/account/2fa/setup', auth.required(), async (ctx) => {
 app.post('/account/2fa/confirm', auth.required(), async (ctx) => {
   const { code } = (await ctx.request.json()) as { code: string };
   const user = (await auth.user(ctx))!;
-  if (!auth.totp.verifyToken(code, user.pendingTotpSecret)) return HttpResponse.badRequest('Invalid code');
-  await User.query().where('id', user.id).update({ totpSecret: user.pendingTotpSecret, pendingTotpSecret: null });
+  if (!auth.totp.verifyToken(code, user.pendingTotpSecret))
+    return HttpResponse.badRequest('Invalid code');
+  await User.query()
+    .where('id', user.id)
+    .update({ totpSecret: user.pendingTotpSecret, pendingTotpSecret: null });
   return { backupCodes: auth.totp.generateBackupCodes(8) }; // store hashed, show once
 });
 ```
@@ -441,22 +458,22 @@ seconds of clock drift, work only once, and are brute-force limited.
 
 ## 11. What jsango protects you from
 
-| Threat | Protection |
-| --- | --- |
-| Password database leak | scrypt (memory-hard) with per-password salt; automatic rehash on login |
-| Online password guessing | 5 failures per account per 15 minutes (20 per IP) → `429` |
-| Account enumeration | One generic error message; unknown users cost the same hashing time |
-| Stolen access token | 15-minute lifetime; `logout()` revokes it immediately |
-| Stolen refresh token | Rotation on every use; reuse revokes the whole login |
-| JWT forgery / algorithm confusion | HMAC key derived from your secret, `alg` pinned to HS256; external tokens accept asymmetric algorithms only; `none` is rejected |
-| Tokens that never expire | Every token has `exp`; tokens without one are rejected |
-| Session fixation / cookie tampering | New random id per login; HMAC-signed cookie; HttpOnly + SameSite |
-| CSRF on cookie sessions | Trusted `Origin` / `Referer` required for state-changing requests |
-| OAuth login CSRF / code interception | Signed one-time `state` + PKCE (S256) |
-| TOTP brute force / replay | Attempt limit + each code accepted once |
-| Disabled user keeps access | `isActive` checked on login, refresh and every session request |
-| Leaking the user record | Token results never serialize `user` |
-| API key database leak | Only SHA-256 hashes are stored and compared |
+| Threat                               | Protection                                                                                                                      |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| Password database leak               | scrypt (memory-hard) with per-password salt; automatic rehash on login                                                          |
+| Online password guessing             | 5 failures per account per 15 minutes (20 per IP) → `429`                                                                       |
+| Account enumeration                  | One generic error message; unknown users cost the same hashing time                                                             |
+| Stolen access token                  | 15-minute lifetime; `logout()` revokes it immediately                                                                           |
+| Stolen refresh token                 | Rotation on every use; reuse revokes the whole login                                                                            |
+| JWT forgery / algorithm confusion    | HMAC key derived from your secret, `alg` pinned to HS256; external tokens accept asymmetric algorithms only; `none` is rejected |
+| Tokens that never expire             | Every token has `exp`; tokens without one are rejected                                                                          |
+| Session fixation / cookie tampering  | New random id per login; HMAC-signed cookie; HttpOnly + SameSite                                                                |
+| CSRF on cookie sessions              | Trusted `Origin` / `Referer` required for state-changing requests                                                               |
+| OAuth login CSRF / code interception | Signed one-time `state` + PKCE (S256)                                                                                           |
+| TOTP brute force / replay            | Attempt limit + each code accepted once                                                                                         |
+| Disabled user keeps access           | `isActive` checked on login, refresh and every session request                                                                  |
+| Leaking the user record              | Token results never serialize `user`                                                                                            |
+| API key database leak                | Only SHA-256 hashes are stored and compared                                                                                     |
 
 **Lower-level building blocks** are still available when you need full control: `JwtService`,
 `ScryptPasswordHasher`, `TotpService`, the `authenticate()` / `authorize()` middleware with

@@ -98,9 +98,20 @@ app.admin({
       defaultPageSize: 50,
       fields: [
         // override one field...
-        { name: 'status', enumChoices: [{ label: 'Paid', value: 'paid' }, { label: 'Refunded', value: 'refunded' }], filterable: true },
+        {
+          name: 'status',
+          enumChoices: [
+            { label: 'Paid', value: 'paid' },
+            { label: 'Refunded', value: 'refunded' },
+          ],
+          filterable: true,
+        },
         // ...or add a computed column
-        { name: 'summary', type: 'computed', computedGetter: (o) => `${o['customer']} · ₹${o['total']}` },
+        {
+          name: 'summary',
+          type: 'computed',
+          computedGetter: (o) => `${o['customer']} · ₹${o['total']}`,
+        },
       ],
     },
     User, // plain models still work
@@ -108,18 +119,18 @@ app.admin({
 });
 ```
 
-| Option | What it controls |
-| --- | --- |
-| `label`, `pluralLabel` | Names in the sidebar and headings |
-| `navigationGroup`, `navigationIcon`, `navigationOrder` | Sidebar placement |
-| `listFields` | Columns of the list (and of the CSV export) |
-| `detailFields`, `createFields`, `editFields` | What the detail page and the forms show and accept. Anything else in a request body is ignored, which prevents mass assignment |
-| `searchFields` | Columns matched by the search box (case-insensitive contains) |
-| `filters` | Filter dropdowns. Default: boolean fields and fields with `enumChoices` marked `filterable` |
-| `fields` | Per-field overrides by name: `label`, `type`, `hidden`, `readonly`, `sensitive`, `sortable`, `filterable`, `enumChoices`, `description`, `computedGetter` |
-| `defaultSortField`, `defaultSortDirection`, `defaultPageSize`, `maxPageSize` | Default ordering and paging (`maxPageSize` caps `?pageSize=`) |
-| `actions`, `bulkActions` | Custom buttons (see [Actions](#6-actions)) |
-| `exactCount`, `exportBatchSize` | Large-table tuning (see [Millions of rows](#7-millions-of-rows)) |
+| Option                                                                       | What it controls                                                                                                                                          |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `label`, `pluralLabel`                                                       | Names in the sidebar and headings                                                                                                                         |
+| `navigationGroup`, `navigationIcon`, `navigationOrder`                       | Sidebar placement                                                                                                                                         |
+| `listFields`                                                                 | Columns of the list (and of the CSV export)                                                                                                               |
+| `detailFields`, `createFields`, `editFields`                                 | What the detail page and the forms show and accept. Anything else in a request body is ignored, which prevents mass assignment                            |
+| `searchFields`                                                               | Columns matched by the search box (case-insensitive contains)                                                                                             |
+| `filters`                                                                    | Filter dropdowns. Default: boolean fields and fields with `enumChoices` marked `filterable`                                                               |
+| `fields`                                                                     | Per-field overrides by name: `label`, `type`, `hidden`, `readonly`, `sensitive`, `sortable`, `filterable`, `enumChoices`, `description`, `computedGetter` |
+| `defaultSortField`, `defaultSortDirection`, `defaultPageSize`, `maxPageSize` | Default ordering and paging (`maxPageSize` caps `?pageSize=`)                                                                                             |
+| `actions`, `bulkActions`                                                     | Custom buttons (see [Actions](#6-actions))                                                                                                                |
+| `exactCount`, `exportBatchSize`                                              | Large-table tuning (see [Millions of rows](#7-millions-of-rows))                                                                                          |
 
 `new AdminResource({ modelName: 'Order', ... })` works too and also inherits the model's fields.
 
@@ -140,9 +151,17 @@ app.admin({
     new MetricWidget({
       title: 'Orders today',
       cacheSeconds: 60, // cache expensive queries for every viewer
-      getValue: async () => ({ value: await Order.where('createdAt', '>=', startOfDay()).count(), change: 12.5, hint: 'vs yesterday' }),
+      getValue: async () => ({
+        value: await Order.where('createdAt', '>=', startOfDay()).count(),
+        change: 12.5,
+        hint: 'vs yesterday',
+      }),
     }),
-    new MetricWidget({ title: 'Revenue', permission: 'finance.view', getValue: async () => `₹${await Order.query().sum('total')}` }),
+    new MetricWidget({
+      title: 'Revenue',
+      permission: 'finance.view',
+      getValue: async () => `₹${await Order.query().sum('total')}`,
+    }),
     new ChartWidget({
       title: 'Orders by status',
       chartType: 'bar', // or 'line'
@@ -150,7 +169,10 @@ app.admin({
       refreshIntervalSeconds: 60,
       cacheSeconds: 60,
       getChartData: async () => {
-        const rows = await Order.query().groupBy(['status'], { orders: ['count'], revenue: ['sum', 'total'] });
+        const rows = await Order.query().groupBy(['status'], {
+          orders: ['count'],
+          revenue: ['sum', 'total'],
+        });
         return {
           labels: rows.map((r) => String(r['status'])),
           datasets: [{ label: 'Orders', data: rows.map((r) => Number(r['orders'])) }],
@@ -167,7 +189,12 @@ app.admin({
     }),
     new ActivityWidget({
       title: 'Signups',
-      getActivity: async () => (await User.query().latest().limit(10).get()).map((u) => ({ id: String(u.id), title: u.email, timestamp: u.createdAt.getTime() })),
+      getActivity: async () =>
+        (await User.query().latest().limit(10).get()).map((u) => ({
+          id: String(u.id),
+          title: u.email,
+          timestamp: u.createdAt.getTime(),
+        })),
     }),
   ],
 });
@@ -175,13 +202,13 @@ app.admin({
 declare function startOfDay(): Date;
 ```
 
-| Option (every widget) | Meaning |
-| --- | --- |
-| `title`, `description` | Card heading (the id defaults to a slug of the title) |
-| `width` | `'quarter'` (metrics default), `'third'`, `'half'` (default), `'full'` |
-| `permission` | Only identities with this permission (or superusers) see it |
-| `cacheSeconds` | Server-side cache shared by all viewers; concurrent requests share one query. Don't use it for per-user data |
-| `refreshIntervalSeconds` | The browser reloads the widget on this interval |
+| Option (every widget)    | Meaning                                                                                                      |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `title`, `description`   | Card heading (the id defaults to a slug of the title)                                                        |
+| `width`                  | `'quarter'` (metrics default), `'third'`, `'half'` (default), `'full'`                                       |
+| `permission`             | Only identities with this permission (or superusers) see it                                                  |
+| `cacheSeconds`           | Server-side cache shared by all viewers; concurrent requests share one query. Don't use it for per-user data |
+| `refreshIntervalSeconds` | The browser reloads the widget on this interval                                                              |
 
 Getters receive `{ identity }`, so a widget can show per-user data:
 `getValue: ({ identity }) => Order.where('ownerId', identity.id).count()`.
@@ -207,7 +234,14 @@ const finance = new AdminPage({
   permission: 'finance.view', // hidden for everyone else
   widgets: [
     new MetricWidget({ title: 'Refunds this month', getValue: () => 12 }),
-    new ChartWidget({ title: 'Revenue', chartType: 'bar', getChartData: () => ({ labels: ['Jan', 'Feb'], datasets: [{ label: 'Revenue', data: [120, 180] }] }) }),
+    new ChartWidget({
+      title: 'Revenue',
+      chartType: 'bar',
+      getChartData: () => ({
+        labels: ['Jan', 'Feb'],
+        datasets: [{ label: 'Revenue', data: [120, 180] }],
+      }),
+    }),
   ],
 });
 
@@ -242,7 +276,8 @@ app.admin({
         {
           id: 'mark-shipped',
           label: 'Mark as shipped',
-          handler: async ({ ids }) => Order.query().whereIn('id', ids).update({ status: 'shipped' }),
+          handler: async ({ ids }) =>
+            Order.query().whereIn('id', ids).update({ status: 'shipped' }),
         },
       ],
     },
@@ -300,14 +335,14 @@ The same keyset batching powers the ORM: `Model.query().chunk(1000, fn)` and `.c
 Superusers can do everything. Other admin users need permissions per resource (the resource id is
 the lower-cased model name):
 
-| Permission | Allows |
-| --- | --- |
-| `admin.access` (or role `admin` / `staff`) | Entering the admin |
-| `admin.<resource>.view` | List, detail, export |
-| `admin.<resource>.add` / `.change` / `.delete` / `.restore` | Create / edit / delete / restore |
-| `admin.<resource>.*`, `admin.*` | Everything on one resource / all resources |
-| an action's `permission` | Running that action |
-| a widget's or page's `permission` | Seeing it |
+| Permission                                                  | Allows                                     |
+| ----------------------------------------------------------- | ------------------------------------------ |
+| `admin.access` (or role `admin` / `staff`)                  | Entering the admin                         |
+| `admin.<resource>.view`                                     | List, detail, export                       |
+| `admin.<resource>.add` / `.change` / `.delete` / `.restore` | Create / edit / delete / restore           |
+| `admin.<resource>.*`, `admin.*`                             | Everything on one resource / all resources |
+| an action's `permission`                                    | Running that action                        |
+| a widget's or page's `permission`                           | Seeing it                                  |
 
 Resources a user can't view are hidden from the sidebar. Fields marked `sensitive` are visible only
 to superusers.
@@ -351,17 +386,17 @@ app.admin({
 
 ## 10. Security
 
-| Threat | Protection |
-| --- | --- |
-| Default or guessable credentials | Login refused in production without a configured password; use `createAuth` users |
-| Password guessing | 5 failures per account per 15 minutes (20 per IP) → `429` (auth-kit lockout when using `createAuth`) |
-| Stolen session token | 256-bit random tokens, stored hashed, 8-hour lifetime; sessions can be revoked |
-| Mass assignment | Only `createFields` / `editFields` are written |
-| Data leaks | Hidden and sensitive fields are stripped server-side; sorting, filtering and export only on visible fields |
-| SQL injection via sort/filter | Sort and filter fields are allow-listed; values are bound parameters |
-| CSV / formula injection | Exported cells starting with `= + - @` are prefixed with `'` |
-| Export links leaking | One-time links valid for 60 seconds; the session token never appears in a URL |
-| 2FA secret leaks | The QR secret never leaves the page (no third-party QR service) |
+| Threat                           | Protection                                                                                                 |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Default or guessable credentials | Login refused in production without a configured password; use `createAuth` users                          |
+| Password guessing                | 5 failures per account per 15 minutes (20 per IP) → `429` (auth-kit lockout when using `createAuth`)       |
+| Stolen session token             | 256-bit random tokens, stored hashed, 8-hour lifetime; sessions can be revoked                             |
+| Mass assignment                  | Only `createFields` / `editFields` are written                                                             |
+| Data leaks                       | Hidden and sensitive fields are stripped server-side; sorting, filtering and export only on visible fields |
+| SQL injection via sort/filter    | Sort and filter fields are allow-listed; values are bound parameters                                       |
+| CSV / formula injection          | Exported cells starting with `= + - @` are prefixed with `'`                                               |
+| Export links leaking             | One-time links valid for 60 seconds; the session token never appears in a URL                              |
+| 2FA secret leaks                 | The QR secret never leaves the page (no third-party QR service)                                            |
 
 ---
 
@@ -369,15 +404,15 @@ app.admin({
 
 All routes are under `/admin/api/v1` (`apiPrefix`) and return `{ ok, data }` or `{ ok: false, error }`.
 
-| Route | Purpose |
-| --- | --- |
-| `POST /auth/login` · `POST /auth/logout` · `GET /auth/me` | Sign in / out |
-| `GET /auth/sessions` · `DELETE /auth/sessions/:id` · `POST /auth/sessions/terminate-others` | Sessions |
-| `GET /resources` | Resources the user can view, with their schemas |
-| `GET /resources/:id?page&pageSize&search&sort&sortDirection&filter_<field>` | List |
-| `POST /resources/:id` · `GET/PATCH/DELETE /resources/:id/:pk` | CRUD |
-| `POST /resources/:id/bulk/delete` · `POST /resources/:id/bulk/:action` · `POST /resources/:id/:pk/actions/:action` | Actions |
-| `POST /resources/:id/export` → `GET /resources/:id/export?ticket=` | CSV export |
-| `GET /dashboard` · `GET /dashboard/widgets/:id` | Dashboard |
-| `GET /pages` · `GET /pages/:id` · `GET /pages/:id/widgets/:widget` | Custom pages |
-| `GET /audit` · `GET /system/health` | Audit trail, health |
+| Route                                                                                                              | Purpose                                         |
+| ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- |
+| `POST /auth/login` · `POST /auth/logout` · `GET /auth/me`                                                          | Sign in / out                                   |
+| `GET /auth/sessions` · `DELETE /auth/sessions/:id` · `POST /auth/sessions/terminate-others`                        | Sessions                                        |
+| `GET /resources`                                                                                                   | Resources the user can view, with their schemas |
+| `GET /resources/:id?page&pageSize&search&sort&sortDirection&filter_<field>`                                        | List                                            |
+| `POST /resources/:id` · `GET/PATCH/DELETE /resources/:id/:pk`                                                      | CRUD                                            |
+| `POST /resources/:id/bulk/delete` · `POST /resources/:id/bulk/:action` · `POST /resources/:id/:pk/actions/:action` | Actions                                         |
+| `POST /resources/:id/export` → `GET /resources/:id/export?ticket=`                                                 | CSV export                                      |
+| `GET /dashboard` · `GET /dashboard/widgets/:id`                                                                    | Dashboard                                       |
+| `GET /pages` · `GET /pages/:id` · `GET /pages/:id/widgets/:widget`                                                 | Custom pages                                    |
+| `GET /audit` · `GET /system/health`                                                                                | Audit trail, health                             |

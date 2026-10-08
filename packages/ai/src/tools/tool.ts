@@ -21,7 +21,7 @@ export function tool<TInput = any, TOutput = any>(
 ): ToolDefinition<TInput, TOutput> {
   if (typeof optionsOrName === 'string') {
     if (!description || !execute) {
-      throw new Error("tool(name, description, execute) requires 3 arguments.");
+      throw new Error('tool(name, description, execute) requires 3 arguments.');
     }
     const inferred = inferParametersFromFunction(execute);
     return {
@@ -65,18 +65,25 @@ export function tool<TInput = any, TOutput = any>(
  */
 function inferParametersFromFunction(fn: Function): Record<string, unknown> | null {
   try {
-    const fnStr = fn.toString().replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '').trim();
+    const fnStr = fn
+      .toString()
+      .replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '')
+      .trim();
     const match = fnStr.match(/^(?:async\s*)?(?:function[^(]*)?\s*\(\s*\{([^}]+)\}/);
     if (match && match[1]) {
       const paramNames = match[1]
         .split(',')
         .map((p) => p.trim().split(/[:=]/)[0]?.trim())
-        .filter((p): p is string => Boolean(p && !p.startsWith('...') && /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(p)));
+        .filter((p): p is string =>
+          Boolean(p && !p.startsWith('...') && /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(p))
+        );
 
       if (paramNames.length > 0) {
         const properties: Record<string, unknown> = {};
         for (const name of paramNames) {
-          const isNum = /(price|percent|amount|count|qty|quantity|num|id|rate|discount)/i.test(name);
+          const isNum = /(price|percent|amount|count|qty|quantity|num|id|rate|discount)/i.test(
+            name
+          );
           const isBool = /(is|has|should|allow|can)/i.test(name);
           properties[name] = {
             type: isNum ? 'number' : isBool ? 'boolean' : 'string',
@@ -149,7 +156,10 @@ export function toJsonSchema(schemaDef: any): Record<string, unknown> {
       } else if (typeName === 'ArraySchema' || customType === 'array') {
         properties[key] = { type: 'array', items: { type: 'string' } };
       } else if (typeof (val as any).type === 'string') {
-        properties[key] = { type: (val as any).type, description: (val as any).description ?? `Parameter '${key}'` };
+        properties[key] = {
+          type: (val as any).type,
+          description: (val as any).description ?? `Parameter '${key}'`,
+        };
       } else {
         properties[key] = { type: 'string', description: `Parameter '${key}'` };
       }

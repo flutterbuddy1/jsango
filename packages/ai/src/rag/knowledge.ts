@@ -31,7 +31,10 @@ export class KnowledgeBase {
     this.defaultChunkOverlap = options.chunkOverlap ?? 50;
   }
 
-  public async ingest(textOrDocs: string | VectorDocument[], options?: IngestOptions): Promise<void> {
+  public async ingest(
+    textOrDocs: string | VectorDocument[],
+    options?: IngestOptions
+  ): Promise<void> {
     const chunkSize = options?.chunkSize ?? this.defaultChunkSize;
     const overlap = options?.chunkOverlap ?? this.defaultChunkOverlap;
     const documentsToInsert: VectorDocument[] = [];
@@ -108,6 +111,9 @@ export class KnowledgeBase {
   }
 }
 
-export function knowledge(name: string, options?: Omit<KnowledgeBaseOptions, 'name'>): KnowledgeBase {
+export function knowledge(
+  name: string,
+  options?: Omit<KnowledgeBaseOptions, 'name'>
+): KnowledgeBase {
   return new KnowledgeBase({ name, ...options });
 }

@@ -6,9 +6,7 @@ describe('Basic AI App Example', () => {
   it('initializes application and serves root endpoint', async () => {
     const app = createApplication();
 
-    const res = await app.handle(
-      new HttpRequest({ method: 'GET', url: 'http://localhost/' })
-    );
+    const res = await app.handle(new HttpRequest({ method: 'GET', url: 'http://localhost/' }));
 
     expect(res.status).toBe(200);
     const data = JSON.parse(res.body as string);

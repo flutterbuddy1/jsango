@@ -27,7 +27,10 @@ const page = ctx.request.query.get('page'); // '2'
 const session = ctx.request.cookies['session']; // 'abc'
 const body = await ctx.request.json<{ email: string }>();
 
-const response = HttpResponse.json({ success: true, email: body.email }, { status: HttpStatus.CREATED });
+const response = HttpResponse.json(
+  { success: true, email: body.email },
+  { status: HttpStatus.CREATED }
+);
 response.setCookie('seen', '1', { httpOnly: true, sameSite: 'Lax' });
 ```
 

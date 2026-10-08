@@ -282,13 +282,15 @@ export class MetricRegistry {
    */
   public toPrometheus(): string {
     const name = (n: string) => n.replace(/[^a-zA-Z0-9_:]/g, '_');
-    const escape = (v: string) => v.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/"/g, '\\"');
+    const escape = (v: string) =>
+      v.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/"/g, '\\"');
     const labels = (l: MetricLabels, extra?: Record<string, string>) => {
       const all = { ...l, ...extra };
       const parts = Object.entries(all).map(([k, v]) => `${name(k)}="${escape(String(v))}"`);
       return parts.length > 0 ? `{${parts.join(',')}}` : '';
     };
-    const num = (v: number) => (Number.isFinite(v) ? String(v) : v > 0 ? '+Inf' : v < 0 ? '-Inf' : 'NaN');
+    const num = (v: number) =>
+      Number.isFinite(v) ? String(v) : v > 0 ? '+Inf' : v < 0 ? '-Inf' : 'NaN';
 
     const lines: string[] = [];
     for (const metric of this.snapshot()) {
@@ -298,7 +300,8 @@ export class MetricRegistry {
       for (const v of metric.values) {
         if (metric.type === 'histogram') {
           const h = v as HistogramValue;
-          for (const b of h.buckets) lines.push(`${n}_bucket${labels(h.labels, { le: num(b.le) })} ${b.count}`);
+          for (const b of h.buckets)
+            lines.push(`${n}_bucket${labels(h.labels, { le: num(b.le) })} ${b.count}`);
           lines.push(`${n}_bucket${labels(h.labels, { le: '+Inf' })} ${h.count}`);
           lines.push(`${n}_sum${labels(h.labels)} ${num(h.sum)}`);
           lines.push(`${n}_count${labels(h.labels)} ${h.count}`);

@@ -3,15 +3,15 @@ import { WorkflowError } from '../errors.js';
 import { Agent } from '../agents/agent.js';
 
 export type StepHandler<TInput = any, TOutput = any> =
-  | ((input: TInput, state: Record<string, any>) => Promise<TOutput> | TOutput)
-  | Agent<TOutput>;
+  ((input: TInput, state: Record<string, any>) => Promise<TOutput> | TOutput) | Agent<TOutput>;
 
 export interface WorkflowStepDef {
   name: string;
   type: 'sequential' | 'parallel' | 'branch' | 'loop';
   handler?: StepHandler | undefined;
   parallelHandlers?: Record<string, StepHandler> | undefined;
-  condition?: ((state: Record<string, any>) => string | boolean | Promise<string | boolean>) | undefined;
+  condition?:
+    ((state: Record<string, any>) => string | boolean | Promise<string | boolean>) | undefined;
   branches?: Record<string, StepHandler | Workflow> | undefined;
   maxIterations?: number | undefined;
   retries?: number | undefined;
@@ -109,7 +109,12 @@ export class Workflow {
       typeof initialState === 'object' && initialState !== null && !Array.isArray(initialState)
         ? { ...initialState }
         : { input: initialState };
-    const stepRecords: Array<{ name: string; durationMs: number; output?: unknown; error?: string }> = [];
+    const stepRecords: Array<{
+      name: string;
+      durationMs: number;
+      output?: unknown;
+      error?: string;
+    }> = [];
 
     const emit = (type: any, data: any) => {
       if (options?.onEvent) {
@@ -154,7 +159,9 @@ export class Workflow {
         } else if (step.type === 'parallel' && step.parallelHandlers) {
           const keys = Object.keys(step.parallelHandlers);
           const results = await Promise.all(
-            keys.map((k) => this.executeHandler(step.parallelHandlers![k]!, state[k] ?? state, state, options))
+            keys.map((k) =>
+              this.executeHandler(step.parallelHandlers![k]!, state[k] ?? state, state, options)
+            )
           );
           const parallelOut: Record<string, any> = {};
           keys.forEach((k, i) => {
@@ -162,7 +169,11 @@ export class Workflow {
             state[k] = results[i];
           });
           state[step.name] = parallelOut;
-          stepRecords.push({ name: step.name, output: parallelOut, durationMs: Date.now() - stepStart });
+          stepRecords.push({
+            name: step.name,
+            output: parallelOut,
+            durationMs: Date.now() - stepStart,
+          });
         } else if (step.type === 'branch' && step.condition && step.branches) {
           const branchKey = await step.condition(state);
           const branchTarget = step.branches[String(branchKey)];
@@ -176,7 +187,11 @@ export class Workflow {
             }
             state[step.name] = out;
             state[`${step.name}->${branchKey}`] = out;
-            stepRecords.push({ name: `${step.name}->${branchKey}`, output: out, durationMs: Date.now() - stepStart });
+            stepRecords.push({
+              name: `${step.name}->${branchKey}`,
+              output: out,
+              durationMs: Date.now() - stepStart,
+            });
           }
         } else if (step.type === 'loop' && step.condition && step.handler) {
           let iteration = 0;
@@ -186,7 +201,11 @@ export class Workflow {
             const loopOut = await this.executeHandler(step.handler, state, state, options);
             state[`${step.name}_${iteration}`] = loopOut;
           }
-          stepRecords.push({ name: step.name, output: `Completed ${iteration} iterations`, durationMs: Date.now() - stepStart });
+          stepRecords.push({
+            name: step.name,
+            output: `Completed ${iteration} iterations`,
+            durationMs: Date.now() - stepStart,
+          });
         }
 
         emit('workflow.step.completed', { step: step.name, output: state[step.name] });
@@ -197,7 +216,6 @@ export class Workflow {
         throw new WorkflowError(this.name, `Step '${step.name}' failed: ${errorMsg}`, err);
       }
     }
-
 
     emit('workflow.completed', { workflow: this.name, state });
 
@@ -210,7 +228,12 @@ export class Workflow {
     };
   }
 
-  private async executeHandler(handler: StepHandler, input: any, state: Record<string, any>, options?: any): Promise<any> {
+  private async executeHandler(
+    handler: StepHandler,
+    input: any,
+    state: Record<string, any>,
+    options?: any
+  ): Promise<any> {
     if (handler instanceof Agent) {
       const res = await handler.run({
         input: typeof input === 'string' ? input : JSON.stringify(input),

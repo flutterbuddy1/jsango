@@ -16,7 +16,11 @@ const TEMPLATE = fs.readFileSync(path.join(ROOT, 'packages/cli/templates/AGENTS.
 const dirs: string[] = [];
 
 async function aiInit(cwd: string) {
-  const output = new CliOutput({ color: false, stdout: { write: () => {} }, stderr: { write: () => {} } });
+  const output = new CliOutput({
+    color: false,
+    stdout: { write: () => {} },
+    stderr: { write: () => {} },
+  });
   const previous = process.cwd();
   process.chdir(cwd);
   try {
@@ -53,14 +57,22 @@ describe('jsango ai:init', () => {
     expect(once.startsWith('# Team rules\n\nUse tabs.\n\n<!-- jsango:start -->')).toBe(true);
 
     // An outdated jsango section is replaced in place; running again changes nothing.
-    fs.writeFileSync(path.join(dir, 'AGENTS.md'), once.replace(/<!-- jsango:start -->[\s\S]*<!-- jsango:end -->/, '<!-- jsango:start -->\nold\n<!-- jsango:end -->') + '\nFooter\n');
+    fs.writeFileSync(
+      path.join(dir, 'AGENTS.md'),
+      once.replace(
+        /<!-- jsango:start -->[\s\S]*<!-- jsango:end -->/,
+        '<!-- jsango:start -->\nold\n<!-- jsango:end -->'
+      ) + '\nFooter\n'
+    );
     await aiInit(dir);
     await aiInit(dir);
     const agents = fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf8');
     expect(agents).not.toContain('\nold\n');
     expect(agents.match(/jsango:start/g)).toHaveLength(1);
     expect(agents.endsWith('\nFooter\n')).toBe(true);
-    expect(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8')).toBe('# Claude notes\n\n@AGENTS.md\n');
+    expect(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8')).toBe(
+      '# Claude notes\n\n@AGENTS.md\n'
+    );
   });
 
   it('only mentions CLI commands that exist', () => {
@@ -75,7 +87,10 @@ describe('llms.txt', () => {
   it('lists every guide and bundles them with the agent rules', () => {
     const { llms, full } = buildLlms();
     for (const [rel] of GUIDES as [string][]) {
-      expect(fs.existsSync(path.join(ROOT, rel)), `${rel} is listed in scripts/build-llms.mjs but missing`).toBe(true);
+      expect(
+        fs.existsSync(path.join(ROOT, rel)),
+        `${rel} is listed in scripts/build-llms.mjs but missing`
+      ).toBe(true);
       expect(llms).toContain(`/${rel})`);
       expect(full).toContain(`<!-- source: ${rel} `);
     }

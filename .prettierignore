@@ -5,3 +5,4 @@
 .turbo/**
 pnpm-lock.yaml
 **/*.tsbuildinfo
+packages/admin-ui/src/page/bundle-content.ts

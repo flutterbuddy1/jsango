@@ -18,7 +18,9 @@ export class AnthropicProvider extends BaseLlmProvider {
 
   constructor(options: AnthropicProviderOptions = {}) {
     super();
-    this.apiKey = options.apiKey ?? (typeof process !== 'undefined' ? process.env?.ANTHROPIC_API_KEY ?? '' : '');
+    this.apiKey =
+      options.apiKey ??
+      (typeof process !== 'undefined' ? (process.env?.ANTHROPIC_API_KEY ?? '') : '');
     this.baseUrl = options.baseUrl ?? 'https://api.anthropic.com/v1';
     this.defaultModel = options.defaultModel ?? 'claude-3-5-sonnet-20241022';
     this.anthropicVersion = options.anthropicVersion ?? '2023-06-01';
@@ -73,7 +75,7 @@ export class AnthropicProvider extends BaseLlmProvider {
           promptTokens,
           completionTokens,
           totalTokens,
-          estimatedCostUsd: (promptTokens * 0.000003) + (completionTokens * 0.000015),
+          estimatedCostUsd: promptTokens * 0.000003 + completionTokens * 0.000015,
         },
         raw: data,
       };
@@ -103,9 +105,11 @@ export class AnthropicProvider extends BaseLlmProvider {
 
       const res = await fetch(`${baseUrl}/messages`, fetchInit);
 
-
       if (!res.ok) {
-        throw new ProviderError('anthropic', `Stream request failed (${res.status}): ${await res.text()}`);
+        throw new ProviderError(
+          'anthropic',
+          `Stream request failed (${res.status}): ${await res.text()}`
+        );
       }
 
       if (!res.body) return;
@@ -180,7 +184,7 @@ export class AnthropicProvider extends BaseLlmProvider {
       }
     }
 
-    const model = (options.model?.replace(/^anthropic:/, '') ?? this.defaultModel);
+    const model = options.model?.replace(/^anthropic:/, '') ?? this.defaultModel;
 
     const payload: Record<string, unknown> = {
       model,

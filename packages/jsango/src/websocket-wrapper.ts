@@ -26,8 +26,7 @@ export interface WebSocketRouteHandlers {
 }
 
 export type WebSocketRouteCallback =
-  | ((socket: ISimpleWebSocket) => void | Promise<void>)
-  | WebSocketRouteHandlers;
+  ((socket: ISimpleWebSocket) => void | Promise<void>) | WebSocketRouteHandlers;
 
 export class SimpleWebSocketConnection implements ISimpleWebSocket {
   public readonly id: string;
@@ -205,7 +204,10 @@ export class WebSocketHub {
 }
 
 export class WebSocketEndpointManager {
-  private readonly routes = new Map<string, { callback: WebSocketRouteCallback; hub: WebSocketHub }>();
+  private readonly routes = new Map<
+    string,
+    { callback: WebSocketRouteCallback; hub: WebSocketHub }
+  >();
   private wss?: WSServer;
   private isListening = false;
 
@@ -250,7 +252,9 @@ export class WebSocketEndpointManager {
             simpleConn.on('message', (msg: unknown) => handlers.message!(simpleConn, msg));
           }
           if (handlers.close) {
-            simpleConn.on('close', (code: number, reason: string) => handlers.close!(simpleConn, code, reason));
+            simpleConn.on('close', (code: number, reason: string) =>
+              handlers.close!(simpleConn, code, reason)
+            );
           }
           if (handlers.error) {
             simpleConn.on('error', (err: Error) => handlers.error!(simpleConn, err));

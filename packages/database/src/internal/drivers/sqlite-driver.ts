@@ -184,12 +184,20 @@ export class SqliteDatabaseDriver implements IDatabaseDriver {
   private readonly config: ConnectionConfig | SqliteDriverOptions;
   private readonly deps: SqliteDriverDependencies;
 
-  constructor(config: ConnectionConfig | SqliteDriverOptions = {}, deps: SqliteDriverDependencies = {}) {
+  constructor(
+    config: ConnectionConfig | SqliteDriverOptions = {},
+    deps: SqliteDriverDependencies = {}
+  ) {
     this.config = config;
     this.deps = deps;
     const inMemory = this.filename === ':memory:';
     this.poolDefaults = inMemory
-      ? { min: 0, max: 1, idleTimeoutMs: Number.POSITIVE_INFINITY, maxLifetimeMs: Number.POSITIVE_INFINITY }
+      ? {
+          min: 0,
+          max: 1,
+          idleTimeoutMs: Number.POSITIVE_INFINITY,
+          maxLifetimeMs: Number.POSITIVE_INFINITY,
+        }
       : { min: 0, max: 1 };
     this.maxConnections = inMemory ? 1 : undefined;
   }
@@ -238,7 +246,10 @@ export class SqliteDatabaseDriver implements IDatabaseDriver {
     return new SqliteDriverConnection(this.config, db, undefined, engine);
   }
 
-  private async open(filename: string, readonly: boolean): Promise<{ db: any; engine: SqliteEngine }> {
+  private async open(
+    filename: string,
+    readonly: boolean
+  ): Promise<{ db: any; engine: SqliteEngine }> {
     const errors: string[] = [];
     const extra = (this.config as SqliteDriverOptions).options ?? {};
 
@@ -273,7 +284,9 @@ export class SqliteDatabaseDriver implements IDatabaseDriver {
     }
 
     if (errors.length > 0) {
-      throw new ConnectionError(`Failed to open SQLite database "${filename}": ${errors.join('; ')}`);
+      throw new ConnectionError(
+        `Failed to open SQLite database "${filename}": ${errors.join('; ')}`
+      );
     }
 
     throw new ConnectionError(

@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-/* global console, process */
 import { readdir, readFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 

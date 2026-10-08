@@ -95,7 +95,8 @@ export class MigrateGenerateCommand extends BaseCommand {
     const dirOption = context.options['dir'] as string | undefined;
     const migrationsDir = dirOption
       ? ProjectDiscovery.assertSafePath(dirOption, context.projectRoot)
-      : (project?.migrationsDir ?? ProjectDiscovery.assertSafePath('migrations', context.projectRoot));
+      : (project?.migrationsDir ??
+        ProjectDiscovery.assertSafePath('migrations', context.projectRoot));
 
     const db = await context.getDatabaseManager();
     const resolveConn = (name: string | undefined): string => {

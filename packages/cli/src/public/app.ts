@@ -105,7 +105,6 @@ export class CliApplication {
     registry.register(new McpCommand());
 
     return app;
-
   }
 
   public registerCommand(command: ICommand): this {

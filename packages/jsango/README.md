@@ -14,7 +14,14 @@ pnpm install
 ## Quick Example
 
 ```typescript
-import { createApp, defineModel, fields, DatabaseManager, databaseConfigFromEnv, setDatabaseManager } from 'jsango';
+import {
+  createApp,
+  defineModel,
+  fields,
+  DatabaseManager,
+  databaseConfigFromEnv,
+  setDatabaseManager,
+} from 'jsango';
 
 export const User = defineModel({
   name: 'User',

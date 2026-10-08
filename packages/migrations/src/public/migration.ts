@@ -1,4 +1,9 @@
-import type { IDatabaseConnection, IDatabaseTransaction, MongoCommand, DatabaseResult } from '@jsango/database';
+import type {
+  IDatabaseConnection,
+  IDatabaseTransaction,
+  MongoCommand,
+  DatabaseResult,
+} from '@jsango/database';
 import type {
   ColumnDefinition,
   ColumnType,
@@ -212,11 +217,18 @@ export class TableBuilder {
   }
 
   public index(columns: readonly string[], name?: string): void {
-    this.indexes.push({ name: name ?? `idx_${this.name}_${columns.join('_')}`, columns: [...columns], unique: false });
+    this.indexes.push({
+      name: name ?? `idx_${this.name}_${columns.join('_')}`,
+      columns: [...columns],
+      unique: false,
+    });
   }
 
   public unique(columns: readonly string[], name?: string): void {
-    this.uniques.push({ name: name ?? `uq_${this.name}_${columns.join('_')}`, columns: [...columns] });
+    this.uniques.push({
+      name: name ?? `uq_${this.name}_${columns.join('_')}`,
+      columns: [...columns],
+    });
   }
 
   public foreign(
@@ -226,7 +238,8 @@ export class TableBuilder {
     options?: { onDelete?: ForeignKeyAction; onUpdate?: ForeignKeyAction; name?: string }
   ): void {
     const columns = typeof column === 'string' ? [column] : [...column];
-    const refColumns = typeof referencedColumn === 'string' ? [referencedColumn] : [...referencedColumn];
+    const refColumns =
+      typeof referencedColumn === 'string' ? [referencedColumn] : [...referencedColumn];
     this.foreignKeys.push({
       name: options?.name ?? `fk_${this.name}_${columns.join('_')}`,
       columns,
@@ -319,7 +332,8 @@ export class MigrationContext implements SchemaBuilder {
     if (this.recordTo) return;
     if (this.dialect === 'mongodb') {
       throw new MigrationError({
-        message: 'ctx.sql() is not available on MongoDB. Use ctx.execute({ op: "updateMany", collection: "users", filter: {}, update: { $set: {...} } }) for data migrations.',
+        message:
+          'ctx.sql() is not available on MongoDB. Use ctx.execute({ op: "updateMany", collection: "users", filter: {}, update: { $set: {...} } }) for data migrations.',
       });
     }
     await this.connection.query(sql, params);
@@ -333,10 +347,14 @@ export class MigrationContext implements SchemaBuilder {
    * await ctx.execute({ op: 'updateMany', collection: 'users', filter: { role: null }, update: { $set: { role: 'member' } } });
    * ```
    */
-  public async execute<T = Record<string, unknown>>(command: MongoCommand): Promise<DatabaseResult<T>> {
+  public async execute<T = Record<string, unknown>>(
+    command: MongoCommand
+  ): Promise<DatabaseResult<T>> {
     if (this.recordTo) return { rows: [], rowCount: 0 };
     if (typeof this.connection.execute !== 'function') {
-      throw new MigrationError({ message: 'ctx.execute() is only available on MongoDB connections; use ctx.sql() instead.' });
+      throw new MigrationError({
+        message: 'ctx.execute() is only available on MongoDB connections; use ctx.sql() instead.',
+      });
     }
     return this.connection.execute<T>(command);
   }
@@ -399,7 +417,11 @@ export class MigrationContext implements SchemaBuilder {
     await this.executeOperation(new AddColumnOperation(tableName, column));
   }
 
-  public async dropColumn(tableName: string, columnName: string, previous?: ColumnDefinition): Promise<void> {
+  public async dropColumn(
+    tableName: string,
+    columnName: string,
+    previous?: ColumnDefinition
+  ): Promise<void> {
     await this.executeOperation(new DropColumnOperation(tableName, columnName, previous));
   }
 
@@ -433,7 +455,11 @@ export class MigrationContext implements SchemaBuilder {
     await this.executeOperation(new DropIndexOperation(tableName, indexName));
   }
 
-  public async addUnique(tableName: string, columns: readonly string[], name?: string): Promise<void> {
+  public async addUnique(
+    tableName: string,
+    columns: readonly string[],
+    name?: string
+  ): Promise<void> {
     await this.executeOperation(
       new CreateUniqueConstraintOperation(tableName, {
         name: name ?? `uq_${tableName}_${columns.join('_')}`,
@@ -450,7 +476,11 @@ export class MigrationContext implements SchemaBuilder {
     await this.executeOperation(new AddForeignKeyOperation(tableName, foreignKey));
   }
 
-  public async dropForeignKey(tableName: string, name: string, previous?: ForeignKeyDefinition): Promise<void> {
+  public async dropForeignKey(
+    tableName: string,
+    name: string,
+    previous?: ForeignKeyDefinition
+  ): Promise<void> {
     await this.executeOperation(new DropForeignKeyOperation(tableName, name, previous));
   }
 }
@@ -499,7 +529,8 @@ export class Migration implements MigrationDefinition {
 
     if (this.operations && !this.upFn) {
       this.isDestructive = options.isDestructive ?? this.operations.some((op) => op.isDestructive);
-      this.isReversible = this.downFn !== undefined || this.operations.every((op) => op.isReversible);
+      this.isReversible =
+        this.downFn !== undefined || this.operations.every((op) => op.isReversible);
     } else {
       this.isDestructive = options.isDestructive ?? false;
       this.isReversible = this.downFn !== undefined;
@@ -547,7 +578,9 @@ export class Migration implements MigrationDefinition {
    * with an `up()` function, it is run against a recording context; raw `ctx.sql()` calls are
    * opaque and skipped.
    */
-  public async collectOperations(dialect: MigrationDialect = 'memory'): Promise<MigrationOperation[]> {
+  public async collectOperations(
+    dialect: MigrationDialect = 'memory'
+  ): Promise<MigrationOperation[]> {
     if (this.operations && !this.upFn) {
       return [...this.operations];
     }
@@ -565,10 +598,14 @@ const RECORDING_CONNECTION: IDatabaseConnection = {
     return { rows: [], rowCount: 0 };
   },
   async beginTransaction() {
-    throw new MigrationError({ message: 'Transactions are not available while replaying migrations.' });
+    throw new MigrationError({
+      message: 'Transactions are not available while replaying migrations.',
+    });
   },
   async transaction() {
-    throw new MigrationError({ message: 'Transactions are not available while replaying migrations.' });
+    throw new MigrationError({
+      message: 'Transactions are not available while replaying migrations.',
+    });
   },
   async ping() {
     return true;
@@ -600,4 +637,3 @@ const RECORDING_CONNECTION: IDatabaseConnection = {
 export function defineMigration(options: MigrationOptions): Migration {
   return new Migration(options);
 }
-

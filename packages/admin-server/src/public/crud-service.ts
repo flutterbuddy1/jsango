@@ -114,9 +114,14 @@ export class AdminCrudService {
       throw new AdminAuthorizationError({ resource: resource.id, action: 'export' });
     }
     if (!this.adapter.stream) {
-      throw new AdminActionError({ actionName: 'export', message: 'The configured query adapter does not support export.' });
+      throw new AdminActionError({
+        actionName: 'export',
+        message: 'The configured query adapter does not support export.',
+      });
     }
-    const columns = resource.listFields.filter((f) => this.permissions.canViewField(identity, resource, f));
+    const columns = resource.listFields.filter((f) =>
+      this.permissions.canViewField(identity, resource, f)
+    );
     const batches = this.adapter.stream({
       modelName: resource.modelName,
       query: this.sanitizeQuery(resource, { ...query, sort: undefined }, identity),
@@ -139,7 +144,12 @@ export class AdminCrudService {
       yield columns.map(csvCell).join(',') + '\r\n';
       for await (const batch of batches) {
         yield batch
-          .map((row) => columns.map((c) => csvCell(resource.getField(c)?.computedGetter?.(row) ?? row[c])).join(',') + '\r\n')
+          .map(
+            (row) =>
+              columns
+                .map((c) => csvCell(resource.getField(c)?.computedGetter?.(row) ?? row[c]))
+                .join(',') + '\r\n'
+          )
           .join('');
       }
     })();
@@ -496,14 +506,29 @@ export class AdminCrudService {
     context?: AdminRequestContext | undefined
   ): Promise<{ deleted: number }> {
     if (ids.length > MAX_BULK_IDS) {
-      throw new AdminValidationError({ message: `At most ${MAX_BULK_IDS} records can be deleted at once.`, errors: [] });
+      throw new AdminValidationError({
+        message: `At most ${MAX_BULK_IDS} records can be deleted at once.`,
+        errors: [],
+      });
     }
     const unique = [...new Set(ids)];
     const items = this.adapter.findMany
-      ? await this.adapter.findMany({ modelName: resource.modelName, ids: unique, primaryKey: resource.primaryKey })
-      : (await Promise.all(unique.map((id) => this.adapter.findById({ modelName: resource.modelName, id, primaryKey: resource.primaryKey })))).filter(
-          (i): i is Record<string, unknown> => i !== null
-        );
+      ? await this.adapter.findMany({
+          modelName: resource.modelName,
+          ids: unique,
+          primaryKey: resource.primaryKey,
+        })
+      : (
+          await Promise.all(
+            unique.map((id) =>
+              this.adapter.findById({
+                modelName: resource.modelName,
+                id,
+                primaryKey: resource.primaryKey,
+              })
+            )
+          )
+        ).filter((i): i is Record<string, unknown> => i !== null);
     for (const item of items) {
       if (!(await this.permissions.canDelete(identity, resource, item))) {
         throw new AdminAuthorizationError({ resource: resource.id, action: 'delete' });
@@ -512,10 +537,20 @@ export class AdminCrudService {
     const found = items.map((i) => i[resource.primaryKey] as string | number);
     let deleted = found.length;
     if (this.adapter.deleteMany) {
-      deleted = await this.adapter.deleteMany({ modelName: resource.modelName, ids: found, primaryKey: resource.primaryKey, soft: resource.canSoftDelete });
+      deleted = await this.adapter.deleteMany({
+        modelName: resource.modelName,
+        ids: found,
+        primaryKey: resource.primaryKey,
+        soft: resource.canSoftDelete,
+      });
     } else {
       for (const id of found) {
-        await this.adapter.delete({ modelName: resource.modelName, id, primaryKey: resource.primaryKey, soft: resource.canSoftDelete });
+        await this.adapter.delete({
+          modelName: resource.modelName,
+          id,
+          primaryKey: resource.primaryKey,
+          soft: resource.canSoftDelete,
+        });
       }
     }
 
@@ -538,9 +573,14 @@ export class AdminCrudService {
    * Keeps only safe query parts: sorting by a sortable field, filters on filterable fields the
    * actor can see (values coerced to the field type), and a page size within the maximum.
    */
-  private sanitizeQuery(resource: AdminResource, query: AdminListQuery, identity: Identity | undefined): AdminListQuery {
+  private sanitizeQuery(
+    resource: AdminResource,
+    query: AdminListQuery,
+    identity: Identity | undefined
+  ): AdminListQuery {
     const sortField = query.sort ? resource.getField(query.sort) : undefined;
-    const sortable = sortField?.sortable && this.permissions.canViewField(identity, resource, sortField.name);
+    const sortable =
+      sortField?.sortable && this.permissions.canViewField(identity, resource, sortField.name);
 
     const filterable = new Set([...resource.filters.values()].map((f) => f.field));
     for (const f of resource.fields.values()) if (f.filterable) filterable.add(f.name);
@@ -548,7 +588,12 @@ export class AdminCrudService {
     const filters: Record<string, unknown> = {};
     for (const [name, raw] of Object.entries(query.filters ?? {})) {
       const field = resource.getField(resource.filters.get(name)?.field ?? name);
-      if (!field || !filterable.has(field.name) || !this.permissions.canViewField(identity, resource, field.name)) continue;
+      if (
+        !field ||
+        !filterable.has(field.name) ||
+        !this.permissions.canViewField(identity, resource, field.name)
+      )
+        continue;
       filters[field.name] = coerce(field.type, raw);
     }
 
@@ -569,7 +614,6 @@ export class AdminCrudService {
     if (!model || fieldNames.some((f) => resource.getField(f)?.computedGetter)) return undefined;
     return [...new Set([resource.primaryKey, ...fieldNames.filter((f) => model.fields.has(f))])];
   }
-
 
   /** Strips fields the actor cannot read for a given view context. */
   private filterFields(
@@ -652,7 +696,12 @@ function coerce(type: string, raw: unknown): unknown {
 /** RFC 4180 cell; values starting with = + - @ are prefixed with ' so spreadsheets don't run them. */
 function csvCell(value: unknown): string {
   if (value === null || value === undefined) return '';
-  let text = value instanceof Date ? value.toISOString() : typeof value === 'object' ? JSON.stringify(value) : String(value);
+  let text =
+    value instanceof Date
+      ? value.toISOString()
+      : typeof value === 'object'
+        ? JSON.stringify(value)
+        : String(value);
   if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
   return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }

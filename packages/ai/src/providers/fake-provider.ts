@@ -3,7 +3,8 @@ import type { LlmCallOptions, LlmChunk, LlmResponse, LlmStream, LlmToolCall } fr
 
 export interface FakeResponseRule {
   match?: string | RegExp | ((options: LlmCallOptions) => boolean) | undefined;
-  response: Partial<LlmResponse> | string | ((options: LlmCallOptions) => Partial<LlmResponse> | string);
+  response:
+    Partial<LlmResponse> | string | ((options: LlmCallOptions) => Partial<LlmResponse> | string);
   toolCalls?: LlmToolCall[] | undefined;
   delayMs?: number | undefined;
 }
@@ -92,13 +93,13 @@ export class FakeLlmProvider extends BaseLlmProvider {
     });
   }
 
-
   private async resolveResponse(options: LlmCallOptions): Promise<LlmResponse> {
     // 1. Check rules with explicit match predicate
     for (let i = 0; i < this.rules.length; i++) {
       const rule = this.rules[i]!;
       if (rule.match) {
-        const lastMsg = options.messages?.[options.messages.length - 1]?.content ?? options.prompt ?? '';
+        const lastMsg =
+          options.messages?.[options.messages.length - 1]?.content ?? options.prompt ?? '';
         let isMatch = false;
         if (typeof rule.match === 'string') {
           isMatch = lastMsg.includes(rule.match);
@@ -113,7 +114,8 @@ export class FakeLlmProvider extends BaseLlmProvider {
             await new Promise((resolve) => setTimeout(resolve, rule.delayMs));
           }
 
-          let respContent = typeof rule.response === 'function' ? rule.response(options) : rule.response;
+          let respContent =
+            typeof rule.response === 'function' ? rule.response(options) : rule.response;
           if (typeof respContent === 'string') {
             respContent = { text: respContent };
           }
@@ -143,7 +145,8 @@ export class FakeLlmProvider extends BaseLlmProvider {
         await new Promise((resolve) => setTimeout(resolve, rule.delayMs));
       }
 
-      let respContent = typeof rule.response === 'function' ? rule.response(options) : rule.response;
+      let respContent =
+        typeof rule.response === 'function' ? rule.response(options) : rule.response;
       if (typeof respContent === 'string') {
         respContent = { text: respContent };
       }
@@ -170,5 +173,4 @@ export class FakeLlmProvider extends BaseLlmProvider {
       finishReason: 'stop',
     };
   }
-
 }

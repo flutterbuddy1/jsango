@@ -36,7 +36,10 @@ const SECRET_PATTERNS: ReadonlyArray<[RegExp, string]> = [
   [/\bAKIA[0-9A-Z]{16}\b/g, '<aws key>'],
   [/\bxox[abprs]-[A-Za-z0-9-]{10,}\b/g, '<slack token>'],
   [/\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]{12,}/gi, '$1 <token>'],
-  [/\b([A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|PASSWD|API_?KEY|PRIVATE_?KEY|DATABASE_URL|DSN)[A-Z0-9_]*)\s*[=:]\s*\S+/gi, '$1=<redacted>'],
+  [
+    /\b([A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|PASSWD|API_?KEY|PRIVATE_?KEY|DATABASE_URL|DSN)[A-Z0-9_]*)\s*[=:]\s*\S+/gi,
+    '$1=<redacted>',
+  ],
   [/[\w.+-]+@[\w-]+(?:\.[\w-]+)*\.[a-z]{2,}\b/gi, '<email>'],
 ];
 
@@ -84,7 +87,9 @@ export function redact(text: string, cwd: string): { text: string; count: number
   };
   const dirs: Array<[string, string]> = [
     ...spellings(cwd).map((d) => [d, '<project>'] as [string, string]),
-    ...(process.env['PWD'] && path.resolve(process.env['PWD']) !== '/' ? spellings(process.env['PWD']).map((d) => [d, '<project>'] as [string, string]) : []),
+    ...(process.env['PWD'] && path.resolve(process.env['PWD']) !== '/'
+      ? spellings(process.env['PWD']).map((d) => [d, '<project>'] as [string, string])
+      : []),
     ...spellings(os.homedir()).map((d) => [d, '~'] as [string, string]),
   ];
   for (const [dir, label] of dirs) {
@@ -117,7 +122,9 @@ function findUp(from: string, rel: string): string | undefined {
 
 export function environment(cwd: string, cliVersion: string): string {
   const pkgFile = findUp(cwd, 'node_modules/jsango/package.json');
-  const jsango = pkgFile ? (JSON.parse(fs.readFileSync(pkgFile, 'utf8')) as { version?: string }).version : undefined;
+  const jsango = pkgFile
+    ? (JSON.parse(fs.readFileSync(pkgFile, 'utf8')) as { version?: string }).version
+    : undefined;
   let driver = 'unknown';
   const envFile = path.join(cwd, '.env');
   if (fs.existsSync(envFile)) {
@@ -160,16 +167,24 @@ export function draftIssue(input: IssueDraftInput, cwd: string, cliVersion: stri
     .filter(([, text]) => text)
     .map(([heading, text]) => `### ${heading}\n\n${text}`)
     .join('\n\n');
-  body += '\n\n---\n_Drafted by an AI coding agent with `jsango mcp` and reviewed by the reporter before submitting._';
+  body +=
+    '\n\n---\n_Drafted by an AI coding agent with `jsango mcp` and reviewed by the reporter before submitting._';
 
   const build = (b: string) =>
     `https://github.com/${ISSUES_REPO}/issues/new?` +
-    new URLSearchParams({ template: 'ai_report.md', title, body: b, labels: 'ai-reported' }).toString();
+    new URLSearchParams({
+      template: 'ai_report.md',
+      title,
+      body: b,
+      labels: 'ai-reported',
+    }).toString();
   let url = build(body);
   let truncated = false;
   while (url.length > MAX_URL && body.length > 200) {
     truncated = true;
-    body = body.slice(0, Math.floor(body.length * 0.8)) + '\n\n_(truncated: paste the rest of the reproduction here)_';
+    body =
+      body.slice(0, Math.floor(body.length * 0.8)) +
+      '\n\n_(truncated: paste the rest of the reproduction here)_';
     url = build(body);
   }
   return { title, body, url, redactions, truncated };
@@ -179,33 +194,57 @@ export function draftIssue(input: IssueDraftInput, cwd: string, cliVersion: stri
 // Duplicate search
 // ---------------------------------------------------------------------------
 
-const STOP = new Set('a an and are as at be but by can does for from has have how in is it its not of on or the this to when with without'.split(' '));
+const STOP = new Set(
+  'a an and are as at be but by can does for from has have how in is it its not of on or the this to when with without'.split(
+    ' '
+  )
+);
 
 export async function findSimilarIssues(
   title: string,
   options: { fetch?: typeof fetch; apiBase?: string } = {}
-): Promise<{ ok: true; issues: Array<{ title: string; url: string; state: string }> } | { ok: false; reason: string }> {
-  const words = (title.toLowerCase().replace(/^\[[^\]]*\]\s*/, '').match(/[a-z0-9_.$-]+/g) ?? [])
+): Promise<
+  | { ok: true; issues: Array<{ title: string; url: string; state: string }> }
+  | { ok: false; reason: string }
+> {
+  const words = (
+    title
+      .toLowerCase()
+      .replace(/^\[[^\]]*\]\s*/, '')
+      .match(/[a-z0-9_.$-]+/g) ?? []
+  )
     .filter((w) => w.length > 2 && !STOP.has(w))
     .slice(0, 6);
   if (words.length === 0) return { ok: true, issues: [] };
   const q = `repo:${ISSUES_REPO} is:issue ${words.join(' ')}`;
   const base = options.apiBase ?? process.env['JSANGO_GITHUB_API'] ?? 'https://api.github.com';
   try {
-    const res = await (options.fetch ?? fetch)(`${base}/search/issues?per_page=5&q=${encodeURIComponent(q)}`, {
-      headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'jsango-mcp' },
-      signal: AbortSignal.timeout(6000),
-    });
+    const res = await (options.fetch ?? fetch)(
+      `${base}/search/issues?per_page=5&q=${encodeURIComponent(q)}`,
+      {
+        headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'jsango-mcp' },
+        signal: AbortSignal.timeout(6000),
+      }
+    );
     if (!res.ok) return { ok: false, reason: `GitHub search returned HTTP ${res.status}` };
-    const data = (await res.json()) as { items?: Array<{ title: string; html_url: string; state: string }> };
-    return { ok: true, issues: (data.items ?? []).map((i) => ({ title: i.title, url: i.html_url, state: i.state })) };
+    const data = (await res.json()) as {
+      items?: Array<{ title: string; html_url: string; state: string }>;
+    };
+    return {
+      ok: true,
+      issues: (data.items ?? []).map((i) => ({ title: i.title, url: i.html_url, state: i.state })),
+    };
   } catch (err) {
     return { ok: false, reason: err instanceof Error ? err.message : String(err) };
   }
 }
 
 /** The `report_issue` tool result: draft, possible duplicates, and how to submit with the user's consent. */
-export async function reportIssue(input: IssueDraftInput, cwd: string, cliVersion: string): Promise<string> {
+export async function reportIssue(
+  input: IssueDraftInput,
+  cwd: string,
+  cliVersion: string
+): Promise<string> {
   const draft = draftIssue(input, cwd, cliVersion);
   const similar = await findSimilarIssues(draft.title);
   const searchUrl = `https://github.com/${ISSUES_REPO}/issues?q=${encodeURIComponent(`is:issue ${input.title}`)}`;

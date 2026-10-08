@@ -352,4 +352,3 @@ This roadmap outlines the phased development plan for the **JSango** framework. 
   - One-line Application Transports: `app.agent('/path', agent)` (REST & SSE streaming) and `app.wsAgent('/path', agent)` (WebSocket streaming).
   - CLI generators: `jsango make:agent <Name>` and `jsango ai:doctor`.
   - Deterministic testing fixtures, AI Evals suite, comprehensive benchmarks, and full security analysis.
-

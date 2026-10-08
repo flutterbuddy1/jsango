@@ -144,14 +144,22 @@ export class MysqlDatabaseDriver implements IDatabaseDriver {
     supportsCancellation: false,
     placeholderType: 'question',
     supportsTransactionalDDL: false,
-    supportedIsolationLevels: ['READ UNCOMMITTED', 'READ COMMITTED', 'REPEATABLE READ', 'SERIALIZABLE'],
+    supportedIsolationLevels: [
+      'READ UNCOMMITTED',
+      'READ COMMITTED',
+      'REPEATABLE READ',
+      'SERIALIZABLE',
+    ],
   };
 
   private pool: any = null;
   private readonly config: ConnectionConfig | MysqlDriverOptions;
   private readonly deps: MysqlDriverDependencies;
 
-  constructor(config: ConnectionConfig | MysqlDriverOptions = {}, deps: MysqlDriverDependencies = {}) {
+  constructor(
+    config: ConnectionConfig | MysqlDriverOptions = {},
+    deps: MysqlDriverDependencies = {}
+  ) {
     this.config = config;
     this.deps = deps;
   }

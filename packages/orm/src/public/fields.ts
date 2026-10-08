@@ -26,10 +26,19 @@ const processUnique = Array.from({ length: 5 }, () => Math.floor(Math.random() *
 export function generateObjectId(): string {
   const bytes: number[] = [];
   const seconds = Math.floor(Date.now() / 1000);
-  bytes.push((seconds >>> 24) & 0xff, (seconds >>> 16) & 0xff, (seconds >>> 8) & 0xff, seconds & 0xff);
+  bytes.push(
+    (seconds >>> 24) & 0xff,
+    (seconds >>> 16) & 0xff,
+    (seconds >>> 8) & 0xff,
+    seconds & 0xff
+  );
   bytes.push(...processUnique);
   objectIdCounter = (objectIdCounter + 1) % 0xffffff;
-  bytes.push((objectIdCounter >>> 16) & 0xff, (objectIdCounter >>> 8) & 0xff, objectIdCounter & 0xff);
+  bytes.push(
+    (objectIdCounter >>> 16) & 0xff,
+    (objectIdCounter >>> 8) & 0xff,
+    objectIdCounter & 0xff
+  );
   return bytes.map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 

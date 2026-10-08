@@ -33,7 +33,9 @@ export class DatabaseTransaction implements IDatabaseTransaction {
   }
 
   /** Executes a structured document command (MongoDB) inside this transaction. */
-  public async execute<T = Record<string, unknown>>(command: MongoCommand): Promise<DatabaseResult<T>> {
+  public async execute<T = Record<string, unknown>>(
+    command: MongoCommand
+  ): Promise<DatabaseResult<T>> {
     this.assertActive('execute command');
     if (typeof this.rawConnection.execute !== 'function') {
       throw new TransactionError('This driver does not support document commands.');

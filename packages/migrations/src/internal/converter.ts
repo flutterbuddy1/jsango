@@ -122,7 +122,10 @@ export class ModelSchemaConverter {
           if (targetTable) {
             const fkColumn = model.fieldToColumn(rel.foreignKey);
             const fkField = model.getField(rel.foreignKey);
-            const opts = rel.options as { onDelete?: ForeignKeyAction; onUpdate?: ForeignKeyAction };
+            const opts = rel.options as {
+              onDelete?: ForeignKeyAction;
+              onUpdate?: ForeignKeyAction;
+            };
             foreignKeys.push({
               name: `fk_${model.table}_${fkColumn}`,
               columns: [fkColumn],

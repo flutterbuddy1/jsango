@@ -17,7 +17,10 @@ import { defineModel, fields, relations, setDatabaseManager } from '@jsango/orm'
 import { DatabaseManager } from '@jsango/database';
 
 setDatabaseManager(
-  new DatabaseManager({ default: 'main', connections: { main: { driver: 'sqlite', filename: './dev.db' } } })
+  new DatabaseManager({
+    default: 'main',
+    connections: { main: { driver: 'sqlite', filename: './dev.db' } },
+  })
 );
 
 export const User = defineModel({

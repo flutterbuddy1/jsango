@@ -4,7 +4,8 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
-const PKG_VERSION = (createRequire(import.meta.url)('../../package.json') as { version: string }).version;
+const PKG_VERSION = (createRequire(import.meta.url)('../../package.json') as { version: string })
+  .version;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

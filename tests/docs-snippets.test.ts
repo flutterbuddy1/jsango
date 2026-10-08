@@ -33,7 +33,10 @@ function decodeHtml(text: string): string {
 }
 
 function looksLikeTypeScript(code: string): boolean {
-  return /\b(import|export|const|let|await|function|class)\b/.test(code) && !/^\s*(npx|npm|pnpm|curl|cd)\b/m.test(code.split('\n')[0] ?? '');
+  return (
+    /\b(import|export|const|let|await|function|class)\b/.test(code) &&
+    !/^\s*(npx|npm|pnpm|curl|cd)\b/m.test(code.split('\n')[0] ?? '')
+  );
 }
 
 function collect(): Snippet[] {
@@ -42,12 +45,16 @@ function collect(): Snippet[] {
   const html = fs.readFileSync(path.join(ROOT, 'site/docs.html'), 'utf8');
   for (const m of html.matchAll(/data-copy="([^"]*)"/g)) {
     const code = decodeHtml(m[1]!);
-    if (looksLikeTypeScript(code)) out.push({ source: `site/docs.html:${html.slice(0, m.index).split('\n').length}`, code });
+    if (looksLikeTypeScript(code))
+      out.push({ source: `site/docs.html:${html.slice(0, m.index).split('\n').length}`, code });
   }
 
   const app = fs.readFileSync(path.join(ROOT, 'site/js/app.js'), 'utf8');
   for (const m of app.matchAll(/snippet:\s*`((?:\\`|[^`])*)`/g)) {
-    out.push({ source: `site/js/app.js:${app.slice(0, m.index).split('\n').length}`, code: m[1]!.replace(/\\`/g, '`').replace(/\\\$/g, '$') });
+    out.push({
+      source: `site/js/app.js:${app.slice(0, m.index).split('\n').length}`,
+      code: m[1]!.replace(/\\`/g, '`').replace(/\\\$/g, '$'),
+    });
   }
 
   const markdown: string[] = [path.join(ROOT, 'README.md')];
@@ -68,7 +75,10 @@ function collect(): Snippet[] {
   for (const file of markdown) {
     const text = fs.readFileSync(file, 'utf8');
     for (const m of text.matchAll(/```(?:ts|typescript)\n([\s\S]*?)```/g)) {
-      out.push({ source: `${path.relative(ROOT, file)}:${text.slice(0, m.index).split('\n').length}`, code: m[1]! });
+      out.push({
+        source: `${path.relative(ROOT, file)}:${text.slice(0, m.index).split('\n').length}`,
+        code: m[1]!,
+      });
     }
   }
   return out;
@@ -79,12 +89,22 @@ const IGNORED = new Set([
   2304, // Cannot find name 'db' (snippet context)
   2552, // Cannot find name (did you mean)
   2580, // Cannot find name 'require'
-  7006, 7005, 7031, 7034, 7053, // implicit any
-  6133, 6192, 6196, // unused
+  7006,
+  7005,
+  7031,
+  7034,
+  7053, // implicit any
+  6133,
+  6192,
+  6196, // unused
   2451, // redeclare block-scoped variable across snippets in one file
-  1375, 1378, // top-level await settings
+  1375,
+  1378, // top-level await settings
   2307, // module not found is reported separately below for non-jsango modules
-  18048, 18047, 2532, 2531, // possibly undefined/null (snippets skip guards)
+  18048,
+  18047,
+  2532,
+  2531, // possibly undefined/null (snippets skip guards)
 ]);
 
 function check(snippets: readonly Snippet[]): string[] {
@@ -133,7 +153,8 @@ describe('documentation snippets', () => {
     const snippets = collect();
     expect(snippets.length).toBeGreaterThan(50);
     const problems = check(snippets);
-    if (process.env['DOCS_REPORT']) fs.writeFileSync(process.env['DOCS_REPORT'], problems.join('\n'));
+    if (process.env['DOCS_REPORT'])
+      fs.writeFileSync(process.env['DOCS_REPORT'], problems.join('\n'));
     expect(problems, `\n${problems.join('\n')}\n`).toEqual([]);
   }, 120_000);
 });

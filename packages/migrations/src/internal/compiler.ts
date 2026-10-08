@@ -189,7 +189,11 @@ export class SqlMigrationCompiler {
       case 'boolean':
         return d === 'sqlite' ? 'INTEGER' : d === 'mysql' ? 'TINYINT(1)' : 'BOOLEAN';
       case 'dateTime':
-        return d === 'sqlite' ? 'DATETIME' : d === 'mysql' ? 'DATETIME(3)' : 'TIMESTAMP WITH TIME ZONE';
+        return d === 'sqlite'
+          ? 'DATETIME'
+          : d === 'mysql'
+            ? 'DATETIME(3)'
+            : 'TIMESTAMP WITH TIME ZONE';
       case 'date':
         return 'DATE';
       case 'time':
@@ -253,7 +257,14 @@ export class SqlMigrationCompiler {
     } else if (typeof value === 'number' || typeof value === 'bigint') {
       literal = String(value);
     } else if (typeof value === 'boolean') {
-      literal = this.dialect === 'sqlite' || this.dialect === 'mysql' ? (value ? '1' : '0') : value ? 'TRUE' : 'FALSE';
+      literal =
+        this.dialect === 'sqlite' || this.dialect === 'mysql'
+          ? value
+            ? '1'
+            : '0'
+          : value
+            ? 'TRUE'
+            : 'FALSE';
     } else if (value instanceof Date) {
       literal = `'${value.toISOString()}'`;
     } else if (typeof value === 'string') {
@@ -299,7 +310,9 @@ export class SqlMigrationCompiler {
 
     if (this.dialect === 'sqlite') {
       for (const uc of uniques) {
-        statements.push(this.compileCreateIndex(tableName, { name: uc.name, columns: uc.columns, unique: true }));
+        statements.push(
+          this.compileCreateIndex(tableName, { name: uc.name, columns: uc.columns, unique: true })
+        );
       }
     }
     for (const idx of table.indexes ?? []) {
@@ -396,7 +409,11 @@ export class SqlMigrationCompiler {
 
   private compileAddUnique(tableName: string, constraint: UniqueConstraintDefinition): string {
     if (this.dialect === 'sqlite') {
-      return this.compileCreateIndex(tableName, { name: constraint.name, columns: constraint.columns, unique: true });
+      return this.compileCreateIndex(tableName, {
+        name: constraint.name,
+        columns: constraint.columns,
+        unique: true,
+      });
     }
     const cols = constraint.columns.map((c) => this.quoteIdentifier(c)).join(', ');
     return `ALTER TABLE ${this.quoteIdentifier(tableName)} ADD CONSTRAINT ${this.quoteIdentifier(constraint.name)} UNIQUE (${cols});`;

@@ -34,7 +34,10 @@ const registry = new MigrationRegistry();
 registry.register(createUsers);
 // Or load every file in a folder: const { registry } = await loadMigrationsFromDirectory('./migrations');
 
-const db = new DatabaseManager({ default: 'main', connections: { main: { url: process.env.DATABASE_URL } } });
+const db = new DatabaseManager({
+  default: 'main',
+  connections: { main: { url: process.env.DATABASE_URL } },
+});
 const runner = new MigrationRunner({ databaseManager: db, registry });
 
 const { applied } = await runner.migrate(); // takes a distributed lock while running

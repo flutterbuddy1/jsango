@@ -1,4 +1,5 @@
 <!-- jsango:start -->
+
 # Working on this project (instructions for AI coding agents)
 
 This is a **jsango** backend: a batteries-included TypeScript framework (Django-style) with routing,
@@ -25,23 +26,23 @@ Import everything from `'jsango'`.
 
 ## Which API to use
 
-| Need | jsango |
-| --- | --- |
-| HTTP server, routes | `createApp()`, `app.get/post/put/patch/delete(path, ...middleware, handler)`, `app.listen(port)` |
-| Request data | `ctx.params.id`, `ctx.query.page`, `ctx.body` (the body validated by `validate()`), `await ctx.request.json()` (raw body), `ctx.request.headers.get(...)` |
-| REST resource for a model | `app.crud('/posts', Post, { searchFields, filterFields })` |
-| Request validation | `validate({ body: schema({ ... }) })` with `string()`, `email()`, `number()`, `boolean()`, `object()` |
-| Errors | `throw notFound('...')`, `badRequest(...)`, `unauthorized(...)`, `forbidden(...)` |
-| Models / ORM | `defineModel(name, { ...fields }, { table, timestamps, softDelete, relations })`, `fields.*` |
-| Queries | `Model.find(id)`, `Model.where(...).first()`, `.query().where().orderBy().paginate({ page, pageSize })`, `create`, `update`, `delete` |
-| Migrations | `npx jsango makemigrations`, `npx jsango migrate`, `migrate:status`, `migrate:rollback` |
-| Database connection | `src/database.ts` (`DATABASE_URL` in `.env`: postgres, mysql, sqlite, mongodb) |
-| Auth (JWT, sessions, API keys, OAuth, 2FA) | `createAuth({ secret, users })`, `auth.login`, `auth.required({ roles, permissions })` |
-| Admin panel | `app.admin({ auth, resources: [Model], dashboard: [...] })` |
-| Background jobs / events / cache | `jobs.register` + `jobs.dispatch`, `events.on` + `events.emit`, `cache.remember` |
-| WebSockets | `app.ws(path, (socket) => ...)` |
-| API docs | `app.openapi({ path: '/openapi.json' })` |
-| AI agents and tools | `agent({ ... })`, `tool({ ... })`, `app.agent(path, agent)` |
+| Need                                       | jsango                                                                                                                                                    |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| HTTP server, routes                        | `createApp()`, `app.get/post/put/patch/delete(path, ...middleware, handler)`, `app.listen(port)`                                                          |
+| Request data                               | `ctx.params.id`, `ctx.query.page`, `ctx.body` (the body validated by `validate()`), `await ctx.request.json()` (raw body), `ctx.request.headers.get(...)` |
+| REST resource for a model                  | `app.crud('/posts', Post, { searchFields, filterFields })`                                                                                                |
+| Request validation                         | `validate({ body: schema({ ... }) })` with `string()`, `email()`, `number()`, `boolean()`, `object()`                                                     |
+| Errors                                     | `throw notFound('...')`, `badRequest(...)`, `unauthorized(...)`, `forbidden(...)`                                                                         |
+| Models / ORM                               | `defineModel(name, { ...fields }, { table, timestamps, softDelete, relations })`, `fields.*`                                                              |
+| Queries                                    | `Model.find(id)`, `Model.where(...).first()`, `.query().where().orderBy().paginate({ page, pageSize })`, `create`, `update`, `delete`                     |
+| Migrations                                 | `npx jsango makemigrations`, `npx jsango migrate`, `migrate:status`, `migrate:rollback`                                                                   |
+| Database connection                        | `src/database.ts` (`DATABASE_URL` in `.env`: postgres, mysql, sqlite, mongodb)                                                                            |
+| Auth (JWT, sessions, API keys, OAuth, 2FA) | `createAuth({ secret, users })`, `auth.login`, `auth.required({ roles, permissions })`                                                                    |
+| Admin panel                                | `app.admin({ auth, resources: [Model], dashboard: [...] })`                                                                                               |
+| Background jobs / events / cache           | `jobs.register` + `jobs.dispatch`, `events.on` + `events.emit`, `cache.remember`                                                                          |
+| WebSockets                                 | `app.ws(path, (socket) => ...)`                                                                                                                           |
+| API docs                                   | `app.openapi({ path: '/openapi.json' })`                                                                                                                  |
+| AI agents and tools                        | `agent({ ... })`, `tool({ ... })`, `app.agent(path, agent)`                                                                                               |
 
 ## Project layout
 
@@ -119,6 +120,7 @@ app.admin({ auth, resources: [User, Post] }); // admin panel at /admin
 ```
 
 Auth notes:
+
 - Add `AUTH_SECRET=` (32+ random characters, e.g. `openssl rand -base64 48`) to `.env` and `.env.example`.
 - Store `passwordHash: await auth.hashPassword(password)` on the user model. Never return user records with
   `passwordHash` from your own routes. The results of `auth.login()`, `auth.refresh()` and `auth.issueTokens()`
@@ -139,23 +141,26 @@ import { User } from '../src/models/user.js';
 
 configureDatabase();
 const [email, password] = process.argv.slice(2);
-await User.updateOrCreate({ email }, { role: 'admin', passwordHash: await auth.hashPassword(password!) });
+await User.updateOrCreate(
+  { email },
+  { role: 'admin', passwordHash: await auth.hashPassword(password!) }
+);
 console.log(`Admin ${email} is ready.`);
 ```
 
 ## Commands
 
-| Command | Purpose |
-| --- | --- |
-| `npm run dev` | Start with reload |
-| `npx jsango makemigrations` | Create a migration from model changes |
-| `npx jsango migrate` (`--dry-run` shows SQL) | Apply migrations |
-| `npx jsango migrate:status` / `migrate:rollback` / `migrate:check` | Inspect, undo, CI check |
-| `npx jsango db:status` | Test the database connection |
-| `npx jsango make:admin <Model>` | Generate an admin resource |
-| `npx jsango make:agent <Name>` | Generate an AI agent |
-| `npx jsango routes` | List routes |
-| `npx jsango doctor` | Check the environment |
+| Command                                                            | Purpose                               |
+| ------------------------------------------------------------------ | ------------------------------------- |
+| `npm run dev`                                                      | Start with reload                     |
+| `npx jsango makemigrations`                                        | Create a migration from model changes |
+| `npx jsango migrate` (`--dry-run` shows SQL)                       | Apply migrations                      |
+| `npx jsango migrate:status` / `migrate:rollback` / `migrate:check` | Inspect, undo, CI check               |
+| `npx jsango db:status`                                             | Test the database connection          |
+| `npx jsango make:admin <Model>`                                    | Generate an admin resource            |
+| `npx jsango make:agent <Name>`                                     | Generate an AI agent                  |
+| `npx jsango routes`                                                | List routes                           |
+| `npx jsango doctor`                                                | Check the environment                 |
 
 ## Reporting a jsango bug or missing feature
 
@@ -170,4 +175,5 @@ Then show the draft to the user. Without the MCP server:
    review and submit (URL-encode the title and body):
    `https://github.com/flutterbuddy1/jsango/issues/new?title=<title>&body=<body>&labels=ai-reported`
    Never create issues without the user's explicit approval.
+
 <!-- jsango:end -->

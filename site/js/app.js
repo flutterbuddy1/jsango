@@ -296,11 +296,16 @@ app.wsAgent('/ws/support', supportAgent);`,
           btn.textContent = 'Copied';
           setTimeout(() => (btn.textContent = 'Copy'), 1600);
         }
-        showToast(textToCopy.includes('\n') ? 'Snippet copied to clipboard' : `Copied: ${textToCopy}`);
+        showToast(
+          textToCopy.includes('\n') ? 'Snippet copied to clipboard' : `Copied: ${textToCopy}`
+        );
       };
 
       if (navigator.clipboard?.writeText) {
-        navigator.clipboard.writeText(textToCopy).then(done).catch(() => showToast('Failed to copy to clipboard'));
+        navigator.clipboard
+          .writeText(textToCopy)
+          .then(done)
+          .catch(() => showToast('Failed to copy to clipboard'));
       } else {
         showToast('Clipboard is not available in this browser');
       }

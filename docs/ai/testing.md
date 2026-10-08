@@ -16,7 +16,7 @@ import { FakeLlmProvider, agent, tool, object, string } from 'jsango';
 describe('Customer Support Agent', () => {
   it('calls lookupOrder tool and answers user', async () => {
     const fake = new FakeLlmProvider()
-      .respondWithTool('lookupOrder', { orderId: 'ord_999' })      // 1st call: use the tool
+      .respondWithTool('lookupOrder', { orderId: 'ord_999' }) // 1st call: use the tool
       .respond('Order ord_999 has been shipped and is in transit.'); // 2nd call: final answer
 
     let toolExecuted = false;
@@ -61,11 +61,15 @@ answer specific prompts, plus `setDefaultResponse()` for everything else.
 ```typescript
 import { evaluate } from 'jsango';
 
-const report = await evaluate('Refund agent', [
-  { input: 'Please cancel order 123', expectedTools: ['cancelOrder'] },
-  { input: 'What is your return policy?', expected: /30 days/ },
-  { input: 'Hi', expected: (res) => res.text.length > 0, maxDurationMs: 2000 },
-], supportAgent);
+const report = await evaluate(
+  'Refund agent',
+  [
+    { input: 'Please cancel order 123', expectedTools: ['cancelOrder'] },
+    { input: 'What is your return policy?', expected: /30 days/ },
+    { input: 'Hi', expected: (res) => res.text.length > 0, maxDurationMs: 2000 },
+  ],
+  supportAgent
+);
 
 console.log(report.passed, report.score, report.errors);
 // passed: every case passed; score: % of passing cases (0-100); errors: failure reasons

@@ -18,16 +18,19 @@ JSango AI APIs are designed around progressive complexity:
 ## 2. Code Comparison & Ergonomics Matrix
 
 ### Task 1: Basic Text Generation
+
 ```typescript
 import { ai } from 'jsango';
 const res = await ai.generate('Explain quantum computing');
 console.log(res.text);
 ```
+
 - **Lines of Code**: 3
 - **Imports**: 1
 - **Boilerplate**: 0%
 
 ### Task 2: Autonomous Agent with Tool Calling
+
 ```typescript
 import { createApp, agent, tool, schema, string, fields, model } from 'jsango';
 
@@ -55,5 +58,6 @@ app.wsAgent('/ws/support', supportAgent);
 
 await app.listen(3000);
 ```
+
 - **Lines of Code**: 22
 - **Unified Ecosystem**: Model definition, Validation Schema, Agent, Tool, REST, SSE, and WebSocket endpoints created in a single cohesive file!

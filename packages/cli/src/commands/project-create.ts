@@ -8,7 +8,6 @@ import { ProjectDiscovery } from '../internal/project.js';
 import { FRAMEWORK_VERSION } from './version.js';
 import { writeAgentFiles } from '../internal/agent-files.js';
 
-
 export class ProjectCreateCommand extends BaseCommand {
   public readonly name = 'create';
   public readonly description = 'Create and scaffold a new jsango project';
@@ -56,57 +55,59 @@ export class ProjectCreateCommand extends BaseCommand {
     }
 
     const files: Record<string, string> = {
-      'package.json': JSON.stringify(
-        {
-          name: projectName,
-          version: '0.1.0',
-          private: true,
-          type: 'module',
-          scripts: {
-            dev: 'tsx watch src/index.ts',
-            build: 'tsc -b',
-            start: 'node dist/index.js',
-            makemigrations: 'jsango migrate:generate',
-            migrate: 'jsango migrate',
-            'migrate:status': 'jsango migrate:status',
-            'migrate:rollback': 'jsango migrate:rollback',
-            'db:status': 'jsango db:status',
+      'package.json':
+        JSON.stringify(
+          {
+            name: projectName,
+            version: '0.1.0',
+            private: true,
+            type: 'module',
+            scripts: {
+              dev: 'tsx watch src/index.ts',
+              build: 'tsc -b',
+              start: 'node dist/index.js',
+              makemigrations: 'jsango migrate:generate',
+              migrate: 'jsango migrate',
+              'migrate:status': 'jsango migrate:status',
+              'migrate:rollback': 'jsango migrate:rollback',
+              'db:status': 'jsango db:status',
+            },
+            dependencies: {
+              jsango: `^${FRAMEWORK_VERSION}`,
+              dotenv: '^16.4.7',
+            },
+            devDependencies: {
+              typescript: '^5.8.2',
+              tsx: '^4.20.0',
+              '@types/node': '^22.0.0',
+            },
+            engines: {
+              node: '>=22.13.0',
+            },
           },
-          dependencies: {
-            jsango: `^${FRAMEWORK_VERSION}`,
-            dotenv: '^16.4.7',
-          },
-          devDependencies: {
-            typescript: '^5.8.2',
-            tsx: '^4.20.0',
-            '@types/node': '^22.0.0',
-          },
-          engines: {
-            node: '>=22.13.0',
-          },
-        },
-        null,
-        2
-      ) + '\n',
+          null,
+          2
+        ) + '\n',
 
-      'tsconfig.json': JSON.stringify(
-        {
-          compilerOptions: {
-            target: 'ES2022',
-            module: 'NodeNext',
-            moduleResolution: 'NodeNext',
-            strict: true,
-            esModuleInterop: true,
-            skipLibCheck: true,
-            forceConsistentCasingInFileNames: true,
-            outDir: './dist',
-            rootDir: './src',
+      'tsconfig.json':
+        JSON.stringify(
+          {
+            compilerOptions: {
+              target: 'ES2022',
+              module: 'NodeNext',
+              moduleResolution: 'NodeNext',
+              strict: true,
+              esModuleInterop: true,
+              skipLibCheck: true,
+              forceConsistentCasingInFileNames: true,
+              outDir: './dist',
+              rootDir: './src',
+            },
+            include: ['src/**/*'],
           },
-          include: ['src/**/*'],
-        },
-        null,
-        2
-      ) + '\n',
+          null,
+          2
+        ) + '\n',
 
       'jsango.config.ts': `import { defineConfig } from 'jsango';
 import { db } from './src/database.js';
@@ -305,7 +306,9 @@ instead of other libraries. Refresh it after upgrading jsango: \`npx jsango ai:i
     context.output.text(`  ${colors.dim('$')} npm run migrate`);
     context.output.text(`  ${colors.dim('$')} npm run dev`);
     context.output.text();
-    context.output.text(`Building with an AI assistant? ${colors.cyan('AGENTS.md')} teaches it to use jsango.`);
+    context.output.text(
+      `Building with an AI assistant? ${colors.cyan('AGENTS.md')} teaches it to use jsango.`
+    );
     context.output.text();
 
     return ExitCode.SUCCESS;

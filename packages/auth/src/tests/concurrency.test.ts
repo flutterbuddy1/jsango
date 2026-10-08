@@ -31,7 +31,10 @@ describe('Concurrency & Context Isolation', () => {
       });
     });
 
-    const tokenAlice = await jwt.sign({ sub: 'alice', roles: ['admin'] }, { expiresInSeconds: 3600 });
+    const tokenAlice = await jwt.sign(
+      { sub: 'alice', roles: ['admin'] },
+      { expiresInSeconds: 3600 }
+    );
     const tokenBob = await jwt.sign({ sub: 'bob', roles: ['editor'] }, { expiresInSeconds: 3600 });
 
     const requestsCount = 60;

@@ -84,7 +84,13 @@ export class MigrationStorage {
       await connection.execute!({
         op: 'insertOne',
         collection: MigrationStorage.TABLE_NAME,
-        document: { _id: migration.id, name: migration.name, applied_at: now, batch, checksum: checksum ?? null },
+        document: {
+          _id: migration.id,
+          name: migration.name,
+          applied_at: now,
+          batch,
+          checksum: checksum ?? null,
+        },
       });
       return;
     }
@@ -100,11 +106,18 @@ export class MigrationStorage {
 
   public static async removeMigration(connection: DatabaseExecutor, id: string): Promise<void> {
     if (isMongoExecutor(connection)) {
-      await connection.execute!({ op: 'deleteOne', collection: MigrationStorage.TABLE_NAME, filter: { _id: id } });
+      await connection.execute!({
+        op: 'deleteOne',
+        collection: MigrationStorage.TABLE_NAME,
+        filter: { _id: id },
+      });
       return;
     }
     await connection.query(
-      MigrationStorage.sql(connection, `DELETE FROM "${MigrationStorage.TABLE_NAME}" WHERE "id" = ?`),
+      MigrationStorage.sql(
+        connection,
+        `DELETE FROM "${MigrationStorage.TABLE_NAME}" WHERE "id" = ?`
+      ),
       [id]
     );
   }

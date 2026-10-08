@@ -19,7 +19,12 @@ CommandHandler(CommandContext)
 Every command implements `ICommand` which combines metadata and execution logic:
 
 ```typescript
-import type { ArgumentDefinition, OptionDefinition, CommandExample, CommandContext } from '@jsango/cli';
+import type {
+  ArgumentDefinition,
+  OptionDefinition,
+  CommandExample,
+  CommandContext,
+} from '@jsango/cli';
 
 export interface CommandDefinition {
   readonly name: string;

@@ -100,7 +100,10 @@ export class ModelRouter implements ILlmProvider {
     const model = options?.model ?? this.defaultModelName;
     const { provider, modelName } = this.parseModelString(model);
     if (!provider.embed) {
-      throw new ProviderError(provider.name, `Provider '${provider.name}' does not support embeddings.`);
+      throw new ProviderError(
+        provider.name,
+        `Provider '${provider.name}' does not support embeddings.`
+      );
     }
     return provider.embed(text, { model: modelName });
   }

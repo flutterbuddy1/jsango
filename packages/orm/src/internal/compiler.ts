@@ -160,7 +160,8 @@ export class SqlCompiler {
     if (ast.lock) {
       // Row locks only exist on PostgreSQL and MySQL; SQLite serializes writers anyway.
       if (this.dialect === 'postgres') sql += ast.lock === 'update' ? ' FOR UPDATE' : ' FOR SHARE';
-      else if (this.dialect === 'mysql') sql += ast.lock === 'update' ? ' FOR UPDATE' : ' LOCK IN SHARE MODE';
+      else if (this.dialect === 'mysql')
+        sql += ast.lock === 'update' ? ' FOR UPDATE' : ' LOCK IN SHARE MODE';
     }
 
     return { sql, params: Object.freeze(params) };
@@ -225,7 +226,8 @@ export class SqlCompiler {
       sql += ` ORDER BY ${ast.orderBy.map((o) => `${this.escapeIdentifier(o.column)} ${o.direction}`).join(', ')}`;
     }
     if (typeof ast.limit === 'number') {
-      if (!Number.isInteger(ast.limit) || ast.limit < 0) throw new QueryError(`Invalid LIMIT value: ${ast.limit}`);
+      if (!Number.isInteger(ast.limit) || ast.limit < 0)
+        throw new QueryError(`Invalid LIMIT value: ${ast.limit}`);
       sql += ` LIMIT ${ast.limit}`;
     }
     return { sql, params: Object.freeze(params) };
@@ -401,7 +403,9 @@ export class SqlCompiler {
 
       if (cond.type === 'raw') {
         if (typeof cond.sql !== 'string') {
-          throw new QueryError('whereRaw() with a filter object is only supported on MongoDB; pass an SQL string for SQL databases.');
+          throw new QueryError(
+            'whereRaw() with a filter object is only supported on MongoDB; pass an SQL string for SQL databases.'
+          );
         }
         let fragment = cond.sql;
         const rawParams = cond.params ?? [];

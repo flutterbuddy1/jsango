@@ -439,6 +439,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({
         setResources(fullResources);
       }
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('Failed to load admin resources:', err);
     }
   }, [fetchApi]);

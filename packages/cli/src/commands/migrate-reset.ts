@@ -39,7 +39,10 @@ export class MigrateResetCommand extends BaseCommand {
     const db = await requireDatabase(context);
     if (!db) return ExitCode.DATABASE_ERROR;
 
-    const runner = new MigrationRunner({ databaseManager: db, registry: context.getMigrationRegistry() });
+    const runner = new MigrationRunner({
+      databaseManager: db,
+      registry: context.getMigrationRegistry(),
+    });
     const connection = connectionOption(context);
     try {
       const reset = await runner.reset({ confirm: 'YES_I_AM_SURE', connection });

@@ -58,7 +58,7 @@ describe('hand-written migrations (SQLite)', () => {
 
     const runner = new MigrationRunner({ databaseManager: db, registry });
     await db.query(
-      "CREATE TABLE IF NOT EXISTS seed_marker (x INTEGER)" // unrelated table must survive
+      'CREATE TABLE IF NOT EXISTS seed_marker (x INTEGER)' // unrelated table must survive
     );
 
     await runner.migrate();
@@ -68,15 +68,21 @@ describe('hand-written migrations (SQLite)', () => {
     const role = await db.query<{ role: string | null }>('SELECT role FROM users');
     expect(role.rows[0]?.role).toBeNull(); // data migration ran before this insert
 
-    await db.query("INSERT INTO audit_logs (userId, action, createdAt, updatedAt) VALUES (1, 'login', 'now', 'now')");
+    await db.query(
+      "INSERT INTO audit_logs (userId, action, createdAt, updatedAt) VALUES (1, 'login', 'now', 'now')"
+    );
     await expect(
-      db.query("INSERT INTO audit_logs (userId, action, createdAt, updatedAt) VALUES (99, 'x', 'now', 'now')")
+      db.query(
+        "INSERT INTO audit_logs (userId, action, createdAt, updatedAt) VALUES (99, 'x', 'now', 'now')"
+      )
     ).rejects.toThrow(/FOREIGN KEY/i);
     await expect(
       db.query("INSERT INTO users (email, createdAt, updatedAt) VALUES ('a@x.io', 'now', 'now')")
     ).rejects.toThrow(/UNIQUE/i);
 
-    const indexes = await db.query<{ name: string }>("SELECT name FROM sqlite_master WHERE type = 'index'");
+    const indexes = await db.query<{ name: string }>(
+      "SELECT name FROM sqlite_master WHERE type = 'index'"
+    );
     expect(indexes.rows.map((r) => r.name)).toEqual(
       expect.arrayContaining(['uq_users_email', 'idx_audit_logs_action'])
     );
@@ -93,7 +99,9 @@ describe('hand-written migrations (SQLite)', () => {
     expect(back.rolledBack).toEqual(['20260930120000_rename_user_name']);
     const cols = await db.query<{ name: string }>('PRAGMA table_info("users")');
     expect(cols.rows.map((c) => c.name)).toContain('name');
-    const tables = await db.query<{ name: string }>("SELECT name FROM sqlite_master WHERE type = 'table'");
+    const tables = await db.query<{ name: string }>(
+      "SELECT name FROM sqlite_master WHERE type = 'table'"
+    );
     expect(tables.rows.map((r) => r.name)).not.toContain('audit_logs');
     expect(tables.rows.map((r) => r.name)).toContain('seed_marker');
 

@@ -121,7 +121,9 @@ export const calculateDiscount = tool({
     discountPercent: number(),
   },
   execute: ({ price, discountPercent }: { price: number; discountPercent: number }) => {
-    console.log(`[Tool] 💰 calculateDiscount invoked: price=$${price}, discount=${discountPercent}%`);
+    console.log(
+      `[Tool] 💰 calculateDiscount invoked: price=$${price}, discount=${discountPercent}%`
+    );
     const discountedPrice = price * (1 - discountPercent / 100);
     const result = {
       originalPrice: price,
@@ -177,7 +179,10 @@ Always answer using the exact real-time data returned by the tools.`,
   },
   onEvent: (event) => {
     if (event.type === 'tool.started') {
-      console.log(`[Agent: Shubh] 🛠️ Executing tool '${event.data.toolName}' with:`, event.data.input);
+      console.log(
+        `[Agent: Shubh] 🛠️ Executing tool '${event.data.toolName}' with:`,
+        event.data.input
+      );
     }
     if (event.type === 'tool.completed') {
       console.log(`[Agent: Shubh] ✅ Tool '${event.data.toolName}' finished successfully`);
@@ -188,8 +193,6 @@ Always answer using the exact real-time data returned by the tools.`,
   },
   provider: selectProvider(),
 });
-
-
 
 export const storeAgent2 = agent({
   name: 'Shubh',
@@ -203,7 +206,10 @@ Always answer using the exact real-time data returned by the tools.`,
   },
   onEvent: (event) => {
     if (event.type === 'tool.started') {
-      console.log(`[Agent: Shubh] 🛠️ Executing tool '${event.data.toolName}' with:`, event.data.input);
+      console.log(
+        `[Agent: Shubh] 🛠️ Executing tool '${event.data.toolName}' with:`,
+        event.data.input
+      );
     }
     if (event.type === 'tool.completed') {
       console.log(`[Agent: Shubh] ✅ Tool '${event.data.toolName}' finished successfully`);
@@ -215,12 +221,9 @@ Always answer using the exact real-time data returned by the tools.`,
   provider: selectProvider(),
 });
 
-
 // let pp = workflow("something")
 //   .step("Step1", storeAgent)
 //   .step("Step2", storeAgent2);
-
-
 
 // ============================================================================
 // 4. JSANGO APPLICATION SETUP
@@ -308,23 +311,23 @@ export function createApplication() {
   app.admin({
     path: '/admin',
     title: 'Admin',
-    brandSubtitle: "Secure application",
-    logoUrl: "https://flutterbuddy1.github.io/jsango/images/logo.png",
+    brandSubtitle: 'Secure application',
+    logoUrl: 'https://flutterbuddy1.github.io/jsango/images/logo.png',
     resources: [Product],
     credentials: {
-      email: "admin@admin.com",
-      password: "123456"
+      email: 'admin@admin.com',
+      password: '123456',
     },
     pages: [
       new AdminPage({
-        id: "chat",
-        path: "/chat",
-        label: "Chat",
-        description: "Chat with our AI assistant",
-        permission: "auth.user.view",
-        navigationIcon: `chat`
-      })
-    ]
+        id: 'chat',
+        path: '/chat',
+        label: 'Chat',
+        description: 'Chat with our AI assistant',
+        permission: 'auth.user.view',
+        navigationIcon: `chat`,
+      }),
+    ],
   });
 
   // Built-in Interactive OpenAPI / Swagger UI (Available at /docs)

@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Close sidebar when clicking a link on mobile
-    sidebarLinks.forEach(link => {
+    sidebarLinks.forEach((link) => {
       link.addEventListener('click', () => {
         if (window.innerWidth <= 768) {
           closeSidebar();
@@ -98,11 +98,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const term = e.target.value.toLowerCase().trim();
 
       // If user is searching on mobile, ensure sidebar opens so they see matched topics
-      if (term.length > 0 && window.innerWidth <= 768 && docsSidebar && !docsSidebar.classList.contains('open')) {
+      if (
+        term.length > 0 &&
+        window.innerWidth <= 768 &&
+        docsSidebar &&
+        !docsSidebar.classList.contains('open')
+      ) {
         openSidebar();
       }
 
-      sidebarLinks.forEach(link => {
+      sidebarLinks.forEach((link) => {
         const text = link.textContent.toLowerCase();
         const parentLi = link.parentElement;
         if (text.includes(term)) {
@@ -119,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentId = '';
     const scrollPos = window.scrollY + 120;
 
-    sections.forEach(section => {
+    sections.forEach((section) => {
       const top = section.offsetTop;
       const height = section.offsetHeight;
       if (scrollPos >= top && scrollPos < top + height) {
@@ -133,7 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (currentId) {
       // Update sidebar
-      sidebarLinks.forEach(link => {
+      sidebarLinks.forEach((link) => {
         const href = link.getAttribute('href')?.substring(1);
         if (href === currentId) {
           link.classList.add('active');
@@ -144,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       // Update right TOC
-      tocLinks.forEach(link => {
+      tocLinks.forEach((link) => {
         const href = link.getAttribute('href')?.substring(1);
         if (href === currentId) {
           link.classList.add('active');

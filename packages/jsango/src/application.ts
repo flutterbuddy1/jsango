@@ -11,8 +11,20 @@ import {
   createNodeHttpServer,
   type IHttpServer,
 } from '@jsango/http';
-import type { RouteHandler, RouteOptions, RouteGroup, RouteGroupConfig, RouteGroupOptions } from '@jsango/router';
-import { defaultModelRegistry, getDatabaseManager, hasDatabaseManager, type DefinedModelStatic, type Model } from '@jsango/orm';
+import type {
+  RouteHandler,
+  RouteOptions,
+  RouteGroup,
+  RouteGroupConfig,
+  RouteGroupOptions,
+} from '@jsango/router';
+import {
+  defaultModelRegistry,
+  getDatabaseManager,
+  hasDatabaseManager,
+  type DefinedModelStatic,
+  type Model,
+} from '@jsango/orm';
 import {
   AdminRegistry,
   AdminResource,
@@ -131,10 +143,12 @@ export interface OpenApiOptions {
  * `ctx.body`, `ctx.request`).
  */
 export type RouteArg =
-  | ((ctx: RequestContext, next: () => Promise<HttpResponse>) => unknown)
-  | RouteOptions;
+  ((ctx: RequestContext, next: () => Promise<HttpResponse>) => unknown) | RouteOptions;
 
-function parseRouteArgs(args: readonly RouteArg[]): { handler: RouteHandler; options: RouteOptions } {
+function parseRouteArgs(args: readonly RouteArg[]): {
+  handler: RouteHandler;
+  options: RouteOptions;
+} {
   let options: Record<string, any> = {};
   const functions: Function[] = [];
 
@@ -153,7 +167,11 @@ function parseRouteArgs(args: readonly RouteArg[]): { handler: RouteHandler; opt
   const handler = functions[functions.length - 1] as RouteHandler;
   const middlewares = functions.slice(0, functions.length - 1);
 
-  const existingMw = options.middleware ? (Array.isArray(options.middleware) ? options.middleware : [options.middleware]) : [];
+  const existingMw = options.middleware
+    ? Array.isArray(options.middleware)
+      ? options.middleware
+      : [options.middleware]
+    : [];
   options.middleware = [...existingMw, ...middlewares];
 
   return { handler, options };
@@ -166,7 +184,7 @@ export class JSangoApplication {
   private isProduction: boolean;
 
   constructor(options: ApplicationOptions = {}) {
-    this.isProduction = options.isProduction ?? (process.env.NODE_ENV === 'production');
+    this.isProduction = options.isProduction ?? process.env.NODE_ENV === 'production';
     this.app = new MiddlewareApplication({
       ...options,
       isProduction: this.isProduction,
@@ -250,7 +268,11 @@ export class JSangoApplication {
 
   // --- CRUD Generation ---
 
-  public crud(basePath: string, modelClass: DefinedModelStatic<any, any>, options?: CrudOptions): this {
+  public crud(
+    basePath: string,
+    modelClass: DefinedModelStatic<any, any>,
+    options?: CrudOptions
+  ): this {
     const rootPath = basePath.startsWith('/') ? basePath : `/${basePath}`;
     const idPath = `${rootPath}/:id`;
     const defaultPageSize = options?.defaultPageSize ?? 20;
@@ -344,18 +366,26 @@ export class JSangoApplication {
 
   public admin(options: AdminOptions = {}): this {
     const rawPath = options.path ?? options.prefix ?? '/admin';
-    const uiPath = rawPath.startsWith('/') ? rawPath.replace(/\/$/, '') : `/${rawPath.replace(/\/$/, '')}`;
+    const uiPath = rawPath.startsWith('/')
+      ? rawPath.replace(/\/$/, '')
+      : `/${rawPath.replace(/\/$/, '')}`;
     const apiPrefix = options.apiPrefix ?? `${uiPath}/api/v1`;
     const registry = new AdminRegistry();
     for (const entry of options.resources ?? []) {
       if (entry instanceof AdminResource) {
         // A resource declared by model name gets the model's fields (overridable by `fields`).
-        const model = entry.options.modelMetadata ? undefined : defaultModelRegistry.getModel(entry.modelName);
-        registry.register(model ? new AdminResource({ ...entry.options, modelMetadata: model.metadata }) : entry);
+        const model = entry.options.modelMetadata
+          ? undefined
+          : defaultModelRegistry.getModel(entry.modelName);
+        registry.register(
+          model ? new AdminResource({ ...entry.options, modelMetadata: model.metadata }) : entry
+        );
       } else if (typeof entry === 'function') {
         registry.register(entry as any);
       } else {
-        const { model, ...resourceOptions } = entry as AdminResourceOptions & { model: DefinedModelStatic<any, any> };
+        const { model, ...resourceOptions } = entry as AdminResourceOptions & {
+          model: DefinedModelStatic<any, any>;
+        };
         registry.register(model as any, resourceOptions);
       }
     }
@@ -385,7 +415,9 @@ export class JSangoApplication {
       queryAdapter,
       prefix: apiPrefix,
       authKit,
-      credentials: options.credentials ?? (authKit ? undefined : (options.auth as AdminCredentials | undefined)),
+      credentials:
+        options.credentials ??
+        (authKit ? undefined : (options.auth as AdminCredentials | undefined)),
       sessionTtlSeconds: options.sessionTtlSeconds,
       healthChecks,
     });
@@ -837,7 +869,6 @@ export class JSangoApplication {
 </html>`);
     });
 
-
     return this;
   }
 
@@ -911,7 +942,6 @@ export class JSangoApplication {
       });
     });
 
-
     return this;
   }
 
@@ -922,7 +952,7 @@ export class JSangoApplication {
   public wsAgent(path: string, targetAgent: Agent): this {
     return this.ws(path, (socket) => {
       socket.on('message', async (data: any) => {
-        const input = typeof data === 'string' ? data : data?.input ?? data?.text ?? '';
+        const input = typeof data === 'string' ? data : (data?.input ?? data?.text ?? '');
         const conversationId = data?.conversationId ?? socket.id;
 
         try {
@@ -949,7 +979,6 @@ export class JSangoApplication {
 
   // --- Request Lifecycle & Listening ---
 
-
   public async handle(input: HttpRequest | RequestContext): Promise<HttpResponse> {
     return this.app.handle(input);
   }
@@ -971,12 +1000,14 @@ export class JSangoApplication {
     }
 
     if (!this.isProduction && process.env.NODE_ENV !== 'test') {
+      /* eslint-disable no-console */
       console.log(`\n  ⚡ JSango Server running at http://${host}:${port}`);
       const wsRoutes = this.wsManager.getRoutes();
       if (wsRoutes.length > 0) {
         console.log(`  🔌 WebSocket routes: ${wsRoutes.join(', ')}`);
       }
       console.log('');
+      /* eslint-enable no-console */
     }
 
     return server;
@@ -1001,14 +1032,26 @@ function createOrmAdminAdapter(): IAdminQueryAdapter {
     if (!m) throw new Error(`Model "${name}" is not registered.`);
     return m;
   };
-  const row = (item: any): Record<string, unknown> => (item.toJSON ? item.toJSON() : item.getAttributes());
+  const row = (item: any): Record<string, unknown> =>
+    item.toJSON ? item.toJSON() : item.getAttributes();
   // ponytail: search is a case-insensitive LIKE '%text%' (a scan on huge tables); index the
   // columns or point searchFields at indexed/full-text columns when this gets slow.
-  const filtered = (name: string, query: AdminListQuery, searchFields: readonly string[], columns?: readonly string[]) => {
+  const filtered = (
+    name: string,
+    query: AdminListQuery,
+    searchFields: readonly string[],
+    columns?: readonly string[]
+  ) => {
     let q: any = model(name).query();
     const search = query.search;
     if (search && searchFields.length > 0) {
-      q = q.where((g: any) => searchFields.reduce((acc: any, f, i) => (i === 0 ? acc.whereLike(f, `%${search}%`) : acc.orWhereLike(f, `%${search}%`)), g));
+      q = q.where((g: any) =>
+        searchFields.reduce(
+          (acc: any, f, i) =>
+            i === 0 ? acc.whereLike(f, `%${search}%`) : acc.orWhereLike(f, `%${search}%`),
+          g
+        )
+      );
     }
     for (const [field, value] of Object.entries(query.filters ?? {})) q = q.where(field, value);
     return columns?.length ? q.select(...columns) : q;
@@ -1019,20 +1062,44 @@ function createOrmAdminAdapter(): IAdminQueryAdapter {
       const page = opts.query.page ?? 1;
       const pageSize = opts.query.pageSize ?? opts.pageSize;
       const sort = opts.query.sort ?? opts.defaultSortField;
-      let q = filtered(opts.modelName, opts.query, opts.searchFields, opts.columns)
-        .orderBy(sort, (opts.query.sortDirection ?? opts.defaultSortDirection).toUpperCase());
+      let q = filtered(opts.modelName, opts.query, opts.searchFields, opts.columns).orderBy(
+        sort,
+        (opts.query.sortDirection ?? opts.defaultSortDirection).toUpperCase()
+      );
       if (sort !== opts.primaryKey) q = q.orderBy(opts.primaryKey, 'ASC');
 
       if (opts.exactCount === false) {
-        const items = await q.limit(pageSize + 1).offset((page - 1) * pageSize).get();
-        return { items: items.slice(0, pageSize).map(row), total: null, page, pageSize, totalPages: null, hasMore: items.length > pageSize };
+        const items = await q
+          .limit(pageSize + 1)
+          .offset((page - 1) * pageSize)
+          .get();
+        return {
+          items: items.slice(0, pageSize).map(row),
+          total: null,
+          page,
+          pageSize,
+          totalPages: null,
+          hasMore: items.length > pageSize,
+        };
       }
       const res = await q.paginate({ page, pageSize });
-      return { items: res.items.map(row), total: res.total, page, pageSize, totalPages: res.totalPages, hasMore: page < res.totalPages };
+      return {
+        items: res.items.map(row),
+        total: res.total,
+        page,
+        pageSize,
+        totalPages: res.totalPages,
+        hasMore: page < res.totalPages,
+      };
     },
     async *stream(opts) {
       let batch: Record<string, unknown>[] = [];
-      for await (const item of filtered(opts.modelName, opts.query, opts.searchFields, opts.columns).cursor(opts.batchSize)) {
+      for await (const item of filtered(
+        opts.modelName,
+        opts.query,
+        opts.searchFields,
+        opts.columns
+      ).cursor(opts.batchSize)) {
         batch.push(row(item));
         if (batch.length >= opts.batchSize) {
           yield batch;
@@ -1046,7 +1113,9 @@ function createOrmAdminAdapter(): IAdminQueryAdapter {
       return found ? row(found) : null;
     },
     async findMany(opts) {
-      return (await model(opts.modelName).query().whereIn(opts.primaryKey, opts.ids).get()).map(row);
+      return (await model(opts.modelName).query().whereIn(opts.primaryKey, opts.ids).get()).map(
+        row
+      );
     },
     async create(opts) {
       return row(await model(opts.modelName).create(opts.data as any));
@@ -1062,7 +1131,10 @@ function createOrmAdminAdapter(): IAdminQueryAdapter {
       if (item) await item.delete({ force: !opts.soft });
     },
     async deleteMany(opts) {
-      return model(opts.modelName).query().whereIn(opts.primaryKey, opts.ids).delete({ force: !opts.soft });
+      return model(opts.modelName)
+        .query()
+        .whereIn(opts.primaryKey, opts.ids)
+        .delete({ force: !opts.soft });
     },
     async restore(opts) {
       const m: any = model(opts.modelName);

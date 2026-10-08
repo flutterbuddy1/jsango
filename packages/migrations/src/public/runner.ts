@@ -40,7 +40,9 @@ export interface MigrationRunnerOptions {
   readonly dialect?: MigrationDialect | undefined;
   readonly lock?: MigrationLockOptions | undefined;
   /** Called after each migration is applied or rolled back (for CLI progress output). */
-  readonly onProgress?: ((event: { type: 'applied' | 'rolledBack'; id: string; durationMs: number }) => void) | undefined;
+  readonly onProgress?:
+    | ((event: { type: 'applied' | 'rolledBack'; id: string; durationMs: number }) => void)
+    | undefined;
 }
 
 export class MigrationRunner {
@@ -182,7 +184,9 @@ export class MigrationRunner {
         const nextBatch = (await MigrationStorage.getMaxBatch(conn)) + 1;
         const newlyApplied: string[] = [];
         const schemaState =
-          dialect === 'mongodb' ? await this.stateBefore(connectionName, pending[0]!.id) : undefined;
+          dialect === 'mongodb'
+            ? await this.stateBefore(connectionName, pending[0]!.id)
+            : undefined;
 
         for (const migration of pending) {
           const started = Date.now();
@@ -195,7 +199,11 @@ export class MigrationRunner {
             throw this.wrapFailure('apply', migration, dialect, newlyApplied, err);
           }
           newlyApplied.push(migration.id);
-          this.onProgress?.({ type: 'applied', id: migration.id, durationMs: Date.now() - started });
+          this.onProgress?.({
+            type: 'applied',
+            id: migration.id,
+            durationMs: Date.now() - started,
+          });
         }
 
         return {
@@ -256,9 +264,7 @@ export class MigrationRunner {
         const dialect = this.getDialect(connectionName);
         const rolledBackIds: string[] = [];
         const schemaState =
-          dialect === 'mongodb'
-            ? await this.stateThrough(applied.map((a) => a.id))
-            : undefined;
+          dialect === 'mongodb' ? await this.stateThrough(applied.map((a) => a.id)) : undefined;
 
         // Execute in reverse order
         for (let i = migrationDefs.length - 1; i >= 0; i--) {
@@ -273,7 +279,11 @@ export class MigrationRunner {
             throw this.wrapFailure('roll back', migration, dialect, rolledBackIds, err);
           }
           rolledBackIds.push(migration.id);
-          this.onProgress?.({ type: 'rolledBack', id: migration.id, durationMs: Date.now() - started });
+          this.onProgress?.({
+            type: 'rolledBack',
+            id: migration.id,
+            durationMs: Date.now() - started,
+          });
         }
 
         return { rolledBack: Object.freeze(rolledBackIds) };
@@ -321,7 +331,10 @@ export class MigrationRunner {
   }
 
   /** Schema produced by every registered migration that sorts before `migrationId`. */
-  private async stateBefore(connectionName: string, migrationId: string | undefined): Promise<SchemaState> {
+  private async stateBefore(
+    connectionName: string,
+    migrationId: string | undefined
+  ): Promise<SchemaState> {
     const earlier = this.migrationsFor(connectionName).filter(
       (m) => migrationId === undefined || m.id.localeCompare(migrationId) < 0
     );
@@ -375,7 +388,9 @@ export class MigrationRunner {
   private async runInMigrationScope(
     conn: IDatabaseConnection,
     dialect: MigrationDialect,
-    step: (executor: IDatabaseConnection | import('@jsango/database').IDatabaseTransaction) => Promise<void>
+    step: (
+      executor: IDatabaseConnection | import('@jsango/database').IDatabaseTransaction
+    ) => Promise<void>
   ): Promise<void> {
     // MySQL auto-commits DDL; MongoDB cannot create collections/indexes inside most transactions.
     const transactional =
@@ -418,7 +433,8 @@ export class MigrationRunner {
     err: unknown
   ): MigrationError {
     const reason = (err instanceof Error ? err.message : String(err)).replace(/\.\s*$/, '');
-    const done = completed.length > 0 ? ` Completed before the failure: ${completed.join(', ')}.` : '';
+    const done =
+      completed.length > 0 ? ` Completed before the failure: ${completed.join(', ')}.` : '';
     const partial =
       dialect === 'mysql'
         ? ' MySQL cannot roll back DDL, so statements that ran before the error remain applied; fix the schema manually or adjust the migration before retrying.'

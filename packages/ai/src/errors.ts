@@ -21,7 +21,12 @@ export class ModelError extends AiError {
 export class ProviderError extends AiError {
   public readonly provider: string;
 
-  constructor(provider: string, message: string, cause?: unknown, metadata?: Record<string, unknown>) {
+  constructor(
+    provider: string,
+    message: string,
+    cause?: unknown,
+    metadata?: Record<string, unknown>
+  ) {
     super({
       code: 'ERR_AI_PROVIDER',
       message: `[${provider}] ${message}`,
@@ -36,7 +41,12 @@ export class ProviderError extends AiError {
 export class ToolError extends AiError {
   public readonly toolName: string;
 
-  constructor(toolName: string, message: string, cause?: unknown, metadata?: Record<string, unknown>) {
+  constructor(
+    toolName: string,
+    message: string,
+    cause?: unknown,
+    metadata?: Record<string, unknown>
+  ) {
     super({
       code: 'ERR_AI_TOOL',
       message: `Tool '${toolName}' failed: ${message}`,
@@ -51,7 +61,12 @@ export class ToolError extends AiError {
 export class AgentError extends AiError {
   public readonly agentName: string;
 
-  constructor(agentName: string, message: string, cause?: unknown, metadata?: Record<string, unknown>) {
+  constructor(
+    agentName: string,
+    message: string,
+    cause?: unknown,
+    metadata?: Record<string, unknown>
+  ) {
     super({
       code: 'ERR_AI_AGENT',
       message: `Agent '${agentName}' failed: ${message}`,
@@ -66,7 +81,12 @@ export class AgentError extends AiError {
 export class WorkflowError extends AiError {
   public readonly workflowName: string;
 
-  constructor(workflowName: string, message: string, cause?: unknown, metadata?: Record<string, unknown>) {
+  constructor(
+    workflowName: string,
+    message: string,
+    cause?: unknown,
+    metadata?: Record<string, unknown>
+  ) {
     super({
       code: 'ERR_AI_WORKFLOW',
       message: `Workflow '${workflowName}' failed: ${message}`,
@@ -97,7 +117,10 @@ export class ApprovalRequiredError extends AiError {
 }
 
 export class ContextLimitError extends AiError {
-  constructor(message = 'Context window or token limit exceeded', metadata?: Record<string, unknown>) {
+  constructor(
+    message = 'Context window or token limit exceeded',
+    metadata?: Record<string, unknown>
+  ) {
     super({
       code: 'ERR_AI_CONTEXT_LIMIT',
       message,

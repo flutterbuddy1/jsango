@@ -67,7 +67,13 @@ a Redis-backed store:
 import type { MemoryStore, LlmMessage } from 'jsango';
 
 class RedisMemory implements MemoryStore {
-  constructor(private readonly redis: { get(k: string): Promise<string | null>; set(k: string, v: string): Promise<unknown>; del(k: string): Promise<unknown> }) {}
+  constructor(
+    private readonly redis: {
+      get(k: string): Promise<string | null>;
+      set(k: string, v: string): Promise<unknown>;
+      del(k: string): Promise<unknown>;
+    }
+  ) {}
   async get(key: string): Promise<LlmMessage[]> {
     return JSON.parse((await this.redis.get(`mem:${key}`)) ?? '[]');
   }
