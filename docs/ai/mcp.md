@@ -45,6 +45,32 @@ const result = await server.handleJsonRpc({
 
 Protect the endpoint like any other route, e.g. with your auth middleware.
 
+### Local servers (stdio)
+
+Desktop clients (Claude Code, Cursor, VS Code) start local MCP servers as a process and talk over
+stdin/stdout. `serveStdio()` does that; pass `instructions` to tell the model how to use your tools:
+
+```typescript
+import { McpServer, tool, object, string } from 'jsango';
+
+const server = new McpServer({
+  name: 'acme-tools',
+  version: '1.0.0',
+  instructions: 'Use find_user before changing an account.',
+}).registerTool(
+  tool({
+    name: 'find_user',
+    description: 'Lookup user by email address',
+    schema: object({ email: string() }),
+    execute: async ({ email }: { email: string }) => ({ email }),
+  })
+);
+
+await server.serveStdio(); // log to stderr: stdout carries the protocol
+```
+
+jsango itself ships one for AI coding agents: `npx jsango mcp` (see "Building with AI assistants").
+
 ---
 
 ## Consuming Remote MCP Tools in JSango Agents

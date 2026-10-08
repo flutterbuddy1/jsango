@@ -89,6 +89,7 @@ export function buildLlms() {
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const outDir = path.resolve(process.argv[2] ?? path.join(ROOT, 'site'));
   const { llms, full } = buildLlms();
+  fs.mkdirSync(outDir, { recursive: true });
   fs.writeFileSync(path.join(outDir, 'llms.txt'), llms);
   fs.writeFileSync(path.join(outDir, 'llms-full.txt'), full);
   process.stdout.write(`Wrote llms.txt (${llms.length} B) and llms-full.txt (${full.length} B) to ${outDir}\n`);

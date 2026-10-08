@@ -20,7 +20,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.4.0-green.svg" alt="Version: 1.4.0" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.5.0-green.svg" alt="Version: 1.5.0" /></a>
   <a href="tsconfig.base.json"><img src="https://img.shields.io/badge/TypeScript-Strict%205.8-blue.svg" alt="TypeScript: Strict" /></a>
   <a href="https://flutterbuddy1.github.io/jsango/"><img src="https://img.shields.io/badge/Docs-Landing%20Page-6366f1.svg" alt="Documentation Site" /></a>
 </p>
@@ -69,8 +69,11 @@ await app.listen(3000);
 ## Building with AI assistants
 
 Every `jsango new` project ships an `AGENTS.md` (read by Claude Code, Cursor, Copilot, Codex, ...) that makes AI agents
-build with jsango's APIs instead of other libraries and verify their work. Add it to an existing project with
-`npx jsango ai:init`. AI assistants can read the docs at
+build with jsango's APIs instead of other libraries and verify their work, plus MCP configs for the `jsango mcp`
+server: `get_api` (real signatures from your installed version), `search_docs`, `run_check` (type-check,
+migrations, tests, with fix hints) and `report_issue` (drafts a GitHub issue for a jsango bug with secrets removed and
+duplicates checked; you review and submit it yourself). No server to host: it runs locally from the npm package. Add all of it to an
+existing project with `npx jsango ai:init`. AI assistants can read the docs at
 [llms.txt](https://flutterbuddy1.github.io/jsango/llms.txt) / [llms-full.txt](https://flutterbuddy1.github.io/jsango/llms-full.txt).
 
 ## Essential Guides
@@ -286,7 +289,8 @@ await app.listen(3000);
 | `jsango routes` | List all registered HTTP and WebSocket routes |
 | `jsango make:agent <name>` | Generate an AI Agent template |
 | `jsango ai:doctor` | Verify configured AI providers and API keys |
-| `jsango ai:init` | Add or refresh `AGENTS.md` / `CLAUDE.md` so AI coding agents use jsango |
+| `jsango ai:init` | Add or refresh `AGENTS.md`, `CLAUDE.md` and MCP configs so AI coding agents use jsango |
+| `jsango mcp` | MCP server (stdio) for AI agents: `get_api`, `search_docs`, `run_check`, `report_issue` |
 | `jsango doctor` | Verify environment, dependencies, and configuration |
 
 ---

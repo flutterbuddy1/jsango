@@ -1,6 +1,6 @@
 {
   "name": "@jsango/cli",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "CLI commands and project/code generation for jsango",
   "type": "module",
   "main": "./dist/index.js",
@@ -15,12 +15,13 @@
     }
   },
   "scripts": {
-    "build": "tsc -b",
+    "build": "tsc -b && node ../../scripts/build-llms.mjs dist/docs",
     "typecheck": "tsc -b",
     "clean": "rm -rf dist *.tsbuildinfo",
     "prepack": "pnpm run build"
   },
   "dependencies": {
+    "@jsango/ai": "workspace:^",
     "@jsango/cache": "workspace:^",
     "@jsango/config": "workspace:^",
     "@jsango/container": "workspace:^",

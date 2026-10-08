@@ -54,8 +54,9 @@ let typeScriptRegistered = false;
  */
 export async function enableTypeScript(): Promise<void> {
   if (typeScriptRegistered) return;
-  // Already running under a TypeScript-aware loader (tsx, vitest, ts-node)?
-  if (process.env['VITEST'] || process.execArgv.some((a) => a.includes('tsx'))) {
+  // Already running under a TypeScript-aware loader (inside a vitest worker, or node --import tsx)?
+  // (Not the VITEST env var: child processes spawned from a test inherit it but have no loader.)
+  if ('__vitest_worker__' in globalThis || process.execArgv.some((a) => a.includes('tsx'))) {
     typeScriptRegistered = true;
     return;
   }

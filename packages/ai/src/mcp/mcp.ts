@@ -5,16 +5,26 @@ import { AiError, ToolError } from '../errors.js';
 export interface McpServerOptions {
   name?: string | undefined;
   version?: string | undefined;
+  /** Sent to the client on initialize; MCP clients show it to the model as guidance for using the tools. */
+  instructions?: string | undefined;
+}
+
+/** Minimal stream shapes so `serveStdio` works with process.stdin/stdout or test doubles. */
+export interface McpStdio {
+  input: AsyncIterable<string | Uint8Array>;
+  output: { write(chunk: string): unknown };
 }
 
 export class McpServer {
   public readonly name: string;
   public readonly version: string;
+  public readonly instructions: string | undefined;
   private readonly tools = new Map<string, ToolDefinition>();
 
   constructor(options: McpServerOptions = {}) {
     this.name = options.name ?? 'jsango-mcp-server';
     this.version = options.version ?? '1.0.0';
+    this.instructions = options.instructions;
   }
 
   public registerTool(toolDef: ToolDefinition): this {
@@ -73,6 +83,7 @@ export class McpServer {
           protocolVersion: params?.protocolVersion ?? MCP_PROTOCOL_VERSION,
           capabilities: { tools: {} },
           serverInfo: { name: this.name, version: this.version },
+          ...(this.instructions ? { instructions: this.instructions } : {}),
         });
       case 'ping':
         return ok({});
@@ -95,6 +106,47 @@ export class McpServer {
       default:
         return fail(-32601, `Method '${method}' not supported.`);
     }
+  }
+
+  /**
+   * Serves MCP over stdio (newline-delimited JSON-RPC), the transport local clients such as Claude Code,
+   * Cursor and VS Code use to start a server: `{ "command": "npx", "args": ["my-server"] }`.
+   * Resolves when the input ends. Nothing else may write to stdout while it runs; log to stderr.
+   */
+  public async serveStdio(stdio: McpStdio = { input: process.stdin, output: process.stdout }): Promise<void> {
+    const decoder = new TextDecoder();
+    const pending = new Set<Promise<void>>();
+    let buffer = '';
+
+    const handleLine = async (line: string) => {
+      let message: unknown;
+      try {
+        message = JSON.parse(line);
+      } catch {
+        stdio.output.write(JSON.stringify({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } }) + '\n');
+        return;
+      }
+      type Request = Parameters<McpServer['handleJsonRpc']>[0];
+      const batch = Array.isArray(message);
+      const requests = (batch ? message : [message]) as Request[];
+      const replies = (await Promise.all(requests.map((m) => this.handleJsonRpc(m)))).filter(Boolean);
+      if (replies.length > 0) stdio.output.write(JSON.stringify(batch ? replies : replies[0]) + '\n');
+    };
+
+    for await (const chunk of stdio.input) {
+      buffer += typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
+      let newline: number;
+      while ((newline = buffer.indexOf('\n')) !== -1) {
+        const line = buffer.slice(0, newline).trim();
+        buffer = buffer.slice(newline + 1);
+        if (!line) continue;
+        // Requests run concurrently (a slow tool must not block ping); replies carry their id.
+        const task = handleLine(line).finally(() => pending.delete(task));
+        pending.add(task);
+      }
+    }
+    if (buffer.trim()) await handleLine(buffer.trim());
+    await Promise.all(pending);
   }
 }
 

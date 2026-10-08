@@ -380,6 +380,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@jsango/ai':
+        specifier: workspace:^
+        version: link:../ai
       '@jsango/cache':
         specifier: workspace:^
         version: link:../cache

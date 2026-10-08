@@ -1,0 +1,32 @@
+name: Bug report
+description: Something in jsango doesn't work as documented
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: Please search [existing issues](https://github.com/flutterbuddy1/jsango/issues) first. Never paste secrets, `.env` values or private data.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: The smallest code that shows the problem.
+      render: ts
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Output of `npx jsango version`, Node.js version, OS and database (postgres / mysql / sqlite / mongodb).
+    validations:
+      required: true

@@ -40,6 +40,7 @@ import { AdminGenerateCommand } from '../commands/admin-generate.js';
 import { AiGenerateCommand } from '../commands/ai-generate.js';
 import { AiDoctorCommand } from '../commands/ai-doctor.js';
 import { AiInitCommand } from '../commands/ai-init.js';
+import { McpCommand } from '../commands/mcp.js';
 
 export interface CliApplicationOptions {
   readonly registry?: CommandRegistry | undefined;
@@ -101,6 +102,7 @@ export class CliApplication {
     registry.register(new AiGenerateCommand());
     registry.register(new AiDoctorCommand());
     registry.register(new AiInitCommand());
+    registry.register(new McpCommand());
 
     return app;
 

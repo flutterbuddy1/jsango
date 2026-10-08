@@ -59,7 +59,7 @@ export { InMemoryMemoryStore, DatabaseMemoryStore, memory, type DatabaseMemoryOp
 export { KnowledgeBase, knowledge, type IngestOptions, type KnowledgeBaseOptions } from './rag/knowledge.js';
 export { InMemoryVectorStore, cosineSimilarity } from './rag/vector-store.js';
 
-export { McpServer, McpClient, McpConnection, mcp, MCP_PROTOCOL_VERSION, type McpServerOptions, type McpConnectOptions } from './mcp/mcp.js';
+export { McpServer, McpClient, McpConnection, mcp, MCP_PROTOCOL_VERSION, type McpServerOptions, type McpConnectOptions, type McpStdio } from './mcp/mcp.js';
 export { evaluate } from './evals/evaluator.js';
 
 export { ai, AiFacade } from './facade.js';

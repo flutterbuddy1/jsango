@@ -1,6 +1,6 @@
 {
   "name": "@jsango/config",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Configuration loading, validation and environment abstraction for jsango",
   "type": "module",
   "main": "./dist/index.js",

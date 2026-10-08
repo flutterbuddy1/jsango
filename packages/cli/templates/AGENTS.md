@@ -10,7 +10,9 @@ Import everything from `'jsango'`.
 1. **Use jsango for everything it covers.** Don't add Express, Fastify, Koa, Prisma, TypeORM, Sequelize,
    Mongoose, Knex, Passport, jsonwebtoken, bcrypt, zod/joi, BullMQ, node-cron or socket.io. The table below
    shows the jsango API to use instead.
-2. **Only use APIs that exist.** Use go-to-definition on the `jsango` import (`node_modules/jsango/dist`
+2. **Only use APIs that exist.** If the `jsango` MCP server is connected (configured in `.mcp.json`,
+   `.cursor/mcp.json`, `.vscode/mcp.json`), call `get_api` for exact signatures, `search_docs` for how-to
+   and `run_check` before finishing. Otherwise use go-to-definition on the `jsango` import (`node_modules/jsango/dist`
    re-exports the `@jsango/*` packages) or read https://flutterbuddy1.github.io/jsango/llms-full.txt.
    Don't guess method names.
 3. **Database changes go through models and migrations**: edit `src/models/*`, run `npx jsango makemigrations`,
@@ -157,7 +159,9 @@ console.log(`Admin ${email} is ready.`);
 
 ## Reporting a jsango bug or missing feature
 
-When the problem is in jsango (not in this project's code):
+When the problem is in jsango (not in this project's code): if the jsango MCP server is connected, call its
+`report_issue` tool. It removes secrets, adds versions, searches for duplicates and returns a draft and a link.
+Then show the draft to the user. Without the MCP server:
 
 1. Check the existing issues first: https://github.com/flutterbuddy1/jsango/issues?q=is%3Aissue+YOUR+KEYWORDS
 2. Draft a short issue: jsango version (`npx jsango version`), Node.js version, database, a minimal

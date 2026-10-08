@@ -1,0 +1,20 @@
+name: Missing feature
+description: Something you need that jsango doesn't do yet
+labels: ['enhancement']
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What do you want to build?
+      description: The use case, not only the API you have in mind.
+    validations:
+      required: true
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Current workaround
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed API (optional)
+      render: ts

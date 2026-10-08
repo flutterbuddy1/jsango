@@ -20,7 +20,8 @@
     { "path": "../events" },
     { "path": "../websocket" },
     { "path": "../openapi" },
-    { "path": "../observability" }
+    { "path": "../observability" },
+    { "path": "../ai" }
   ],
   "include": ["src/**/*"],
   "exclude": ["**/*.test.ts", "**/*.spec.ts"]

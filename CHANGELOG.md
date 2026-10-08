@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.0] - 2026-10-08
+
+### MCP server for AI coding agents
+- **`jsango mcp`**: a local MCP server (stdio, nothing to host) for Claude Code, Cursor and VS Code. It has three tools. `get_api` returns real signatures from the installed jsango version and suggests close names for invented ones. `search_docs` searches the guides bundled with the CLI. `run_check` runs the type-check, `migrate:check` and optionally the tests, with jsango-specific hints (non-existent exports and methods, Express/Prisma/zod imports, missing migrations). `jsango new` and `ai:init` write `.mcp.json`, `.cursor/mcp.json` and `.vscode/mcp.json`, and merge into existing configs.
+- **`report_issue`** (MCP tool): when an agent finds a bug, missing feature or docs error in jsango, it prepares a GitHub issue. It removes secrets (`.env` values, credentials in URLs, JWTs, API keys, emails, local paths), adds the jsango/Node/OS/database versions, searches existing issues for duplicates, and returns the draft with a prefilled link. It never submits: the user reviews and presses Submit (or uses `gh issue create`). New issue templates: bug report, missing feature, and an `ai_report` template that adds the `ai-reported` label.
+
+### Also
+- `McpServer` gains `serveStdio()` and an `instructions` option.
+- The CLI no longer treats a child process started from a vitest run as already able to load TypeScript (the inherited `VITEST` env var made it skip tsx).
+
+---
+
 ## [1.4.0] - 2026-10-07
 
 ### Authentication kit: `createAuth()`
