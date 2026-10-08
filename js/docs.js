@@ -80,7 +80,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 2. Keyboard shortcut for search ('/')
   window.addEventListener('keydown', (e) => {
-    const typing = e.target instanceof HTMLElement && e.target.matches('input, textarea, [contenteditable]');
+    const typing =
+      e.target instanceof HTMLElement && e.target.matches('input, textarea, [contenteditable]');
     if (e.key === '/' && !typing) {
       e.preventDefault();
       if (window.innerWidth <= 768) {
@@ -156,7 +157,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const term = e.target.value;
 
       // If user is searching on mobile, ensure sidebar opens so they see matched topics
-      if (term.trim().length > 0 && window.innerWidth <= 768 && docsSidebar && !docsSidebar.classList.contains('open')) {
+      if (
+        term.trim().length > 0 &&
+        window.innerWidth <= 768 &&
+        docsSidebar &&
+        !docsSidebar.classList.contains('open')
+      ) {
         openSidebar();
       }
 

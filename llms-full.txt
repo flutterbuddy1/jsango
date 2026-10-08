@@ -32,23 +32,23 @@ Import everything from `'jsango'`.
 
 ## Which API to use
 
-| Need | jsango |
-| --- | --- |
-| HTTP server, routes | `createApp()`, `app.get/post/put/patch/delete(path, ...middleware, handler)`, `app.listen(port)` |
-| Request data | `ctx.params.id`, `ctx.query.page`, `ctx.body` (the body validated by `validate()`), `await ctx.request.json()` (raw body), `ctx.request.headers.get(...)` |
-| REST resource for a model | `app.crud('/posts', Post, { searchFields, filterFields })` |
-| Request validation | `validate({ body: schema({ ... }) })` with `string()`, `email()`, `number()`, `boolean()`, `object()` |
-| Errors | `throw notFound('...')`, `badRequest(...)`, `unauthorized(...)`, `forbidden(...)` |
-| Models / ORM | `defineModel(name, { ...fields }, { table, timestamps, softDelete, relations })`, `fields.*` |
-| Queries | `Model.find(id)`, `Model.where(...).first()`, `.query().where().orderBy().paginate({ page, pageSize })`, `create`, `update`, `delete` |
-| Migrations | `npx jsango makemigrations`, `npx jsango migrate`, `migrate:status`, `migrate:rollback` |
-| Database connection | `src/database.ts` (`DATABASE_URL` in `.env`: postgres, mysql, sqlite, mongodb) |
-| Auth (JWT, sessions, API keys, OAuth, 2FA) | `createAuth({ secret, users })`, `auth.login`, `auth.required({ roles, permissions })` |
-| Admin panel | `app.admin({ auth, resources: [Model], dashboard: [...] })` |
-| Background jobs / events / cache | `jobs.register` + `jobs.dispatch`, `events.on` + `events.emit`, `cache.remember` |
-| WebSockets | `app.ws(path, (socket) => ...)` |
-| API docs | `app.openapi({ path: '/openapi.json' })` |
-| AI agents and tools | `agent({ ... })`, `tool({ ... })`, `app.agent(path, agent)` |
+| Need                                       | jsango                                                                                                                                                    |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| HTTP server, routes                        | `createApp()`, `app.get/post/put/patch/delete(path, ...middleware, handler)`, `app.listen(port)`                                                          |
+| Request data                               | `ctx.params.id`, `ctx.query.page`, `ctx.body` (the body validated by `validate()`), `await ctx.request.json()` (raw body), `ctx.request.headers.get(...)` |
+| REST resource for a model                  | `app.crud('/posts', Post, { searchFields, filterFields })`                                                                                                |
+| Request validation                         | `validate({ body: schema({ ... }) })` with `string()`, `email()`, `number()`, `boolean()`, `object()`                                                     |
+| Errors                                     | `throw notFound('...')`, `badRequest(...)`, `unauthorized(...)`, `forbidden(...)`                                                                         |
+| Models / ORM                               | `defineModel(name, { ...fields }, { table, timestamps, softDelete, relations })`, `fields.*`                                                              |
+| Queries                                    | `Model.find(id)`, `Model.where(...).first()`, `.query().where().orderBy().paginate({ page, pageSize })`, `create`, `update`, `delete`                     |
+| Migrations                                 | `npx jsango makemigrations`, `npx jsango migrate`, `migrate:status`, `migrate:rollback`                                                                   |
+| Database connection                        | `src/database.ts` (`DATABASE_URL` in `.env`: postgres, mysql, sqlite, mongodb)                                                                            |
+| Auth (JWT, sessions, API keys, OAuth, 2FA) | `createAuth({ secret, users })`, `auth.login`, `auth.required({ roles, permissions })`                                                                    |
+| Admin panel                                | `app.admin({ auth, resources: [Model], dashboard: [...] })`                                                                                               |
+| Background jobs / events / cache           | `jobs.register` + `jobs.dispatch`, `events.on` + `events.emit`, `cache.remember`                                                                          |
+| WebSockets                                 | `app.ws(path, (socket) => ...)`                                                                                                                           |
+| API docs                                   | `app.openapi({ path: '/openapi.json' })`                                                                                                                  |
+| AI agents and tools                        | `agent({ ... })`, `tool({ ... })`, `app.agent(path, agent)`                                                                                               |
 
 ## Project layout
 
@@ -126,6 +126,7 @@ app.admin({ auth, resources: [User, Post] }); // admin panel at /admin
 ```
 
 Auth notes:
+
 - Add `AUTH_SECRET=` (32+ random characters, e.g. `openssl rand -base64 48`) to `.env` and `.env.example`.
 - Store `passwordHash: await auth.hashPassword(password)` on the user model. Never return user records with
   `passwordHash` from your own routes. The results of `auth.login()`, `auth.refresh()` and `auth.issueTokens()`
@@ -146,23 +147,26 @@ import { User } from '../src/models/user.js';
 
 configureDatabase();
 const [email, password] = process.argv.slice(2);
-await User.updateOrCreate({ email }, { role: 'admin', passwordHash: await auth.hashPassword(password!) });
+await User.updateOrCreate(
+  { email },
+  { role: 'admin', passwordHash: await auth.hashPassword(password!) }
+);
 console.log(`Admin ${email} is ready.`);
 ```
 
 ## Commands
 
-| Command | Purpose |
-| --- | --- |
-| `npm run dev` | Start with reload |
-| `npx jsango makemigrations` | Create a migration from model changes |
-| `npx jsango migrate` (`--dry-run` shows SQL) | Apply migrations |
-| `npx jsango migrate:status` / `migrate:rollback` / `migrate:check` | Inspect, undo, CI check |
-| `npx jsango db:status` | Test the database connection |
-| `npx jsango make:admin <Model>` | Generate an admin resource |
-| `npx jsango make:agent <Name>` | Generate an AI agent |
-| `npx jsango routes` | List routes |
-| `npx jsango doctor` | Check the environment |
+| Command                                                            | Purpose                               |
+| ------------------------------------------------------------------ | ------------------------------------- |
+| `npm run dev`                                                      | Start with reload                     |
+| `npx jsango makemigrations`                                        | Create a migration from model changes |
+| `npx jsango migrate` (`--dry-run` shows SQL)                       | Apply migrations                      |
+| `npx jsango migrate:status` / `migrate:rollback` / `migrate:check` | Inspect, undo, CI check               |
+| `npx jsango db:status`                                             | Test the database connection          |
+| `npx jsango make:admin <Model>`                                    | Generate an admin resource            |
+| `npx jsango make:agent <Name>`                                     | Generate an AI agent                  |
+| `npx jsango routes`                                                | List routes                           |
+| `npx jsango doctor`                                                | Check the environment                 |
 
 ## Reporting a jsango bug or missing feature
 
@@ -193,14 +197,9 @@ Then show the draft to the user. Without the MCP server:
   <em>"Powerful Internally, Simple Externally"</em>
 </p>
 
-
 <p align="center">
 <a href="https://www.producthunt.com/products/jsango/reviews/new?utm_source=badge-product_review&utm_medium=badge&utm_source=badge-jsango" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/product_review.svg?product_id=1330206&theme=light" alt="JSango - The&#0032;simplest&#0032;way&#0032;to&#0032;build&#0032;your&#0032;next&#0032;backend | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
 </p>
-
-
-
-
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
@@ -239,11 +238,11 @@ pnpm dev
 ### 2. Hello World in 6 Lines
 
 ```typescript
-import { createApp } from "jsango";
+import { createApp } from 'jsango';
 
 const app = createApp();
 
-app.get("/hello", () => ({ message: "Hello from JSango!" }));
+app.get('/hello', () => ({ message: 'Hello from JSango!' }));
 
 await app.listen(3000);
 ```
@@ -265,10 +264,10 @@ existing project with `npx jsango ai:init`. AI assistants can read the docs at
 ### 1. Simple REST & CRUD APIs
 
 ```typescript
-import { createApp, model, fields, validate, schema, string, email, notFound } from "jsango";
+import { createApp, model, fields, validate, schema, string, email, notFound } from 'jsango';
 
 // Define ORM Model
-export const User = model("User", {
+export const User = model('User', {
   id: fields.id(),
   name: fields.string(),
   email: fields.string({ unique: true }),
@@ -278,20 +277,20 @@ export const User = model("User", {
 const app = createApp();
 
 // Query all users
-app.get("/users", async () => {
+app.get('/users', async () => {
   return User.all();
 });
 
 // Query single user
-app.get("/users/:id", async ({ params }) => {
+app.get('/users/:id', async ({ params }) => {
   const user = await User.find(params.id);
-  if (!user) throw notFound("User not found");
+  if (!user) throw notFound('User not found');
   return user;
 });
 
 // Create user with automatic schema validation
 app.post(
-  "/users",
+  '/users',
   validate({
     body: schema({
       name: string().min(2),
@@ -304,7 +303,7 @@ app.post(
 );
 
 // Or generate a full CRUD resource in one line:
-app.crud("/api/users", User);
+app.crud('/api/users', User);
 
 await app.listen(3000);
 ```
@@ -312,20 +311,20 @@ await app.listen(3000);
 ### 2. Real-Time WebSockets & Rooms
 
 ```typescript
-import { createApp } from "jsango";
+import { createApp } from 'jsango';
 
 const app = createApp();
 
-app.ws("/chat", (socket) => {
+app.ws('/chat', (socket) => {
   // Join a room
-  socket.on("join", (room) => {
+  socket.on('join', (room) => {
     socket.join(room);
-    socket.to(room).send({ type: "notification", text: `User ${socket.id} joined.` });
+    socket.to(room).send({ type: 'notification', text: `User ${socket.id} joined.` });
   });
 
   // Broadcast to room
-  socket.on("message", ({ room, text }) => {
-    socket.to(room).send({ type: "message", from: socket.id, text });
+  socket.on('message', ({ room, text }) => {
+    socket.to(room).send({ type: 'message', from: socket.id, text });
   });
 });
 
@@ -335,22 +334,22 @@ await app.listen(3000);
 ### 3. Background Jobs, Events & Cache
 
 ```typescript
-import { events, jobs, cache } from "jsango";
+import { events, jobs, cache } from 'jsango';
 
 // 1. Events
-events.on<{ id: string; email: string }>("user.registered", async (user) => {
-  console.log("Welcome email queued for", user.email);
+events.on<{ id: string; email: string }>('user.registered', async (user) => {
+  console.log('Welcome email queued for', user.email);
 });
-await events.emit("user.registered", { id: "1", email: "alex@example.com" });
+await events.emit('user.registered', { id: '1', email: 'alex@example.com' });
 
 // 2. Background Jobs
-jobs.register<{ to: string; subject: string }>("send-email", async ({ to, subject }) => {
+jobs.register<{ to: string; subject: string }>('send-email', async ({ to, subject }) => {
   // perform async sending...
 });
-await jobs.dispatch("send-email", { to: "alex@example.com", subject: "Welcome!" });
+await jobs.dispatch('send-email', { to: 'alex@example.com', subject: 'Welcome!' });
 
 // 3. Cache with Stampede Protection
-const stats = await cache.remember("dashboard.stats", 60, async () => {
+const stats = await cache.remember('dashboard.stats', 60, async () => {
   return { activeUsers: 1420, uptime: process.uptime() };
 });
 ```
@@ -358,21 +357,21 @@ const stats = await cache.remember("dashboard.stats", 60, async () => {
 ### 4. Automatic Admin UI & OpenAPI Documentation
 
 ```typescript
-import { createApp } from "jsango";
-import { User } from "./models/user.js";
+import { createApp } from 'jsango';
+import { User } from './models/user.js';
 
 const app = createApp();
 
 // Mount OpenAPI 3.1 JSON and Swagger UI (High-contrast dark mode)
 app.openapi({
-  path: "/openapi.json",
-  title: "My Application API",
-  version: "1.0.0",
+  path: '/openapi.json',
+  title: 'My Application API',
+  version: '1.0.0',
 });
 
 // Mount Instant Admin Dashboard with Model Introspection
 app.admin({
-  path: "/admin",
+  path: '/admin',
   resources: [User],
 });
 
@@ -390,18 +389,22 @@ DATABASE_URL=postgres://app:secret@localhost:5432/myapp   # or mysql://…, sqli
 
 ```typescript
 // src/models/post.ts
-import { defineModel, fields } from "jsango";
+import { defineModel, fields } from 'jsango';
 
-export const Post = defineModel("Post", {
-  id: fields.id(),
-  title: fields.string({ maxLength: 200 }),
-  userId: fields.integer(),
-  publishedAt: fields.dateTime({ nullable: true }),
-}, {
-  table: "posts",
-  timestamps: true,
-  relations: { author: { type: "belongsTo", target: "User", foreignKey: "userId" } },
-});
+export const Post = defineModel(
+  'Post',
+  {
+    id: fields.id(),
+    title: fields.string({ maxLength: 200 }),
+    userId: fields.integer(),
+    publishedAt: fields.dateTime({ nullable: true }),
+  },
+  {
+    table: 'posts',
+    timestamps: true,
+    relations: { author: { type: 'belongsTo', target: 'User', foreignKey: 'userId' } },
+  }
+);
 ```
 
 ```bash
@@ -419,12 +422,12 @@ npx jsango db:status        # checks the connection
 Build production-grade AI agents, workflows, and tool execution with single-import simplicity:
 
 ```typescript
-import { createApp, agent, tool, object, string, number } from "jsango";
+import { createApp, agent, tool, object, string, number } from 'jsango';
 
 // 1. Define type-safe tools with automatic JSON schema generation
 const lookupOrder = tool({
-  name: "lookupOrder",
-  description: "Get order status by order ID",
+  name: 'lookupOrder',
+  description: 'Get order status by order ID',
   schema: object({ orderId: string() }),
   execute: async ({ orderId }) => {
     return await Order.find(orderId);
@@ -432,8 +435,8 @@ const lookupOrder = tool({
 });
 
 const refundOrder = tool({
-  name: "refundOrder",
-  description: "Issue refund for an order",
+  name: 'refundOrder',
+  description: 'Issue refund for an order',
   schema: object({ orderId: string(), amount: number() }),
   requiresApproval: true, // Human-in-the-loop approval gate
   execute: async ({ orderId, amount }) => {
@@ -443,17 +446,17 @@ const refundOrder = tool({
 
 // 2. Create the Agent
 const supportAgent = agent({
-  name: "SupportAgent",
-  instructions: "Help customers check orders and handle refund requests.",
+  name: 'SupportAgent',
+  instructions: 'Help customers check orders and handle refund requests.',
   tools: { lookupOrder, refundOrder },
 });
 
 // 3. Expose Agent over HTTP & SSE Streaming in 1 line
 const app = createApp();
-app.agent("/api/support", supportAgent);
+app.agent('/api/support', supportAgent);
 
 // 4. Or expose Agent over real-time WebSockets
-app.wsAgent("/ws/support", supportAgent);
+app.wsAgent('/ws/support', supportAgent);
 
 await app.listen(3000);
 ```
@@ -462,20 +465,20 @@ await app.listen(3000);
 
 ## CLI Commands
 
-| Command | Description |
-|---|---|
-| `jsango new <name>` | Scaffold a new application (database, example model and migrations included) |
-| `jsango makemigrations` | Generate a migration from model changes (`migrate:generate`) |
-| `jsango migrate` | Apply pending migrations (`--dry-run` shows the SQL) |
-| `jsango migrate:status` / `migrate:rollback` | Show migration state / undo the last batch |
-| `jsango migrate:check` | Fail CI when a model change has no migration or migrations are pending |
-| `jsango db:status` | Test the configured database connections |
-| `jsango routes` | List all registered HTTP and WebSocket routes |
-| `jsango make:agent <name>` | Generate an AI Agent template |
-| `jsango ai:doctor` | Verify configured AI providers and API keys |
-| `jsango ai:init` | Add or refresh `AGENTS.md`, `CLAUDE.md` and MCP configs so AI coding agents use jsango |
-| `jsango mcp` | MCP server (stdio) for AI agents: `get_api`, `search_docs`, `run_check`, `report_issue` |
-| `jsango doctor` | Verify environment, dependencies, and configuration |
+| Command                                      | Description                                                                             |
+| -------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `jsango new <name>`                          | Scaffold a new application (database, example model and migrations included)            |
+| `jsango makemigrations`                      | Generate a migration from model changes (`migrate:generate`)                            |
+| `jsango migrate`                             | Apply pending migrations (`--dry-run` shows the SQL)                                    |
+| `jsango migrate:status` / `migrate:rollback` | Show migration state / undo the last batch                                              |
+| `jsango migrate:check`                       | Fail CI when a model change has no migration or migrations are pending                  |
+| `jsango db:status`                           | Test the configured database connections                                                |
+| `jsango routes`                              | List all registered HTTP and WebSocket routes                                           |
+| `jsango make:agent <name>`                   | Generate an AI Agent template                                                           |
+| `jsango ai:doctor`                           | Verify configured AI providers and API keys                                             |
+| `jsango ai:init`                             | Add or refresh `AGENTS.md`, `CLAUDE.md` and MCP configs so AI coding agents use jsango  |
+| `jsango mcp`                                 | MCP server (stdio) for AI agents: `get_api`, `search_docs`, `run_check`, `report_issue` |
+| `jsango doctor`                              | Verify environment, dependencies, and configuration                                     |
 
 ---
 
@@ -483,24 +486,24 @@ await app.listen(3000);
 
 For advanced customization, internal packages remain independently available:
 
-| Package | Responsibility |
-|:---|:---|
-| [`jsango`](packages/jsango) | **Unified high-level developer facade and app coordinator** |
-| [`@jsango/ai`](packages/ai) | **AI Agent runtime, provider abstraction, tools, workflows, RAG, and MCP** |
-| [`@jsango/core`](packages/core) | Application lifecycle coordinator and structured error hierarchy |
-| [`@jsango/http`](packages/http) | HTTP request/response abstractions and streaming body parsers |
-| [`@jsango/router`](packages/router) | Segment Radix Trie router (>7.7M ops/sec) and parameter constraints |
-| [`@jsango/middleware`](packages/middleware) | Middleware execution pipeline and response normalizers |
-| [`@jsango/orm`](packages/orm) | Declarative models, AST query builder, and batch eager loading |
-| [`@jsango/database`](packages/database) | Multi-connection manager, connection pool, and transactions |
-| [`@jsango/validation`](packages/validation) | Fluent schema validation engine and request middleware |
-| [`@jsango/websocket`](packages/websocket) | Real-time WebSocket server, room manager, and heartbeat engine |
-| [`@jsango/admin`](packages/admin) | Metadata-driven administrative dashboard engine |
-| [`@jsango/auth`](packages/auth) | Authentication (JWT, Session, API Key) and policy authorization |
-| [`@jsango/cache`](packages/cache) | Driver-agnostic caching with stampede protection (`remember`) |
-| [`@jsango/queue`](packages/queue) | Asynchronous background job queues with exponential retries |
-| [`@jsango/events`](packages/events) | In-process and distributed asynchronous event bus |
-| [`@jsango/cli`](packages/cli) | CLI tooling and project generators |
+| Package                                     | Responsibility                                                             |
+| :------------------------------------------ | :------------------------------------------------------------------------- |
+| [`jsango`](packages/jsango)                 | **Unified high-level developer facade and app coordinator**                |
+| [`@jsango/ai`](packages/ai)                 | **AI Agent runtime, provider abstraction, tools, workflows, RAG, and MCP** |
+| [`@jsango/core`](packages/core)             | Application lifecycle coordinator and structured error hierarchy           |
+| [`@jsango/http`](packages/http)             | HTTP request/response abstractions and streaming body parsers              |
+| [`@jsango/router`](packages/router)         | Segment Radix Trie router (>7.7M ops/sec) and parameter constraints        |
+| [`@jsango/middleware`](packages/middleware) | Middleware execution pipeline and response normalizers                     |
+| [`@jsango/orm`](packages/orm)               | Declarative models, AST query builder, and batch eager loading             |
+| [`@jsango/database`](packages/database)     | Multi-connection manager, connection pool, and transactions                |
+| [`@jsango/validation`](packages/validation) | Fluent schema validation engine and request middleware                     |
+| [`@jsango/websocket`](packages/websocket)   | Real-time WebSocket server, room manager, and heartbeat engine             |
+| [`@jsango/admin`](packages/admin)           | Metadata-driven administrative dashboard engine                            |
+| [`@jsango/auth`](packages/auth)             | Authentication (JWT, Session, API Key) and policy authorization            |
+| [`@jsango/cache`](packages/cache)           | Driver-agnostic caching with stampede protection (`remember`)              |
+| [`@jsango/queue`](packages/queue)           | Asynchronous background job queues with exponential retries                |
+| [`@jsango/events`](packages/events)         | In-process and distributed asynchronous event bus                          |
+| [`@jsango/cli`](packages/cli)               | CLI tooling and project generators                                         |
 
 ---
 
@@ -545,13 +548,13 @@ migrations. The same models, queries and migration commands work on all of them.
        npx jsango makemigrations ──► migrations/<timestamp>_<name>.ts ──► npx jsango migrate
 ```
 
-| Piece | Role |
-| --- | --- |
-| **`DatabaseManager`** | Owns connection pools. Created once from a config object, e.g. `databaseConfigFromEnv()`. |
-| **`setDatabaseManager(db)`** | Makes every model use that manager. Call it once at startup. |
-| **Models** (`defineModel`) | Describe tables in TypeScript. They are the **source of truth** for your schema. |
-| **Migration files** | Versioned, reviewable steps that change the real database to match the models. |
-| **`jsango.config.ts`** | Tells the CLI where the database, models and migrations are. |
+| Piece                        | Role                                                                                      |
+| ---------------------------- | ----------------------------------------------------------------------------------------- |
+| **`DatabaseManager`**        | Owns connection pools. Created once from a config object, e.g. `databaseConfigFromEnv()`. |
+| **`setDatabaseManager(db)`** | Makes every model use that manager. Call it once at startup.                              |
+| **Models** (`defineModel`)   | Describe tables in TypeScript. They are the **source of truth** for your schema.          |
+| **Migration files**          | Versioned, reviewable steps that change the real database to match the models.            |
+| **`jsango.config.ts`**       | Tells the CLI where the database, models and migrations are.                              |
 
 The workflow is the same as Django's: **change a model → `makemigrations` → review the file →
 `migrate` → commit both.**
@@ -578,13 +581,13 @@ Node.js 22.13+. To switch databases, edit `.env` (see below). Your code stays th
 
 ### Supported databases
 
-| Database | `driver` | Install in your project | URL format |
-| --- | --- | --- | --- |
-| PostgreSQL 12+ | `postgres` (aliases `postgresql`, `pg`) | `npm install pg` | `postgres://user:pass@host:5432/db` |
-| MySQL 8+ / MariaDB 10.5+ | `mysql` (alias `mariadb`) | `npm install mysql2` | `mysql://user:pass@host:3306/db` |
-| SQLite 3.35+ | `sqlite` | nothing on Node 22.13+ (`node:sqlite`); otherwise `npm install better-sqlite3` | `sqlite:./db.sqlite3` |
-| MongoDB 5+ | `mongodb` (alias `mongo`) | `npm install mongodb` | `mongodb://user:pass@host:27017/db` or `mongodb+srv://…` |
-| In-memory (tests) | `memory` | nothing | — |
+| Database                 | `driver`                                | Install in your project                                                        | URL format                                               |
+| ------------------------ | --------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------- |
+| PostgreSQL 12+           | `postgres` (aliases `postgresql`, `pg`) | `npm install pg`                                                               | `postgres://user:pass@host:5432/db`                      |
+| MySQL 8+ / MariaDB 10.5+ | `mysql` (alias `mariadb`)               | `npm install mysql2`                                                           | `mysql://user:pass@host:3306/db`                         |
+| SQLite 3.35+             | `sqlite`                                | nothing on Node 22.13+ (`node:sqlite`); otherwise `npm install better-sqlite3` | `sqlite:./db.sqlite3`                                    |
+| MongoDB 5+               | `mongodb` (alias `mongo`)               | `npm install mongodb`                                                          | `mongodb://user:pass@host:27017/db` or `mongodb+srv://…` |
+| In-memory (tests)        | `memory`                                | nothing                                                                        | —                                                        |
 
 > The client packages are optional peer dependencies: install only the one you use. If it is
 > missing, the first query fails with a message telling you exactly what to install.
@@ -651,15 +654,15 @@ export const db = new DatabaseManager({
 setDatabaseManager(db);
 ```
 
-| Connection option | Meaning |
-| --- | --- |
-| `driver` | `postgres`, `mysql`, `sqlite`, `mongodb`, `memory` (optional if `url` is set) |
-| `url` | Full connection URL |
-| `host`, `port`, `database`, `username`, `password` | Individual settings |
-| `filename` | SQLite file path (`:memory:` for an in-memory database) |
-| `ssl` | `true`, `false`, or a TLS options object |
-| `pool` | `{ min, max, acquireTimeoutMs, idleTimeoutMs, connectionTimeoutMs, maxLifetimeMs }` |
-| `options` | Extra options passed to the client (`pg.Pool`, `mysql2.createPool`, `better-sqlite3`) |
+| Connection option                                  | Meaning                                                                               |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `driver`                                           | `postgres`, `mysql`, `sqlite`, `mongodb`, `memory` (optional if `url` is set)         |
+| `url`                                              | Full connection URL                                                                   |
+| `host`, `port`, `database`, `username`, `password` | Individual settings                                                                   |
+| `filename`                                         | SQLite file path (`:memory:` for an in-memory database)                               |
+| `ssl`                                              | `true`, `false`, or a TLS options object                                              |
+| `pool`                                             | `{ min, max, acquireTimeoutMs, idleTimeoutMs, connectionTimeoutMs, maxLifetimeMs }`   |
+| `options`                                          | Extra options passed to the client (`pg.Pool`, `mysql2.createPool`, `better-sqlite3`) |
 
 Models that don't set `connection` use the **default** connection. Whatever the default is
 called, the name `'default'` always resolves to it.
@@ -667,11 +670,11 @@ called, the name `'default'` always resolves to it.
 ### Verify the connection at startup
 
 ```ts
-await db.verify();          // throws a descriptive error if it cannot connect
+await db.verify(); // throws a descriptive error if it cannot connect
 await app.listen(3000);
 
 process.once('SIGTERM', async () => {
-  await db.close();         // drain pools on shutdown
+  await db.close(); // drain pools on shutdown
   process.exit(0);
 });
 ```
@@ -720,20 +723,20 @@ import { defineConfig } from 'jsango';
 import { db } from './src/database.js';
 
 export default defineConfig({
-  database: db,                 // a DatabaseManager, or a config object like { default, connections }
-  models: './src/models',       // file(s) or folder(s) with defineModel() calls (scanned recursively)
-  migrations: './migrations',   // where migration files live
+  database: db, // a DatabaseManager, or a config object like { default, connections }
+  models: './src/models', // file(s) or folder(s) with defineModel() calls (scanned recursively)
+  migrations: './migrations', // where migration files live
 });
 ```
 
 All keys are optional:
 
-| Key | Default |
-| --- | --- |
-| `database` | built from `DATABASE_URL` / `DATABASE_DRIVER` env vars |
-| `models` | `./src/models` |
-| `migrations` | `./migrations` |
-| `envFile` | `.env` (existing environment variables are never overwritten) |
+| Key          | Default                                                       |
+| ------------ | ------------------------------------------------------------- |
+| `database`   | built from `DATABASE_URL` / `DATABASE_DRIVER` env vars        |
+| `models`     | `./src/models`                                                |
+| `migrations` | `./migrations`                                                |
+| `envFile`    | `.env` (existing environment variables are never overwritten) |
 
 TypeScript files (the config, models and migrations) are loaded with `tsx`, so no build step is
 needed and the usual `./file.js` import style works.
@@ -749,7 +752,7 @@ import { defineModel, fields } from 'jsango';
 export const User = defineModel(
   'User',
   {
-    id: fields.id(),                                      // auto-increment primary key
+    id: fields.id(), // auto-increment primary key
     email: fields.string({ maxLength: 255, unique: true }),
     name: fields.string({ maxLength: 120, nullable: true }),
     role: fields.string({ maxLength: 20, defaultValue: 'member', indexed: true }),
@@ -757,9 +760,9 @@ export const User = defineModel(
     settings: fields.json({ nullable: true }),
   },
   {
-    table: 'users',       // default: lower-cased model name + "s"
-    timestamps: true,     // adds createdAt / updatedAt, set automatically
-    softDelete: false,    // true adds deletedAt; delete() then only marks rows
+    table: 'users', // default: lower-cased model name + "s"
+    timestamps: true, // adds createdAt / updatedAt, set automatically
+    softDelete: false, // true adds deletedAt; delete() then only marks rows
   }
 );
 ```
@@ -768,38 +771,38 @@ Fields are **NOT NULL by default**. Use `nullable: true` for optional columns.
 
 ### Field types
 
-| Field | PostgreSQL | MySQL | SQLite | JS value |
-| --- | --- | --- | --- | --- |
-| `fields.id()` | `SERIAL PRIMARY KEY` | `INT AUTO_INCREMENT PRIMARY KEY` | `INTEGER PRIMARY KEY AUTOINCREMENT` | `number` |
-| `fields.string({ maxLength })` | `VARCHAR(n)` (255) | `VARCHAR(n)` | `VARCHAR(n)` | `string` |
-| `fields.text()` | `TEXT` | `LONGTEXT` | `TEXT` | `string` |
-| `fields.integer()` | `INTEGER` | `INT` | `INTEGER` | `number` |
-| `fields.bigint()` | `BIGINT` | `BIGINT` | `BIGINT` | `bigint` |
-| `fields.float()` / `number()` | `DOUBLE PRECISION` | `DOUBLE` | `REAL` | `number` |
-| `fields.decimal({ precision, scale })` | `NUMERIC(p,s)` | `DECIMAL(p,s)` | `NUMERIC(p,s)` | `number` |
-| `fields.boolean()` | `BOOLEAN` | `TINYINT(1)` | `INTEGER` (0/1) | `boolean` |
-| `fields.dateTime()` | `TIMESTAMP WITH TIME ZONE` | `DATETIME(3)` (UTC) | `DATETIME` (ISO text) | `Date` |
-| `fields.date()` / `time()` | `DATE` / `TIME` | `DATE` / `TIME` | `DATE` / `TIME` | `Date` |
-| `fields.json()` | `JSONB` | `JSON` | `TEXT` | object / array |
-| `fields.uuid()` | `UUID` | `CHAR(36)` | `VARCHAR(36)` | `string` |
-| `fields.binary()` | `BYTEA` | `LONGBLOB` | `BLOB` | `Uint8Array` |
-| `fields.objectId()` | `VARCHAR(24)` | `VARCHAR(24)` | `VARCHAR(24)` | `string` (a native `ObjectId` on MongoDB) |
+| Field                                  | PostgreSQL                 | MySQL                            | SQLite                              | JS value                                  |
+| -------------------------------------- | -------------------------- | -------------------------------- | ----------------------------------- | ----------------------------------------- |
+| `fields.id()`                          | `SERIAL PRIMARY KEY`       | `INT AUTO_INCREMENT PRIMARY KEY` | `INTEGER PRIMARY KEY AUTOINCREMENT` | `number`                                  |
+| `fields.string({ maxLength })`         | `VARCHAR(n)` (255)         | `VARCHAR(n)`                     | `VARCHAR(n)`                        | `string`                                  |
+| `fields.text()`                        | `TEXT`                     | `LONGTEXT`                       | `TEXT`                              | `string`                                  |
+| `fields.integer()`                     | `INTEGER`                  | `INT`                            | `INTEGER`                           | `number`                                  |
+| `fields.bigint()`                      | `BIGINT`                   | `BIGINT`                         | `BIGINT`                            | `bigint`                                  |
+| `fields.float()` / `number()`          | `DOUBLE PRECISION`         | `DOUBLE`                         | `REAL`                              | `number`                                  |
+| `fields.decimal({ precision, scale })` | `NUMERIC(p,s)`             | `DECIMAL(p,s)`                   | `NUMERIC(p,s)`                      | `number`                                  |
+| `fields.boolean()`                     | `BOOLEAN`                  | `TINYINT(1)`                     | `INTEGER` (0/1)                     | `boolean`                                 |
+| `fields.dateTime()`                    | `TIMESTAMP WITH TIME ZONE` | `DATETIME(3)` (UTC)              | `DATETIME` (ISO text)               | `Date`                                    |
+| `fields.date()` / `time()`             | `DATE` / `TIME`            | `DATE` / `TIME`                  | `DATE` / `TIME`                     | `Date`                                    |
+| `fields.json()`                        | `JSONB`                    | `JSON`                           | `TEXT`                              | object / array                            |
+| `fields.uuid()`                        | `UUID`                     | `CHAR(36)`                       | `VARCHAR(36)`                       | `string`                                  |
+| `fields.binary()`                      | `BYTEA`                    | `LONGBLOB`                       | `BLOB`                              | `Uint8Array`                              |
+| `fields.objectId()`                    | `VARCHAR(24)`              | `VARCHAR(24)`                    | `VARCHAR(24)`                       | `string` (a native `ObjectId` on MongoDB) |
 
 Values are converted both ways: booleans come back as `true`/`false` on every database, dates as
 `Date`, JSON as parsed objects.
 
 ### Field options
 
-| Option | Effect |
-| --- | --- |
-| `nullable: true` | Allows `NULL` (default: NOT NULL) |
-| `unique: true` | Unique constraint `uq_<table>_<column>` |
-| `indexed: true` | Index `idx_<table>_<column>` |
-| `defaultValue: x` | Default for new rows; a function (`() => crypto.randomUUID()`) is evaluated by the ORM and isn't stored in the schema |
-| `maxLength: n` | `VARCHAR(n)` |
-| `precision`, `scale` | For `decimal` |
-| `columnName: 'x'` | Column name when it differs from the property name |
-| `primaryKey`, `autoIncrement` | For custom keys, e.g. `fields.uuid({ primaryKey: true, defaultValue: () => crypto.randomUUID() })` |
+| Option                        | Effect                                                                                                                |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `nullable: true`              | Allows `NULL` (default: NOT NULL)                                                                                     |
+| `unique: true`                | Unique constraint `uq_<table>_<column>`                                                                               |
+| `indexed: true`               | Index `idx_<table>_<column>`                                                                                          |
+| `defaultValue: x`             | Default for new rows; a function (`() => crypto.randomUUID()`) is evaluated by the ORM and isn't stored in the schema |
+| `maxLength: n`                | `VARCHAR(n)`                                                                                                          |
+| `precision`, `scale`          | For `decimal`                                                                                                         |
+| `columnName: 'x'`             | Column name when it differs from the property name                                                                    |
+| `primaryKey`, `autoIncrement` | For custom keys, e.g. `fields.uuid({ primaryKey: true, defaultValue: () => crypto.randomUUID() })`                    |
 
 Model options: `table`, `connection` (named connection), `primaryKey`, `timestamps`
 (`true` or `{ createdAt: 'created_at', updatedAt: 'updated_at' }`), `softDelete`
@@ -814,7 +817,7 @@ export const Post = defineModel(
   {
     id: fields.id(),
     title: fields.string(),
-    userId: fields.integer(),                    // the foreign key column
+    userId: fields.integer(), // the foreign key column
   },
   {
     table: 'posts',
@@ -830,11 +833,11 @@ export const Post = defineModel(
 //   relations: { posts: { type: 'hasMany', target: 'Post', foreignKey: 'userId' } }
 ```
 
-| Type | Meaning | `foreignKey` lives on |
-| --- | --- | --- |
-| `belongsTo` | this row points to one parent | this model |
-| `hasOne` / `hasMany` | children point to this row | the target model |
-| `manyToMany` | via a pivot model: `through`, `pivotForeignKey`, `pivotTargetKey` | the pivot model |
+| Type                 | Meaning                                                           | `foreignKey` lives on |
+| -------------------- | ----------------------------------------------------------------- | --------------------- |
+| `belongsTo`          | this row points to one parent                                     | this model            |
+| `hasOne` / `hasMany` | children point to this row                                        | the target model      |
+| `manyToMany`         | via a pivot model: `through`, `pivotForeignKey`, `pivotTargetKey` | the pivot model       |
 
 `target` can be the model name (`'User'`) or a function (`() => User`), which avoids circular
 imports. `belongsTo` foreign keys use `ON DELETE CASCADE`, or `SET NULL` when the field is
@@ -847,14 +850,17 @@ nullable. Override it with `options: { onDelete: 'RESTRICT' }`.
 ```ts
 // Create
 const user = await User.create({ email: 'a@example.com', name: 'Ada' });
-user.id;          // assigned by the database
-user.createdAt;   // Date
+user.id; // assigned by the database
+user.createdAt; // Date
 
-await Post.bulkCreate([{ title: 'One', userId: user.id }, { title: 'Two', userId: user.id }]);
+await Post.bulkCreate([
+  { title: 'One', userId: user.id },
+  { title: 'Two', userId: user.id },
+]);
 
 // Read
-await User.find(1);                      // by primary key, or null
-await User.findOrFail(1);                // throws ModelNotFoundError
+await User.find(1); // by primary key, or null
+await User.findOrFail(1); // throws ModelNotFoundError
 await User.where('email', 'a@example.com').first();
 await User.where({ role: 'admin', isActive: true }).get();
 await User.query()
@@ -872,11 +878,13 @@ await User.where('isActive', true).exists();
 const page = await User.query().orderBy('id').paginate({ page: 2, pageSize: 25 });
 // page.items, page.total, page.page, page.pageSize, page.totalPages
 
-for await (const u of User.query().cursor(500)) { /* stream large tables in batches */ }
+for await (const u of User.query().cursor(500)) {
+  /* stream large tables in batches */
+}
 
 // Update
 user.name = 'Ada Lovelace';
-await user.save();                                   // only changed columns are written
+await user.save(); // only changed columns are written
 await User.where('isActive', false).update({ role: 'inactive' });
 
 // Delete
@@ -904,26 +912,26 @@ await Book.where('genre', 'fiction')
 
 await Book.whereNot('status', 'draft').get();
 await Book.whereNot((q) => q.where('genre', 'kids').orWhere('price', 0)).get();
-await Book.whereBetween('price', [10, 25]).get();          // also whereNotBetween / orWhereBetween
-await Book.whereLike('title', '%guide%').get();            // case-insensitive everywhere
+await Book.whereBetween('price', [10, 25]).get(); // also whereNotBetween / orWhereBetween
+await Book.whereLike('title', '%guide%').get(); // case-insensitive everywhere
 await Book.whereLike('code', 'AB_%', { caseSensitive: true }).get(); // exact case on PostgreSQL / MongoDB
-await Book.where('price', 'BETWEEN', [10, 25]).get();      // operator form
+await Book.where('price', 'BETWEEN', [10, 25]).get(); // operator form
 await Book.orWhereIn('genre', ['a', 'b']).orWhereNull('pages').get();
 
 // Selection
 await Book.select('genre').distinct().orderBy('genre').get();
-await Book.orderBy('price').pluck('title');                // ['Tiny Tales', ...]
-await Book.where('isbn', isbn).value('title');             // single value or null
+await Book.orderBy('price').pluck('title'); // ['Tiny Tales', ...]
+await Book.where('isbn', isbn).value('title'); // single value or null
 await Book.findMany([id1, id2]);
-await Book.latest().first();                               // newest by createdAt (oldest() too)
+await Book.latest().first(); // newest by createdAt (oldest() too)
 await Book.query().firstOrFail();
 
 // Aggregates
-await Book.sum('price');                                   // 0 when nothing matches
-await Book.where('genre', 'science').avg('price');         // null when nothing matches
+await Book.sum('price'); // 0 when nothing matches
+await Book.where('genre', 'science').avg('price'); // null when nothing matches
 await Book.min('price');
 await Book.max('pages');
-await Book.count('pages');                                 // counts non-null values
+await Book.count('pages'); // counts non-null values
 await Book.where('genre', 'none').doesntExist();
 
 // GROUP BY / HAVING -> plain rows
@@ -937,15 +945,17 @@ await Book.query()
 // [{ genre: 'science', total: 42.5, books: 2, longest: 300 }, ...]
 
 // Atomic counters (no read-modify-write race)
-await Author.where('active', true).increment('logins');   // bulk; decrement() too
-await post.increment('views', 1);                          // single model, also updates `post.views`
+await Author.where('active', true).increment('logins'); // bulk; decrement() too
+await post.increment('views', 1); // single model, also updates `post.views`
 
 // Find-or-create / upsert-style helpers
 const tag = await Tag.firstOrCreate({ slug: 'news' }, { label: 'News' });
 const setting = await Setting.updateOrCreate({ key: 'theme' }, { value: 'dark' });
 
 // Batches
-await User.query().chunk(500, async (users, page) => { /* ... return false to stop */ });
+await User.query().chunk(500, async (users, page) => {
+  /* ... return false to stop */
+});
 
 // Row locks inside a transaction (PostgreSQL / MySQL; no-op on SQLite and MongoDB)
 await transaction(async () => {
@@ -958,15 +968,15 @@ await Post.onlyTrashed().where('authorId', id).restore();
 await post.restore();
 
 // Escape hatch
-await User.whereRaw('LOWER(email) = ?', [email]).get();          // SQL databases
-await User.whereRaw({ tags: { $all: ['a', 'b'] } }).get();       // MongoDB
+await User.whereRaw('LOWER(email) = ?', [email]).get(); // SQL databases
+await User.whereRaw({ tags: { $all: ['a', 'b'] } }).get(); // MongoDB
 ```
 
 ### Eager loading (no N+1)
 
 ```ts
 const posts = await Post.query().with('author').orderBy('id', 'DESC').limit(10).get();
-posts[0].author.email;   // loaded with one extra query for all posts
+posts[0].author.email; // loaded with one extra query for all posts
 ```
 
 ### Soft deletes
@@ -974,10 +984,10 @@ posts[0].author.email;   // loaded with one extra query for all posts
 With `softDelete: true`, `delete()` sets `deletedAt` and normal queries skip those rows.
 
 ```ts
-await Post.query().get();            // only rows not soft-deleted
-await Post.withTrashed().get();      // everything
-await Post.onlyTrashed().get();      // only soft-deleted
-await post.delete({ force: true });  // really delete
+await Post.query().get(); // only rows not soft-deleted
+await Post.withTrashed().get(); // everything
+await Post.onlyTrashed().get(); // only soft-deleted
+await post.delete({ force: true }); // really delete
 ```
 
 ### Transactions
@@ -987,12 +997,17 @@ import { transaction } from 'jsango';
 
 await transaction(async () => {
   const user = await User.create({ email: 'ada@example.com' });
-  await Profile.create({ userId: user.id });   // same transaction automatically
-  if (!ok) throw new Error('rollback');         // any error rolls everything back
+  await Profile.create({ userId: user.id }); // same transaction automatically
+  if (!ok) throw new Error('rollback'); // any error rolls everything back
 });
 
 // isolation level / specific connection
-await transaction(async () => { /* ... */ }, { isolationLevel: 'SERIALIZABLE', connection: 'analytics' });
+await transaction(
+  async () => {
+    /* ... */
+  },
+  { isolationLevel: 'SERIALIZABLE', connection: 'analytics' }
+);
 ```
 
 Every model call inside the callback, including nested async functions, uses the transaction.
@@ -1017,20 +1032,24 @@ DATABASE_URL=mongodb://app:secret@localhost:27017/myapp
 and exposes it as a 24-character hex string:
 
 ```ts
-export const Post = defineModel('Post', {
-  id: fields.objectId({ primaryKey: true }),   // a new ObjectId is generated on create
-  title: fields.string(),
-  authorId: fields.objectId(),                 // stored as an ObjectId reference
-  tags: fields.json({ nullable: true }),       // arrays / objects are stored natively
-}, {
-  table: 'posts',                              // collection name
-  timestamps: true,
-  relations: { author: { type: 'belongsTo', target: 'Author', foreignKey: 'authorId' } },
-});
+export const Post = defineModel(
+  'Post',
+  {
+    id: fields.objectId({ primaryKey: true }), // a new ObjectId is generated on create
+    title: fields.string(),
+    authorId: fields.objectId(), // stored as an ObjectId reference
+    tags: fields.json({ nullable: true }), // arrays / objects are stored natively
+  },
+  {
+    table: 'posts', // collection name
+    timestamps: true,
+    relations: { author: { type: 'belongsTo', target: 'Author', foreignKey: 'authorId' } },
+  }
+);
 
 const post = await Post.create({ title: 'Hello', authorId: author.id });
-post.id;                          // '65f1c2...' (ObjectId as a string)
-await Post.find(post.id);         // strings are converted to ObjectId in queries
+post.id; // '65f1c2...' (ObjectId as a string)
+await Post.find(post.id); // strings are converted to ObjectId in queries
 ```
 
 Use `fields.objectId()` for primary keys and references if a model must run on MongoDB and SQL
@@ -1055,16 +1074,16 @@ Migrations don't need transactions and work on standalone servers too.
 **Migrations on MongoDB.** `makemigrations` and `migrate` work the same way as on SQL, and
 the operations are translated as follows:
 
-| Operation | MongoDB |
-| --- | --- |
-| create table | `createCollection` with a `$jsonSchema` validator (required fields + types, `validationLevel: moderate`) plus indexes |
-| unique / index | `createIndex` (unique indexes on nullable fields ignore missing values, like SQL NULLs) |
-| add column | backfills the default into existing documents, then updates the validator |
-| drop column | relaxes the validator, drops the indexes on it, then `$unset`s the field everywhere |
-| rename column | updates the validator, `$rename`s the field, and rebuilds the indexes on it |
-| alter column | updates the validator |
-| rename / drop table | `renameCollection` / `drop` |
-| foreign keys | skipped (MongoDB has none); relations are still resolved by the ORM |
+| Operation           | MongoDB                                                                                                               |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| create table        | `createCollection` with a `$jsonSchema` validator (required fields + types, `validationLevel: moderate`) plus indexes |
+| unique / index      | `createIndex` (unique indexes on nullable fields ignore missing values, like SQL NULLs)                               |
+| add column          | backfills the default into existing documents, then updates the validator                                             |
+| drop column         | relaxes the validator, drops the indexes on it, then `$unset`s the field everywhere                                   |
+| rename column       | updates the validator, `$rename`s the field, and rebuilds the indexes on it                                           |
+| alter column        | updates the validator                                                                                                 |
+| rename / drop table | `renameCollection` / `drop`                                                                                           |
+| foreign keys        | skipped (MongoDB has none); relations are still resolved by the ORM                                                   |
 
 Migration history lives in the `jsango_migrations` collection, and the lock in
 `jsango_migration_lock`. For data migrations, use `ctx.execute()` (`ctx.sql()` isn't available):
@@ -1073,8 +1092,18 @@ Migration history lives in the `jsango_migrations` collection, and the lock in
 export default defineMigration({
   id: '20260930130000_backfill_roles',
   async up(ctx) {
-    await ctx.execute({ op: 'updateMany', collection: 'users', filter: { role: null }, update: { $set: { role: 'member' } } });
-    await ctx.execute({ op: 'createIndex', collection: 'users', keys: { lastSeenAt: -1 }, name: 'idx_users_last_seen' });
+    await ctx.execute({
+      op: 'updateMany',
+      collection: 'users',
+      filter: { role: null },
+      update: { $set: { role: 'member' } },
+    });
+    await ctx.execute({
+      op: 'createIndex',
+      collection: 'users',
+      keys: { lastSeenAt: -1 },
+      name: 'idx_users_last_seen',
+    });
   },
   async down(ctx) {
     await ctx.execute({ op: 'dropIndex', collection: 'users', name: 'idx_users_last_seen' });
@@ -1091,12 +1120,19 @@ native driver:
 ```ts
 import type { Db } from 'mongodb';
 const mongo = await db.mongo<Db>();
-await mongo.collection('events').aggregate([{ $match: { type: 'signup' } }]).toArray();
+await mongo
+  .collection('events')
+  .aggregate([{ $match: { type: 'signup' } }])
+  .toArray();
 
 // or structured commands through a pooled connection:
 const conn = await db.connection();
 try {
-  const { rows } = await conn.execute({ op: 'aggregate', collection: 'orders', pipeline: [{ $match: { status: 'paid' } }] });
+  const { rows } = await conn.execute({
+    op: 'aggregate',
+    collection: 'orders',
+    pipeline: [{ $match: { status: 'paid' } }],
+  });
 } finally {
   await conn.release();
 }
@@ -1112,7 +1148,7 @@ Your **models describe the schema you want**. **Migrations** are the ordered ste
 real database there. jsango writes them for you:
 
 1. `npx jsango makemigrations` replays your existing migration files to work out what the
-   database *should* look like now (this needs no database connection), compares that with your
+   database _should_ look like now (this needs no database connection), compares that with your
    models, and writes a new file containing only the difference.
 2. `npx jsango migrate` runs the pending files in order and records each one in the
    `jsango_migrations` table, so it never runs twice.
@@ -1145,9 +1181,7 @@ export const name = 'add_age_to_users';
 export default new Migration({
   id,
   name,
-  operations: [
-    new AddColumnOperation('users', { "name": "age", "type": "integer", "nullable": true }),
-  ],
+  operations: [new AddColumnOperation('users', { name: 'age', type: 'integer', nullable: true })],
 });
 ```
 
@@ -1156,15 +1190,15 @@ inverse operations in reverse order.
 
 ### Commands
 
-| Command | What it does |
-| --- | --- |
-| `jsango makemigrations [name]` | Create a migration from model changes (alias of `migrate:generate`). `--dry-run` shows the changes without writing a file; `--empty` creates a blank hand-written migration. |
-| `jsango migrate` | Apply pending migrations. `--dry-run` prints the SQL; `--target <id>` stops at a migration; `--yes` confirms destructive changes. |
-| `jsango migrate:status` | List applied and pending migrations. |
-| `jsango migrate:rollback` | Undo the last **batch** (everything applied by the last `migrate` run). `--steps 1` undoes just one migration; `--target <id>` undoes everything after `<id>`. |
-| `jsango migrate:check` | Exit with an error if models have changes that aren't in a migration, or if migrations are pending. Use it in CI. `--skip-db` compares files only. |
-| `jsango migrate:reset --yes [--fresh]` | Roll back all migrations; `--fresh` then re-applies them. Refused when `NODE_ENV=production`. |
-| `jsango db:status` | Test every configured connection. |
+| Command                                | What it does                                                                                                                                                                 |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `jsango makemigrations [name]`         | Create a migration from model changes (alias of `migrate:generate`). `--dry-run` shows the changes without writing a file; `--empty` creates a blank hand-written migration. |
+| `jsango migrate`                       | Apply pending migrations. `--dry-run` prints the SQL; `--target <id>` stops at a migration; `--yes` confirms destructive changes.                                            |
+| `jsango migrate:status`                | List applied and pending migrations.                                                                                                                                         |
+| `jsango migrate:rollback`              | Undo the last **batch** (everything applied by the last `migrate` run). `--steps 1` undoes just one migration; `--target <id>` undoes everything after `<id>`.               |
+| `jsango migrate:check`                 | Exit with an error if models have changes that aren't in a migration, or if migrations are pending. Use it in CI. `--skip-db` compares files only.                           |
+| `jsango migrate:reset --yes [--fresh]` | Roll back all migrations; `--fresh` then re-applies them. Refused when `NODE_ENV=production`.                                                                                |
+| `jsango db:status`                     | Test every configured connection.                                                                                                                                            |
 
 All of them accept `--connection <name>` for multi-database projects, and `--json` for
 machine-readable output.
@@ -1206,7 +1240,7 @@ export default defineMigration({
 
     await ctx.createTable('audit_logs', (t) => {
       t.id();
-      t.integer('userId').references('users');        // FK -> users.id, ON DELETE CASCADE
+      t.integer('userId').references('users'); // FK -> users.id, ON DELETE CASCADE
       t.string('action', 50).index();
       t.json('payload').nullable();
       t.timestamps();
@@ -1235,11 +1269,11 @@ Use the `ctx` schema helpers rather than `ctx.sql()` for schema changes, because
 
 ### How each database runs migrations
 
-| | PostgreSQL | SQLite | MySQL / MariaDB | MongoDB |
-| --- | --- | --- | --- | --- |
-| Each migration in a transaction | ✅ | ✅ | ❌ DDL auto-commits | ❌ |
-| Failure mid-migration | fully rolled back | fully rolled back | earlier statements stay applied; the error says so | earlier commands stay applied; the error says so |
-| `ALTER COLUMN`, add/drop foreign key | native | table rebuild (automatic, data preserved) | native | validator update; FKs skipped |
+|                                      | PostgreSQL        | SQLite                                    | MySQL / MariaDB                                    | MongoDB                                          |
+| ------------------------------------ | ----------------- | ----------------------------------------- | -------------------------------------------------- | ------------------------------------------------ |
+| Each migration in a transaction      | ✅                | ✅                                        | ❌ DDL auto-commits                                | ❌                                               |
+| Failure mid-migration                | fully rolled back | fully rolled back                         | earlier statements stay applied; the error says so | earlier commands stay applied; the error says so |
+| `ALTER COLUMN`, add/drop foreign key | native            | table rebuild (automatic, data preserved) | native                                             | validator update; FKs skipped                    |
 
 - **SQLite** can't alter columns or add/drop foreign keys in place. jsango rebuilds the table:
   it creates a copy with the new definition, copies the rows, swaps the tables and recreates
@@ -1291,22 +1325,22 @@ CLI, so TypeScript migrations run without a build step.
 
 ## 7. Troubleshooting
 
-| Message | Fix |
-| --- | --- |
-| `No database is configured for this project` | Add `jsango.config.ts` (see [section 2](#2-jsangoconfigts)) or set `DATABASE_URL` in `.env`. |
-| `PostgreSQL support requires the 'pg' package` | `npm install pg` (or `mysql2` / `better-sqlite3` / `mongodb`). |
-| `MongoDB transactions need a replica set` | Start `mongod --replSet rs0` and run `rs.initiate()` once, or use Atlas. |
-| `Document failed validation` (MongoDB) | A document is missing a required (non-nullable) field or has the wrong type. Make the field `nullable: true` or pass a value. |
-| `MongoDB connections do not run SQL` | Use models, `conn.execute({...})` or `db.mongo()` instead of `db.query('SELECT ...')`. |
-| `SQLite support requires 'better-sqlite3' or Node.js 22.13+` | Upgrade Node.js, or run `npm install better-sqlite3`. |
-| `ECONNREFUSED` | The database server isn't running, or the host/port is wrong. |
-| `password authentication failed` / `ER_ACCESS_DENIED_ERROR` | Wrong user or password. URL-encode special characters in `DATABASE_URL`. |
-| `database "x" does not exist` / `ER_BAD_DB_ERROR` | Create the database first: `CREATE DATABASE x;` |
-| `no such table: users` / `relation "users" does not exist` | You haven't run `npx jsango makemigrations` and `npx jsango migrate` yet. |
-| `Migration run contains destructive changes` | Check with `migrate --dry-run`, then run `migrate --yes`. |
-| `No changes detected` but the table is wrong | The table was changed outside migrations. Run `migrate:status`, then fix the table with a hand-written migration. |
-| `Could not acquire migration lock` | Another `migrate` is running. A crashed run's lock expires after 15 minutes. |
-| `Model with name 'X' is already registered` | Two different models share a name. Model names must be unique. |
+| Message                                                      | Fix                                                                                                                           |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `No database is configured for this project`                 | Add `jsango.config.ts` (see [section 2](#2-jsangoconfigts)) or set `DATABASE_URL` in `.env`.                                  |
+| `PostgreSQL support requires the 'pg' package`               | `npm install pg` (or `mysql2` / `better-sqlite3` / `mongodb`).                                                                |
+| `MongoDB transactions need a replica set`                    | Start `mongod --replSet rs0` and run `rs.initiate()` once, or use Atlas.                                                      |
+| `Document failed validation` (MongoDB)                       | A document is missing a required (non-nullable) field or has the wrong type. Make the field `nullable: true` or pass a value. |
+| `MongoDB connections do not run SQL`                         | Use models, `conn.execute({...})` or `db.mongo()` instead of `db.query('SELECT ...')`.                                        |
+| `SQLite support requires 'better-sqlite3' or Node.js 22.13+` | Upgrade Node.js, or run `npm install better-sqlite3`.                                                                         |
+| `ECONNREFUSED`                                               | The database server isn't running, or the host/port is wrong.                                                                 |
+| `password authentication failed` / `ER_ACCESS_DENIED_ERROR`  | Wrong user or password. URL-encode special characters in `DATABASE_URL`.                                                      |
+| `database "x" does not exist` / `ER_BAD_DB_ERROR`            | Create the database first: `CREATE DATABASE x;`                                                                               |
+| `no such table: users` / `relation "users" does not exist`   | You haven't run `npx jsango makemigrations` and `npx jsango migrate` yet.                                                     |
+| `Migration run contains destructive changes`                 | Check with `migrate --dry-run`, then run `migrate --yes`.                                                                     |
+| `No changes detected` but the table is wrong                 | The table was changed outside migrations. Run `migrate:status`, then fix the table with a hand-written migration.             |
+| `Could not acquire migration lock`                           | Another `migrate` is running. A crashed run's lock expires after 15 minutes.                                                  |
+| `Model with name 'X' is already registered`                  | Two different models share a name. Model names must be unique.                                                                |
 
 ---
 
@@ -1331,14 +1365,14 @@ CLI, so TypeScript migrations run without a build step.
 
 `createAuth()` gives you complete authentication in one object, with secure defaults:
 
-| Method | Use it for |
-| --- | --- |
-| [Password login + JWT](#3-tokens-for-apis-and-mobile-apps) | APIs, SPAs, mobile apps |
-| [Cookie sessions](#5-cookie-sessions-for-web-apps) | Server-rendered / same-site web apps |
-| [API keys](#6-api-keys) | Server-to-server integrations, CLI tools |
-| [Social login (OAuth2)](#7-social-login-google-github-) | "Sign in with Google / GitHub / …" |
+| Method                                                                                      | Use it for                                          |
+| ------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| [Password login + JWT](#3-tokens-for-apis-and-mobile-apps)                                  | APIs, SPAs, mobile apps                             |
+| [Cookie sessions](#5-cookie-sessions-for-web-apps)                                          | Server-rendered / same-site web apps                |
+| [API keys](#6-api-keys)                                                                     | Server-to-server integrations, CLI tools            |
+| [Social login (OAuth2)](#7-social-login-google-github-)                                     | "Sign in with Google / GitHub / …"                  |
 | [External identity providers](#8-external-identity-providers-auth0-clerk-cognito-firebase-) | Auth0, Clerk, Cognito, Firebase, Azure AD, Keycloak |
-| [Two-factor (TOTP)](#9-two-factor-authentication-totp) | Authenticator-app codes on top of passwords |
+| [Two-factor (TOTP)](#9-two-factor-authentication-totp)                                      | Authenticator-app codes on top of passwords         |
 
 All of them are checked by the same middleware, `auth.required()`, so one route can
 accept a session cookie from your web app, a bearer token from your mobile app, and an API key
@@ -1411,25 +1445,29 @@ role or permission, and `429` when locked out.
 jsango doesn't own your user table. You tell it how to load users, and it reads these
 fields from them (configurable):
 
-| Field | Purpose | Option to rename |
-| --- | --- | --- |
-| `id` | User id (stored in tokens and sessions) | `identity` |
-| `passwordHash` | scrypt hash from `auth.hashPassword()` | `password.field` |
-| `role` or `roles` | Roles for `auth.required({ roles })` | `identity` |
-| `permissions` | Extra permissions | `identity` |
-| `tenantId` | Multi-tenant apps | `identity` |
-| `isSuperuser` | Bypasses role/permission checks | `identity` |
-| `totpSecret` | Enables two-factor login | `mfa.field` |
+| Field             | Purpose                                 | Option to rename |
+| ----------------- | --------------------------------------- | ---------------- |
+| `id`              | User id (stored in tokens and sessions) | `identity`       |
+| `passwordHash`    | scrypt hash from `auth.hashPassword()`  | `password.field` |
+| `role` or `roles` | Roles for `auth.required({ roles })`    | `identity`       |
+| `permissions`     | Extra permissions                       | `identity`       |
+| `tenantId`        | Multi-tenant apps                       | `identity`       |
+| `isSuperuser`     | Bypasses role/permission checks         | `identity`       |
+| `totpSecret`      | Enables two-factor login                | `mfa.field`      |
 
 ```ts
-export const User = defineModel('User', {
-  id: fields.id(),
-  email: fields.string({ maxLength: 255, unique: true }),
-  passwordHash: fields.string({ nullable: true }), // null for social-login-only users
-  role: fields.string({ maxLength: 20, defaultValue: 'member' }),
-  totpSecret: fields.string({ nullable: true }),
-  isActive: fields.boolean({ defaultValue: true }),
-}, { table: 'users', timestamps: true });
+export const User = defineModel(
+  'User',
+  {
+    id: fields.id(),
+    email: fields.string({ maxLength: 255, unique: true }),
+    passwordHash: fields.string({ nullable: true }), // null for social-login-only users
+    role: fields.string({ maxLength: 20, defaultValue: 'member' }),
+    totpSecret: fields.string({ nullable: true }),
+    isActive: fields.boolean({ defaultValue: true }),
+  },
+  { table: 'users', timestamps: true }
+);
 ```
 
 **Sign-up:**
@@ -1465,7 +1503,9 @@ each user's next successful login:
 ```ts
 createAuth({
   // ...secret, users
-  password: { onRehash: (user, hash) => User.query().where('id', user.id).update({ passwordHash: hash }) },
+  password: {
+    onRehash: (user, hash) => User.query().where('id', user.id).update({ passwordHash: hash }),
+  },
 });
 ```
 
@@ -1514,11 +1554,11 @@ force it immediately.
 ## 4. Protecting routes
 
 ```ts
-app.get('/me', auth.required(), handler);                                // any signed-in user
-app.get('/admin', auth.required({ roles: ['admin'] }), handler);         // any of these roles
+app.get('/me', auth.required(), handler); // any signed-in user
+app.get('/admin', auth.required({ roles: ['admin'] }), handler); // any of these roles
 app.delete('/posts/:id', auth.required({ permissions: ['posts.delete'] }), handler); // all of these
-app.get('/feed', auth.optional(), handler);                              // anonymous allowed
-app.post('/webhook', auth.required({ methods: ['apiKey'] }), handler);   // only API keys here
+app.get('/feed', auth.optional(), handler); // anonymous allowed
+app.post('/webhook', auth.required({ methods: ['apiKey'] }), handler); // only API keys here
 ```
 
 Map roles to permissions once:
@@ -1537,7 +1577,7 @@ Inside handlers:
 
 ```ts
 const identity = auth.identity(ctx); // { id, roles, permissions, tenantId, hasRole(), hasPermission() }
-const user = await auth.user(ctx);   // your user record (loaded once per request), null if anonymous
+const user = await auth.user(ctx); // your user record (loaded once per request), null if anonymous
 ```
 
 `auth.optional()` still rejects credentials that are present but invalid. A bad or expired token
@@ -1640,12 +1680,20 @@ app.get('/auth/:provider/callback', async (ctx) => {
   const profile = await auth.oauth.callback(ctx.request.params['provider']!, ctx);
   // { provider, id, email, emailVerified, name, avatarUrl }
 
-  let account = await SocialAccount.where({ provider: profile.provider, providerId: profile.id }).first();
+  let account = await SocialAccount.where({
+    provider: profile.provider,
+    providerId: profile.id,
+  }).first();
   let user = account ? await User.find(account.userId) : null;
   if (!user) {
-    if (!profile.email || !profile.emailVerified) return HttpResponse.badRequest('A verified email is required.');
+    if (!profile.email || !profile.emailVerified)
+      return HttpResponse.badRequest('A verified email is required.');
     user = await User.firstOrCreate({ email: profile.email.toLowerCase() }, { name: profile.name });
-    await SocialAccount.create({ provider: profile.provider, providerId: profile.id, userId: user.id });
+    await SocialAccount.create({
+      provider: profile.provider,
+      providerId: profile.id,
+      userId: user.id,
+    });
   }
   return auth.startSession(HttpResponse.redirect('https://app.example.com/'), user);
 });
@@ -1692,13 +1740,13 @@ createAuth({
 });
 ```
 
-| Provider | `jwksUrl` | `issuer` |
-| --- | --- | --- |
-| Auth0 | `https://TENANT.auth0.com/.well-known/jwks.json` | `https://TENANT.auth0.com/` |
-| Clerk | `https://YOUR_FRONTEND_API/.well-known/jwks.json` | `https://YOUR_FRONTEND_API` |
-| AWS Cognito | `https://cognito-idp.REGION.amazonaws.com/POOL_ID/.well-known/jwks.json` | `https://cognito-idp.REGION.amazonaws.com/POOL_ID` |
-| Firebase | `https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com` | `https://securetoken.google.com/PROJECT_ID` |
-| Keycloak | `https://HOST/realms/REALM/protocol/openid-connect/certs` | `https://HOST/realms/REALM` |
+| Provider    | `jwksUrl`                                                                                   | `issuer`                                           |
+| ----------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| Auth0       | `https://TENANT.auth0.com/.well-known/jwks.json`                                            | `https://TENANT.auth0.com/`                        |
+| Clerk       | `https://YOUR_FRONTEND_API/.well-known/jwks.json`                                           | `https://YOUR_FRONTEND_API`                        |
+| AWS Cognito | `https://cognito-idp.REGION.amazonaws.com/POOL_ID/.well-known/jwks.json`                    | `https://cognito-idp.REGION.amazonaws.com/POOL_ID` |
+| Firebase    | `https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com` | `https://securetoken.google.com/PROJECT_ID`        |
+| Keycloak    | `https://HOST/realms/REALM/protocol/openid-connect/certs`                                   | `https://HOST/realms/REALM`                        |
 
 Keys are cached for 10 minutes and refetched when the provider rotates them. Expiry,
 `iss` and `aud` are always checked. Your own tokens and the provider's can be accepted side
@@ -1721,8 +1769,11 @@ app.post('/account/2fa/setup', auth.required(), async (ctx) => {
 app.post('/account/2fa/confirm', auth.required(), async (ctx) => {
   const { code } = (await ctx.request.json()) as { code: string };
   const user = (await auth.user(ctx))!;
-  if (!auth.totp.verifyToken(code, user.pendingTotpSecret)) return HttpResponse.badRequest('Invalid code');
-  await User.query().where('id', user.id).update({ totpSecret: user.pendingTotpSecret, pendingTotpSecret: null });
+  if (!auth.totp.verifyToken(code, user.pendingTotpSecret))
+    return HttpResponse.badRequest('Invalid code');
+  await User.query()
+    .where('id', user.id)
+    .update({ totpSecret: user.pendingTotpSecret, pendingTotpSecret: null });
   return { backupCodes: auth.totp.generateBackupCodes(8) }; // store hashed, show once
 });
 ```
@@ -1770,22 +1821,22 @@ seconds of clock drift, work only once, and are brute-force limited.
 
 ## 11. What jsango protects you from
 
-| Threat | Protection |
-| --- | --- |
-| Password database leak | scrypt (memory-hard) with per-password salt; automatic rehash on login |
-| Online password guessing | 5 failures per account per 15 minutes (20 per IP) → `429` |
-| Account enumeration | One generic error message; unknown users cost the same hashing time |
-| Stolen access token | 15-minute lifetime; `logout()` revokes it immediately |
-| Stolen refresh token | Rotation on every use; reuse revokes the whole login |
-| JWT forgery / algorithm confusion | HMAC key derived from your secret, `alg` pinned to HS256; external tokens accept asymmetric algorithms only; `none` is rejected |
-| Tokens that never expire | Every token has `exp`; tokens without one are rejected |
-| Session fixation / cookie tampering | New random id per login; HMAC-signed cookie; HttpOnly + SameSite |
-| CSRF on cookie sessions | Trusted `Origin` / `Referer` required for state-changing requests |
-| OAuth login CSRF / code interception | Signed one-time `state` + PKCE (S256) |
-| TOTP brute force / replay | Attempt limit + each code accepted once |
-| Disabled user keeps access | `isActive` checked on login, refresh and every session request |
-| Leaking the user record | Token results never serialize `user` |
-| API key database leak | Only SHA-256 hashes are stored and compared |
+| Threat                               | Protection                                                                                                                      |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| Password database leak               | scrypt (memory-hard) with per-password salt; automatic rehash on login                                                          |
+| Online password guessing             | 5 failures per account per 15 minutes (20 per IP) → `429`                                                                       |
+| Account enumeration                  | One generic error message; unknown users cost the same hashing time                                                             |
+| Stolen access token                  | 15-minute lifetime; `logout()` revokes it immediately                                                                           |
+| Stolen refresh token                 | Rotation on every use; reuse revokes the whole login                                                                            |
+| JWT forgery / algorithm confusion    | HMAC key derived from your secret, `alg` pinned to HS256; external tokens accept asymmetric algorithms only; `none` is rejected |
+| Tokens that never expire             | Every token has `exp`; tokens without one are rejected                                                                          |
+| Session fixation / cookie tampering  | New random id per login; HMAC-signed cookie; HttpOnly + SameSite                                                                |
+| CSRF on cookie sessions              | Trusted `Origin` / `Referer` required for state-changing requests                                                               |
+| OAuth login CSRF / code interception | Signed one-time `state` + PKCE (S256)                                                                                           |
+| TOTP brute force / replay            | Attempt limit + each code accepted once                                                                                         |
+| Disabled user keeps access           | `isActive` checked on login, refresh and every session request                                                                  |
+| Leaking the user record              | Token results never serialize `user`                                                                                            |
+| API key database leak                | Only SHA-256 hashes are stored and compared                                                                                     |
 
 **Lower-level building blocks** are still available when you need full control: `JwtService`,
 `ScryptPasswordHasher`, `TotpService`, the `authenticate()` / `authorize()` middleware with
@@ -1895,9 +1946,20 @@ app.admin({
       defaultPageSize: 50,
       fields: [
         // override one field...
-        { name: 'status', enumChoices: [{ label: 'Paid', value: 'paid' }, { label: 'Refunded', value: 'refunded' }], filterable: true },
+        {
+          name: 'status',
+          enumChoices: [
+            { label: 'Paid', value: 'paid' },
+            { label: 'Refunded', value: 'refunded' },
+          ],
+          filterable: true,
+        },
         // ...or add a computed column
-        { name: 'summary', type: 'computed', computedGetter: (o) => `${o['customer']} · ₹${o['total']}` },
+        {
+          name: 'summary',
+          type: 'computed',
+          computedGetter: (o) => `${o['customer']} · ₹${o['total']}`,
+        },
       ],
     },
     User, // plain models still work
@@ -1905,18 +1967,18 @@ app.admin({
 });
 ```
 
-| Option | What it controls |
-| --- | --- |
-| `label`, `pluralLabel` | Names in the sidebar and headings |
-| `navigationGroup`, `navigationIcon`, `navigationOrder` | Sidebar placement |
-| `listFields` | Columns of the list (and of the CSV export) |
-| `detailFields`, `createFields`, `editFields` | What the detail page and the forms show and accept. Anything else in a request body is ignored, which prevents mass assignment |
-| `searchFields` | Columns matched by the search box (case-insensitive contains) |
-| `filters` | Filter dropdowns. Default: boolean fields and fields with `enumChoices` marked `filterable` |
-| `fields` | Per-field overrides by name: `label`, `type`, `hidden`, `readonly`, `sensitive`, `sortable`, `filterable`, `enumChoices`, `description`, `computedGetter` |
-| `defaultSortField`, `defaultSortDirection`, `defaultPageSize`, `maxPageSize` | Default ordering and paging (`maxPageSize` caps `?pageSize=`) |
-| `actions`, `bulkActions` | Custom buttons (see [Actions](#6-actions)) |
-| `exactCount`, `exportBatchSize` | Large-table tuning (see [Millions of rows](#7-millions-of-rows)) |
+| Option                                                                       | What it controls                                                                                                                                          |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `label`, `pluralLabel`                                                       | Names in the sidebar and headings                                                                                                                         |
+| `navigationGroup`, `navigationIcon`, `navigationOrder`                       | Sidebar placement                                                                                                                                         |
+| `listFields`                                                                 | Columns of the list (and of the CSV export)                                                                                                               |
+| `detailFields`, `createFields`, `editFields`                                 | What the detail page and the forms show and accept. Anything else in a request body is ignored, which prevents mass assignment                            |
+| `searchFields`                                                               | Columns matched by the search box (case-insensitive contains)                                                                                             |
+| `filters`                                                                    | Filter dropdowns. Default: boolean fields and fields with `enumChoices` marked `filterable`                                                               |
+| `fields`                                                                     | Per-field overrides by name: `label`, `type`, `hidden`, `readonly`, `sensitive`, `sortable`, `filterable`, `enumChoices`, `description`, `computedGetter` |
+| `defaultSortField`, `defaultSortDirection`, `defaultPageSize`, `maxPageSize` | Default ordering and paging (`maxPageSize` caps `?pageSize=`)                                                                                             |
+| `actions`, `bulkActions`                                                     | Custom buttons (see [Actions](#6-actions))                                                                                                                |
+| `exactCount`, `exportBatchSize`                                              | Large-table tuning (see [Millions of rows](#7-millions-of-rows))                                                                                          |
 
 `new AdminResource({ modelName: 'Order', ... })` works too and also inherits the model's fields.
 
@@ -1937,9 +1999,17 @@ app.admin({
     new MetricWidget({
       title: 'Orders today',
       cacheSeconds: 60, // cache expensive queries for every viewer
-      getValue: async () => ({ value: await Order.where('createdAt', '>=', startOfDay()).count(), change: 12.5, hint: 'vs yesterday' }),
+      getValue: async () => ({
+        value: await Order.where('createdAt', '>=', startOfDay()).count(),
+        change: 12.5,
+        hint: 'vs yesterday',
+      }),
     }),
-    new MetricWidget({ title: 'Revenue', permission: 'finance.view', getValue: async () => `₹${await Order.query().sum('total')}` }),
+    new MetricWidget({
+      title: 'Revenue',
+      permission: 'finance.view',
+      getValue: async () => `₹${await Order.query().sum('total')}`,
+    }),
     new ChartWidget({
       title: 'Orders by status',
       chartType: 'bar', // or 'line'
@@ -1947,7 +2017,10 @@ app.admin({
       refreshIntervalSeconds: 60,
       cacheSeconds: 60,
       getChartData: async () => {
-        const rows = await Order.query().groupBy(['status'], { orders: ['count'], revenue: ['sum', 'total'] });
+        const rows = await Order.query().groupBy(['status'], {
+          orders: ['count'],
+          revenue: ['sum', 'total'],
+        });
         return {
           labels: rows.map((r) => String(r['status'])),
           datasets: [{ label: 'Orders', data: rows.map((r) => Number(r['orders'])) }],
@@ -1964,7 +2037,12 @@ app.admin({
     }),
     new ActivityWidget({
       title: 'Signups',
-      getActivity: async () => (await User.query().latest().limit(10).get()).map((u) => ({ id: String(u.id), title: u.email, timestamp: u.createdAt.getTime() })),
+      getActivity: async () =>
+        (await User.query().latest().limit(10).get()).map((u) => ({
+          id: String(u.id),
+          title: u.email,
+          timestamp: u.createdAt.getTime(),
+        })),
     }),
   ],
 });
@@ -1972,13 +2050,13 @@ app.admin({
 declare function startOfDay(): Date;
 ```
 
-| Option (every widget) | Meaning |
-| --- | --- |
-| `title`, `description` | Card heading (the id defaults to a slug of the title) |
-| `width` | `'quarter'` (metrics default), `'third'`, `'half'` (default), `'full'` |
-| `permission` | Only identities with this permission (or superusers) see it |
-| `cacheSeconds` | Server-side cache shared by all viewers; concurrent requests share one query. Don't use it for per-user data |
-| `refreshIntervalSeconds` | The browser reloads the widget on this interval |
+| Option (every widget)    | Meaning                                                                                                      |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `title`, `description`   | Card heading (the id defaults to a slug of the title)                                                        |
+| `width`                  | `'quarter'` (metrics default), `'third'`, `'half'` (default), `'full'`                                       |
+| `permission`             | Only identities with this permission (or superusers) see it                                                  |
+| `cacheSeconds`           | Server-side cache shared by all viewers; concurrent requests share one query. Don't use it for per-user data |
+| `refreshIntervalSeconds` | The browser reloads the widget on this interval                                                              |
 
 Getters receive `{ identity }`, so a widget can show per-user data:
 `getValue: ({ identity }) => Order.where('ownerId', identity.id).count()`.
@@ -2004,7 +2082,14 @@ const finance = new AdminPage({
   permission: 'finance.view', // hidden for everyone else
   widgets: [
     new MetricWidget({ title: 'Refunds this month', getValue: () => 12 }),
-    new ChartWidget({ title: 'Revenue', chartType: 'bar', getChartData: () => ({ labels: ['Jan', 'Feb'], datasets: [{ label: 'Revenue', data: [120, 180] }] }) }),
+    new ChartWidget({
+      title: 'Revenue',
+      chartType: 'bar',
+      getChartData: () => ({
+        labels: ['Jan', 'Feb'],
+        datasets: [{ label: 'Revenue', data: [120, 180] }],
+      }),
+    }),
   ],
 });
 
@@ -2039,7 +2124,8 @@ app.admin({
         {
           id: 'mark-shipped',
           label: 'Mark as shipped',
-          handler: async ({ ids }) => Order.query().whereIn('id', ids).update({ status: 'shipped' }),
+          handler: async ({ ids }) =>
+            Order.query().whereIn('id', ids).update({ status: 'shipped' }),
         },
       ],
     },
@@ -2097,14 +2183,14 @@ The same keyset batching powers the ORM: `Model.query().chunk(1000, fn)` and `.c
 Superusers can do everything. Other admin users need permissions per resource (the resource id is
 the lower-cased model name):
 
-| Permission | Allows |
-| --- | --- |
-| `admin.access` (or role `admin` / `staff`) | Entering the admin |
-| `admin.<resource>.view` | List, detail, export |
-| `admin.<resource>.add` / `.change` / `.delete` / `.restore` | Create / edit / delete / restore |
-| `admin.<resource>.*`, `admin.*` | Everything on one resource / all resources |
-| an action's `permission` | Running that action |
-| a widget's or page's `permission` | Seeing it |
+| Permission                                                  | Allows                                     |
+| ----------------------------------------------------------- | ------------------------------------------ |
+| `admin.access` (or role `admin` / `staff`)                  | Entering the admin                         |
+| `admin.<resource>.view`                                     | List, detail, export                       |
+| `admin.<resource>.add` / `.change` / `.delete` / `.restore` | Create / edit / delete / restore           |
+| `admin.<resource>.*`, `admin.*`                             | Everything on one resource / all resources |
+| an action's `permission`                                    | Running that action                        |
+| a widget's or page's `permission`                           | Seeing it                                  |
 
 Resources a user can't view are hidden from the sidebar. Fields marked `sensitive` are visible only
 to superusers.
@@ -2148,17 +2234,17 @@ app.admin({
 
 ## 10. Security
 
-| Threat | Protection |
-| --- | --- |
-| Default or guessable credentials | Login refused in production without a configured password; use `createAuth` users |
-| Password guessing | 5 failures per account per 15 minutes (20 per IP) → `429` (auth-kit lockout when using `createAuth`) |
-| Stolen session token | 256-bit random tokens, stored hashed, 8-hour lifetime; sessions can be revoked |
-| Mass assignment | Only `createFields` / `editFields` are written |
-| Data leaks | Hidden and sensitive fields are stripped server-side; sorting, filtering and export only on visible fields |
-| SQL injection via sort/filter | Sort and filter fields are allow-listed; values are bound parameters |
-| CSV / formula injection | Exported cells starting with `= + - @` are prefixed with `'` |
-| Export links leaking | One-time links valid for 60 seconds; the session token never appears in a URL |
-| 2FA secret leaks | The QR secret never leaves the page (no third-party QR service) |
+| Threat                           | Protection                                                                                                 |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Default or guessable credentials | Login refused in production without a configured password; use `createAuth` users                          |
+| Password guessing                | 5 failures per account per 15 minutes (20 per IP) → `429` (auth-kit lockout when using `createAuth`)       |
+| Stolen session token             | 256-bit random tokens, stored hashed, 8-hour lifetime; sessions can be revoked                             |
+| Mass assignment                  | Only `createFields` / `editFields` are written                                                             |
+| Data leaks                       | Hidden and sensitive fields are stripped server-side; sorting, filtering and export only on visible fields |
+| SQL injection via sort/filter    | Sort and filter fields are allow-listed; values are bound parameters                                       |
+| CSV / formula injection          | Exported cells starting with `= + - @` are prefixed with `'`                                               |
+| Export links leaking             | One-time links valid for 60 seconds; the session token never appears in a URL                              |
+| 2FA secret leaks                 | The QR secret never leaves the page (no third-party QR service)                                            |
 
 ---
 
@@ -2166,18 +2252,18 @@ app.admin({
 
 All routes are under `/admin/api/v1` (`apiPrefix`) and return `{ ok, data }` or `{ ok: false, error }`.
 
-| Route | Purpose |
-| --- | --- |
-| `POST /auth/login` · `POST /auth/logout` · `GET /auth/me` | Sign in / out |
-| `GET /auth/sessions` · `DELETE /auth/sessions/:id` · `POST /auth/sessions/terminate-others` | Sessions |
-| `GET /resources` | Resources the user can view, with their schemas |
-| `GET /resources/:id?page&pageSize&search&sort&sortDirection&filter_<field>` | List |
-| `POST /resources/:id` · `GET/PATCH/DELETE /resources/:id/:pk` | CRUD |
-| `POST /resources/:id/bulk/delete` · `POST /resources/:id/bulk/:action` · `POST /resources/:id/:pk/actions/:action` | Actions |
-| `POST /resources/:id/export` → `GET /resources/:id/export?ticket=` | CSV export |
-| `GET /dashboard` · `GET /dashboard/widgets/:id` | Dashboard |
-| `GET /pages` · `GET /pages/:id` · `GET /pages/:id/widgets/:widget` | Custom pages |
-| `GET /audit` · `GET /system/health` | Audit trail, health |
+| Route                                                                                                              | Purpose                                         |
+| ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- |
+| `POST /auth/login` · `POST /auth/logout` · `GET /auth/me`                                                          | Sign in / out                                   |
+| `GET /auth/sessions` · `DELETE /auth/sessions/:id` · `POST /auth/sessions/terminate-others`                        | Sessions                                        |
+| `GET /resources`                                                                                                   | Resources the user can view, with their schemas |
+| `GET /resources/:id?page&pageSize&search&sort&sortDirection&filter_<field>`                                        | List                                            |
+| `POST /resources/:id` · `GET/PATCH/DELETE /resources/:id/:pk`                                                      | CRUD                                            |
+| `POST /resources/:id/bulk/delete` · `POST /resources/:id/bulk/:action` · `POST /resources/:id/:pk/actions/:action` | Actions                                         |
+| `POST /resources/:id/export` → `GET /resources/:id/export?ticket=`                                                 | CSV export                                      |
+| `GET /dashboard` · `GET /dashboard/widgets/:id`                                                                    | Dashboard                                       |
+| `GET /pages` · `GET /pages/:id` · `GET /pages/:id/widgets/:widget`                                                 | Custom pages                                    |
+| `GET /audit` · `GET /system/health`                                                                                | Audit trail, health                             |
 
 ---
 
@@ -2329,7 +2415,15 @@ function modelFor(name: string) {
 export function createOrmAdminQueryAdapter(): IAdminQueryAdapter {
   return {
     // `query` arrives validated: sort/filter fields are allow-listed and pageSize is capped.
-    async list({ modelName, query, searchFields, primaryKey, defaultSortField, defaultSortDirection, pageSize }) {
+    async list({
+      modelName,
+      query,
+      searchFields,
+      primaryKey,
+      defaultSortField,
+      defaultSortDirection,
+      pageSize,
+    }) {
       let q = modelFor(modelName).query();
       const search = query.search;
       if (search && searchFields.length > 0) {
@@ -2339,7 +2433,10 @@ export function createOrmAdminQueryAdapter(): IAdminQueryAdapter {
       for (const [field, value] of Object.entries(query.filters ?? {})) q = q.where(field, value);
       const dir = (query.sortDirection ?? defaultSortDirection) === 'desc' ? 'DESC' : 'ASC';
       q = q.orderBy(query.sort ?? defaultSortField, dir).orderBy(primaryKey, 'ASC');
-      const result = await q.paginate({ page: query.page ?? 1, pageSize: query.pageSize ?? pageSize });
+      const result = await q.paginate({
+        page: query.page ?? 1,
+        pageSize: query.pageSize ?? pageSize,
+      });
       return { ...result, items: result.items.map((item) => item.toJSON()) };
     },
     async findById({ modelName, id }) {
@@ -3018,9 +3115,13 @@ function's destructured argument:
 ```typescript
 import { tool } from 'jsango';
 
-export const getWeather = tool('getWeather', 'Get current weather for a city', async ({ city }: { city: string }) => {
-  return { city, temperature: 22, condition: 'Sunny' };
-});
+export const getWeather = tool(
+  'getWeather',
+  'Get current weather for a city',
+  async ({ city }: { city: string }) => {
+    return { city, temperature: 22, condition: 'Sunny' };
+  }
+);
 ```
 
 ---
@@ -3146,7 +3247,13 @@ a Redis-backed store:
 import type { MemoryStore, LlmMessage } from 'jsango';
 
 class RedisMemory implements MemoryStore {
-  constructor(private readonly redis: { get(k: string): Promise<string | null>; set(k: string, v: string): Promise<unknown>; del(k: string): Promise<unknown> }) {}
+  constructor(
+    private readonly redis: {
+      get(k: string): Promise<string | null>;
+      set(k: string, v: string): Promise<unknown>;
+      del(k: string): Promise<unknown>;
+    }
+  ) {}
   async get(key: string): Promise<LlmMessage[]> {
     return JSON.parse((await this.redis.get(`mem:${key}`)) ?? '[]');
   }
@@ -3176,7 +3283,7 @@ import { knowledge, InMemoryVectorStore } from 'jsango';
 
 export const companyDocs = knowledge('company-docs', {
   vectorStore: new InMemoryVectorStore(), // default; plug in your own IVectorStore
-  chunkSize: 500,                         // words per chunk
+  chunkSize: 500, // words per chunk
   chunkOverlap: 50,
 });
 
@@ -3188,7 +3295,11 @@ await companyDocs.ingest(
 
 // ...or documents you have already split
 await companyDocs.ingest([
-  { id: 'faq_1', content: 'Refunds are processed within 5 business days.', metadata: { section: 'faq' } },
+  {
+    id: 'faq_1',
+    content: 'Refunds are processed within 5 business days.',
+    metadata: { section: 'faq' },
+  },
 ]);
 ```
 
@@ -3429,7 +3540,7 @@ import { FakeLlmProvider, agent, tool, object, string } from 'jsango';
 describe('Customer Support Agent', () => {
   it('calls lookupOrder tool and answers user', async () => {
     const fake = new FakeLlmProvider()
-      .respondWithTool('lookupOrder', { orderId: 'ord_999' })      // 1st call: use the tool
+      .respondWithTool('lookupOrder', { orderId: 'ord_999' }) // 1st call: use the tool
       .respond('Order ord_999 has been shipped and is in transit.'); // 2nd call: final answer
 
     let toolExecuted = false;
@@ -3474,11 +3585,15 @@ answer specific prompts, plus `setDefaultResponse()` for everything else.
 ```typescript
 import { evaluate } from 'jsango';
 
-const report = await evaluate('Refund agent', [
-  { input: 'Please cancel order 123', expectedTools: ['cancelOrder'] },
-  { input: 'What is your return policy?', expected: /30 days/ },
-  { input: 'Hi', expected: (res) => res.text.length > 0, maxDurationMs: 2000 },
-], supportAgent);
+const report = await evaluate(
+  'Refund agent',
+  [
+    { input: 'Please cancel order 123', expectedTools: ['cancelOrder'] },
+    { input: 'What is your return policy?', expected: /30 days/ },
+    { input: 'Hi', expected: (res) => res.text.length > 0, maxDurationMs: 2000 },
+  ],
+  supportAgent
+);
 
 console.log(report.passed, report.score, report.errors);
 // passed: every case passed; score: % of passing cases (0-100); errors: failure reasons
