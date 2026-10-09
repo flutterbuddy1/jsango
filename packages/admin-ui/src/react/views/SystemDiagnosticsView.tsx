@@ -13,7 +13,6 @@ interface SystemHealthData {
   pid: number;
   resourcesCount: number;
   pagesCount: number;
-  activeSessions: number;
   services: Record<string, { status: 'up' | 'down'; label: string; subtext?: string }>;
 }
 
@@ -71,7 +70,6 @@ export const SystemDiagnosticsView: React.FC = () => {
         ['Heap used / total', `${formatBytes(health.memory.heapUsed)} / ${formatBytes(health.memory.heapTotal)}`],
         ['Resident memory', formatBytes(health.memory.rss)],
         ['Models / pages', `${health.resourcesCount} / ${health.pagesCount}`],
-        ['Active admin sessions', String(health.activeSessions)],
       ]
     : [];
 

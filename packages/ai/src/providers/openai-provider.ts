@@ -1,4 +1,9 @@
-import { BaseLlmProvider } from './base-provider.js';
+import {
+  BaseLlmProvider,
+  withTimeout,
+  GENERATE_TIMEOUT_MS,
+  STREAM_TIMEOUT_MS,
+} from './base-provider.js';
 import type { LlmCallOptions, LlmChunk, LlmResponse, LlmStream, LlmToolCall } from '../types.js';
 import { ProviderError } from '../errors.js';
 
@@ -46,7 +51,7 @@ export class OpenAiProvider extends BaseLlmProvider {
         headers,
         body: JSON.stringify(payload),
       };
-      if (options.signal) fetchInit.signal = options.signal;
+      fetchInit.signal = withTimeout(options.signal, GENERATE_TIMEOUT_MS);
 
       const res = await fetch(`${this.baseUrl}/chat/completions`, fetchInit);
 
@@ -142,7 +147,7 @@ export class OpenAiProvider extends BaseLlmProvider {
         headers,
         body: JSON.stringify(payload),
       };
-      if (options.signal) fetchInit.signal = options.signal;
+      fetchInit.signal = withTimeout(options.signal, STREAM_TIMEOUT_MS);
 
       const res = await fetch(`${baseUrl}/chat/completions`, fetchInit);
 
@@ -211,6 +216,7 @@ export class OpenAiProvider extends BaseLlmProvider {
 
     const res = await fetch(`${this.baseUrl}/embeddings`, {
       method: 'POST',
+      signal: AbortSignal.timeout(60_000),
       headers,
       body: JSON.stringify({ model, input }),
     });

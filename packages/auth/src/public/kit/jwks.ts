@@ -8,8 +8,12 @@ export interface JwksVerifierOptions {
   readonly jwksUrl: string;
   /** Expected `iss` claim (required: tokens from other issuers are rejected). */
   readonly issuer: string | readonly string[];
-  /** Expected `aud` claim (your API identifier / client id). */
-  readonly audience?: string | readonly string[] | undefined;
+  /**
+   * Expected `aud` claim (your API identifier / client id). Required: without it, tokens the same
+   * provider issued for other apps (e.g. any Google sign-in) would be accepted. Pass `false` only
+   * if your provider really issues no audience.
+   */
+  readonly audience: string | readonly string[] | false;
   readonly clockToleranceSeconds?: number | undefined;
   /** How long fetched keys are cached. Default 10 minutes. */
   readonly cacheSeconds?: number | undefined;
@@ -46,11 +50,17 @@ export class JwksVerifier {
   private readonly options: JwksVerifierOptions;
   private keys = new Map<string, crypto.KeyObject>();
   private fetchedAt = 0;
+  private attemptedAt = 0;
   private inflight: Promise<void> | undefined;
 
   public constructor(options: JwksVerifierOptions) {
     if (!options?.jwksUrl || !options.issuer) {
       throw new Error('JwksVerifier requires jwksUrl and issuer.');
+    }
+    if (options.audience === undefined) {
+      throw new Error(
+        'JwksVerifier requires audience (your API identifier / client id), or audience: false.'
+      );
     }
     this.options = options;
   }
@@ -59,10 +69,14 @@ export class JwksVerifier {
     const ttl = (this.options.cacheSeconds ?? 600) * 1000;
     if (!force && this.keys.size > 0 && Date.now() - this.fetchedAt < ttl) return;
     // Rate-limit forced refreshes (unknown kid) to once every 30 seconds.
-    if (force && Date.now() - this.fetchedAt < 30_000) return;
+    if (force && Date.now() - this.attemptedAt < 30_000) return;
     this.inflight ??= (async () => {
+      // Counts failed fetches too: a provider outage must not trigger a fetch per request.
+      this.attemptedAt = Date.now();
       try {
-        const res = await (this.options.fetch ?? fetch)(this.options.jwksUrl);
+        const res = await (this.options.fetch ?? fetch)(this.options.jwksUrl, {
+          signal: AbortSignal.timeout(5_000), // a hanging provider must not hang every request
+        });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const body = (await res.json()) as { keys?: Jwk[] };
         const keys = new Map<string, crypto.KeyObject>();

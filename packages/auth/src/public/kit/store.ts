@@ -16,6 +16,14 @@ export interface AuthStore {
 /** In-process store. Fine for development, tests and single-instance apps; lost on restart. */
 export class MemoryAuthStore implements AuthStore {
   private readonly entries = new Map<string, { value: string; expiresAt: number }>();
+  private writes = 0;
+
+  /** Drops expired entries now and then, so keys that are never read again don't pile up. */
+  private sweep(): void {
+    if (++this.writes % 1000 !== 0) return;
+    const now = Date.now();
+    for (const [key, entry] of this.entries) if (entry.expiresAt <= now) this.entries.delete(key);
+  }
 
   private live(key: string) {
     const entry = this.entries.get(key);
@@ -31,6 +39,7 @@ export class MemoryAuthStore implements AuthStore {
   }
 
   public async set(key: string, value: string, ttlSeconds: number): Promise<void> {
+    this.sweep();
     this.entries.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
   }
 
@@ -39,6 +48,7 @@ export class MemoryAuthStore implements AuthStore {
   }
 
   public async increment(key: string, ttlSeconds: number): Promise<number> {
+    this.sweep();
     const entry = this.live(key);
     const next = entry ? Number(entry.value) + 1 : 1;
     this.entries.set(key, {
@@ -150,7 +160,29 @@ export class DatabaseAuthStore implements AuthStore {
     return value === undefined || value === null ? undefined : String(value);
   }
 
+  private writes = 0;
+
+  /** Deletes expired rows every 100 writes: keys that are never read again would pile up. */
+  private sweep(): void {
+    if (++this.writes % 100 !== 0) return;
+    const now = Date.now();
+    const done =
+      this.driver === 'mongodb'
+        ? this.mongo((execute) =>
+            execute({
+              op: 'deleteMany',
+              collection: this.table,
+              filter: { expires_at: { $lte: now } },
+            })
+          )
+        : this.db.query(`DELETE FROM ${this.q(this.table)} WHERE ${this.q('expires_at')} <= ?`, [
+            now,
+          ]);
+    void Promise.resolve(done).catch(() => {}); // best effort; retried 100 writes later
+  }
+
   public async set(key: string, value: string, ttlSeconds: number): Promise<void> {
+    this.sweep();
     const expiresAt = Date.now() + ttlSeconds * 1000;
     if (this.driver === 'mongodb') {
       await this.mongo((execute) =>

@@ -251,6 +251,8 @@ describe('report_issue', () => {
         'Authorization: Bearer abcdefghijklmnopqrstuvwxyz123456',
         'token eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U',
         'ghp_abcdefghijklmnopqrstuvwxyz0123456789',
+        'sk-ant-api03-AbCdEfGhIjKlMnOpQrStUvWxYz_0123456789',
+        'AIzaSyA1234567890abcdefghijklmnopqrstuv',
         `${os.homedir()}/secret-project/file.ts`,
         'npm i jsango@1.4.0 and import from @jsango/auth',
       ].join('\n');
@@ -258,6 +260,8 @@ describe('report_issue', () => {
       for (const secret of [
         'hunter2',
         'pw123',
+        'sk-ant-api03',
+        'AIzaSyA123',
         'abcdefghijklmnopqrstuvwxyz123456',
         'eyJhbGci',
         'ghp_',

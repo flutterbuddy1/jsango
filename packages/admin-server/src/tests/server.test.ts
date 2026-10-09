@@ -4,6 +4,7 @@ import { HttpRequest, RequestContext } from '@jsango/http';
 import { AdminRegistry, AdminResource } from '@jsango/admin-core';
 import { AdminPermissionChecker } from '@jsango/admin-auth';
 import { AdminAuditLogger, InMemoryAuditStore } from '@jsango/admin-audit';
+import { AdminMediaManager, InMemoryMediaStorage } from '@jsango/admin-media';
 import type { Identity } from '@jsango/auth';
 import { AdminServer } from '../public/server.js';
 import type { IAdminQueryAdapter, AdminListResult } from '../public/types.js';
@@ -71,12 +72,14 @@ describe('AdminServer', () => {
         { name: 'id', type: 'uuid', readonly: true },
         { name: 'title', type: 'text', searchable: true },
         { name: 'published', type: 'boolean' },
+        { name: 'categoryId', type: 'relation', relationTarget: 'Category' },
       ],
       searchFields: ['title'],
       createFields: ['title', 'published'],
       editFields: ['title', 'published'],
     });
     registry.register(resource);
+    registry.register(new AdminResource({ id: 'categories', modelName: 'Category' }));
 
     const store = new InMemoryAuditStore();
     const audit = new AdminAuditLogger({ store });
@@ -89,6 +92,7 @@ describe('AdminServer', () => {
       audit,
       prefix: '/admin/api/v1',
       resolveIdentity: () => currentIdentity,
+      media: { memory: new AdminMediaManager({ storage: new InMemoryMediaStorage() }) },
     });
 
     router = new Router();
@@ -120,7 +124,45 @@ describe('AdminServer', () => {
     expect(res.statusCode).toBe(200);
     const data = JSON.parse(res.body as string) as { ok: boolean; data: { resources: unknown[] } };
     expect(data.ok).toBe(true);
-    expect(data.data.resources).toHaveLength(1);
+    expect(data.data.resources).toHaveLength(2);
+  });
+
+  it('resolves relation targets to admin resource ids', async () => {
+    const res = await router.handle(createCtx('GET', '/admin/api/v1/resources/posts/schema'));
+    const { data } = JSON.parse(res.body as string) as {
+      data: { schema: { fields: { name: string; relatedResource?: string }[] } };
+    };
+    expect(data.schema.fields.find((f) => f.name === 'categoryId')?.relatedResource).toBe(
+      'categories'
+    );
+  });
+
+  it('uploads, lists and deletes media files', async () => {
+    const upload = new RequestContext({
+      request: new HttpRequest({
+        method: 'POST',
+        url: 'http://localhost/admin/api/v1/media/memory?prefix=img',
+        // The client's type is ignored: the extension decides.
+        headers: { 'content-type': 'text/html', 'x-file-name': encodeURIComponent('a b.png') },
+        body: 'png-bytes',
+      }),
+    });
+    const created = await router.handle(upload);
+    expect(created.statusCode).toBe(201);
+    const { file } = (
+      JSON.parse(created.body as string) as { data: { file: { key: string; mimeType: string } } }
+    ).data;
+    expect(file.mimeType).toBe('image/png');
+
+    const listed = await router.handle(createCtx('GET', '/admin/api/v1/media/memory'));
+    expect(JSON.parse(listed.body as string).data.files).toHaveLength(1);
+
+    const del = await router.handle(
+      createCtx('DELETE', `/admin/api/v1/media/memory?key=${encodeURIComponent(file.key)}`)
+    );
+    expect(del.statusCode).toBe(204);
+    const missing = await router.handle(createCtx('GET', '/admin/api/v1/media/nope'));
+    expect(missing.statusCode).toBe(404);
   });
 
   it('GET /resources/:resourceId/schema returns resource schema', async () => {

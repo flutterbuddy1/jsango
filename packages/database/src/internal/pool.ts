@@ -37,6 +37,10 @@ export class ConnectionPool {
   private readonly idle: PooledResource[] = [];
   private readonly active = new Set<IDriverConnection>();
   private readonly waiters: Waiter[] = [];
+  /** Connections being opened: counted in `size`, or concurrent acquires overshoot `max`. */
+  private creating = 0;
+  /** When each connection was opened, so `maxLifetimeMs` survives release/acquire cycles. */
+  private readonly openedAt = new WeakMap<IDriverConnection, number>();
   private closed = false;
   private reapingInterval: ReturnType<typeof setInterval> | undefined;
 
@@ -64,7 +68,18 @@ export class ConnectionPool {
   }
 
   public get size(): number {
-    return this.idle.length + this.active.size;
+    return this.idle.length + this.active.size + this.creating;
+  }
+
+  private async open(): Promise<IDriverConnection> {
+    this.creating++;
+    try {
+      const raw = await this.factory();
+      this.openedAt.set(raw, Date.now());
+      return raw;
+    } finally {
+      this.creating--;
+    }
   }
 
   public get idleCount(): number {
@@ -96,7 +111,7 @@ export class ConnectionPool {
       warmups.push(
         (async () => {
           try {
-            const raw = await this.factory();
+            const raw = await this.open();
             this.idle.push({
               connection: raw,
               createdAt: Date.now(),
@@ -155,7 +170,7 @@ export class ConnectionPool {
     // 2. If under max capacity, create a fresh connection
     if (this.size < this.config.max) {
       try {
-        const raw = await this.factory();
+        const raw = await this.open();
         this.active.add(raw);
         return raw;
       } catch (err) {
@@ -238,7 +253,7 @@ export class ConnectionPool {
     // Return to idle pool
     this.idle.push({
       connection: conn,
-      createdAt: Date.now(),
+      createdAt: this.openedAt.get(conn) ?? Date.now(),
       lastUsedAt: Date.now(),
     });
   }
@@ -258,7 +273,7 @@ export class ConnectionPool {
         if (waiter.signalCleanup) waiter.signalCleanup();
 
         try {
-          const replacement = await this.factory();
+          const replacement = await this.open();
           this.active.add(replacement);
           waiter.resolve(replacement);
         } catch (err) {

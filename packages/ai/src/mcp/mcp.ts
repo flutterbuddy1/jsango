@@ -1,3 +1,4 @@
+import { ToolExecutor } from '../tools/tool-executor.js';
 import type { ToolDefinition } from '../types.js';
 import { tool } from '../tools/tool.js';
 import { AiError, ToolError } from '../errors.js';
@@ -53,7 +54,14 @@ export class McpServer {
       throw new Error(`MCP Tool '${name}' not found.`);
     }
 
-    const res = await t.execute(args, {});
+    // Same checks as inside an agent: permissions (MCP callers have no identity, so permissioned
+    // tools are refused), approval-gated tools are refused, arguments are validated.
+    const run = await ToolExecutor.execute({ tool: t, arguments: args ?? {}, context: {} });
+    if (run.approvalRequired) {
+      throw new Error(`MCP Tool '${name}' needs human approval and can't be called over MCP.`);
+    }
+    if (run.error) throw new Error(run.error);
+    const res = run.output;
     return {
       content: [
         {

@@ -1,4 +1,4 @@
-import type { IncomingMessage, Server as HttpServer } from 'node:http';
+import { createServer, type IncomingMessage, type Server as HttpServer } from 'node:http';
 import type { Duplex } from 'node:stream';
 import { WebSocketServer as WSServer, WebSocket as WSWebSocket } from 'ws';
 import type { ILogger } from '@jsango/core';
@@ -25,7 +25,8 @@ export interface NodeWebSocketAdapterOptions extends WebSocketServerConfig {
 export class NodeWebSocketAdapter implements IWebSocketServer {
   public readonly manager: WebSocketManager;
   private readonly wss: WSServer;
-  private readonly httpServer?: HttpServer | undefined;
+  private httpServer?: HttpServer | undefined;
+  private readonly standalone: boolean;
   private readonly logger: ILogger;
   private readonly path: string;
   private readonly allowAnonymous: boolean;
@@ -39,21 +40,23 @@ export class NodeWebSocketAdapter implements IWebSocketServer {
     this.httpServer = options.server;
     this.manager = new WebSocketManager(options);
 
-    // If no external HTTP server is provided, we can run standalone with port/host if configured
-    if (this.httpServer) {
-      this.wss = new WSServer({ noServer: true });
-    } else if (options.port !== undefined) {
-      this.wss = new WSServer({
-        port: options.port,
-        host: options.host,
-        path: this.path,
+    // ws buffers a whole message before we see it: cap it at the configured limit (default 1 MB).
+    this.wss = new WSServer({
+      noServer: true,
+      maxPayload: options.limits?.maxMessageSizeBytes ?? 1024 * 1024,
+    });
+    this.standalone = !this.httpServer && options.port !== undefined;
+    if (this.standalone) {
+      // Standalone: our own HTTP server, so every connection goes through authenticateAndUpgrade.
+      this.httpServer = createServer((_req, res) => {
+        res.statusCode = 426;
+        res.end('Upgrade Required');
       });
+      this.httpServer.listen(options.port, options.host);
+      this.httpServer.on('upgrade', this.handleUpgrade.bind(this));
+      this.isBoundToUpgrade = true;
       this._isListening = true;
-    } else {
-      this.wss = new WSServer({ noServer: true });
     }
-
-    this.setupWssEvents();
   }
 
   public get isListening(): boolean {
@@ -80,10 +83,13 @@ export class NodeWebSocketAdapter implements IWebSocketServer {
    * HTTP upgrade handler when sharing an existing Node HTTP server.
    */
   public handleUpgrade(req: IncomingMessage, socket: Duplex, head: Buffer): void {
-    const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+    socket.on('error', () => socket.destroy());
+    // Only the path matters; the Host header is client input and may not parse.
+    const url = new URL(req.url ?? '/', 'http://localhost');
 
     if (url.pathname !== this.path) {
-      return; // Not our WebSocket endpoint, let other handlers handle it
+      if (this.standalone) this.rejectUpgrade(socket, 404, 'Not Found');
+      return; // Not our WebSocket endpoint: another upgrade listener of the shared server may take it
     }
 
     // Execute authentication check
@@ -170,13 +176,6 @@ export class NodeWebSocketAdapter implements IWebSocketServer {
     });
   }
 
-  private setupWssEvents(): void {
-    this.wss.on('connection', (ws: WSWebSocket) => {
-      // Used only when WSS is handling standalone connections directly
-      this.handleConnectedSocket(ws);
-    });
-  }
-
   private rejectUpgrade(socket: Duplex, statusCode: number, statusText: string): void {
     socket.write(
       `HTTP/1.1 ${statusCode} ${statusText}\r\nConnection: close\r\nContent-Type: text/plain\r\n\r\n${statusText}`
@@ -188,10 +187,9 @@ export class NodeWebSocketAdapter implements IWebSocketServer {
     this._isListening = false;
     await this.manager.close(timeoutMs);
 
-    return new Promise((resolve) => {
-      this.wss.close(() => {
-        resolve();
-      });
-    });
+    await new Promise<void>((resolve) => this.wss.close(() => resolve()));
+    if (this.standalone) {
+      await new Promise<void>((resolve) => this.httpServer!.close(() => resolve()));
+    }
   }
 }

@@ -53,7 +53,7 @@ export class PostgresDriverConnection implements IDriverConnection {
   public async query<T = Record<string, unknown>>(
     sql: string,
     params: readonly unknown[] = [],
-    _options?: QueryOptions
+    options?: QueryOptions
   ): Promise<DatabaseResult<T>> {
     if (this._isClosed) {
       throw new QueryError('Cannot execute query on closed Postgres connection.', sql);
@@ -63,12 +63,18 @@ export class PostgresDriverConnection implements IDriverConnection {
     }
 
     try {
-      const res = await this.client.query(
-        sql,
-        params.map((p) => toSqlParam(p, 'postgres'))
-      );
+      const timeout = options?.timeoutMs ?? (this.config as ConnectionConfig).queryTimeoutMs;
+      const res = await this.client.query({
+        text: sql,
+        values: params.map((p) => toSqlParam(p, 'postgres')),
+        ...(timeout ? { query_timeout: timeout } : {}),
+      });
       // Multi-statement queries return an array of results; use the last one.
       const last = Array.isArray(res) ? res[res.length - 1] : res;
+      // A COMMIT after an error inside the transaction is silently turned into a ROLLBACK.
+      if (last?.command === 'ROLLBACK' && /^\s*COMMIT\b/i.test(sql)) {
+        throw new Error('COMMIT was rolled back: a statement in this transaction had failed.');
+      }
       const rows = (last?.rows ?? []) as T[];
       return {
         rows: Object.freeze(rows),
@@ -180,6 +186,8 @@ export class PostgresDatabaseDriver implements IDatabaseDriver {
       max: poolCfg.max ?? 10,
       idleTimeoutMillis: poolCfg.idleTimeoutMs ?? 30_000,
       connectionTimeoutMillis: poolCfg.connectionTimeoutMs ?? 10_000,
+      // Server-side limit too, so the database stops the work (not only the client waiting).
+      statement_timeout: (cfg as ConnectionConfig).queryTimeoutMs,
       ...(cfg.options ?? {}),
     };
     if (cfg.ssl !== undefined) {

@@ -365,9 +365,15 @@ export class Model {
   public toJSON(): Record<string, unknown> {
     const json: Record<string, unknown> = {};
 
+    const meta = (this.constructor as typeof Model).metadata;
     for (const [key, val] of Object.entries(this._attributes)) {
       if (val instanceof Date) {
-        json[key] = val.toISOString();
+        if (Number.isNaN(val.getTime())) json[key] = null;
+        // `date` columns have no time of day: send `2026-10-09`, not a shifted timestamp.
+        else if (meta?.getField(key)?.type === 'date') json[key] = val.toISOString().slice(0, 10);
+        else json[key] = val.toISOString();
+      } else if (typeof val === 'bigint') {
+        json[key] = val.toString(); // JSON has no bigint (JSON.stringify would throw)
       } else {
         json[key] = val;
       }

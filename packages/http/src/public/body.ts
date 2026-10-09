@@ -131,7 +131,8 @@ export class HttpBody {
     const result: Record<string, string | string[]> = {};
 
     for (const [key, val] of params.entries()) {
-      const existing = result[key];
+      if (key === '__proto__') continue; // would replace the result's prototype
+      const existing = Object.hasOwn(result, key) ? result[key] : undefined;
       if (typeof existing === 'undefined') {
         result[key] = val;
       } else if (Array.isArray(existing)) {

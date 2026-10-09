@@ -3,9 +3,12 @@ import type { LlmMessage, MemoryStore } from '../types.js';
 export class InMemoryMemoryStore implements MemoryStore {
   private readonly store = new Map<string, LlmMessage[]>();
   private readonly maxMessages: number;
+  private readonly maxConversations: number;
 
-  constructor(maxMessages = 50) {
+  /** Keeps the last `maxMessages` per conversation and the `maxConversations` most recent ones. */
+  constructor(maxMessages = 50, maxConversations = 1000) {
     this.maxMessages = maxMessages;
+    this.maxConversations = maxConversations;
   }
 
   public async get(key: string): Promise<LlmMessage[]> {
@@ -14,8 +17,14 @@ export class InMemoryMemoryStore implements MemoryStore {
   }
 
   public async set(key: string, messages: LlmMessage[]): Promise<void> {
-    const trimmed = messages.slice(-this.maxMessages);
+    const trimmed = messages.slice(-this.maxMessages).map((m) => ({ ...m }));
+    // Start at a user turn: a leading tool result without its tool call breaks the next request.
+    while (trimmed.length > 0 && trimmed[0]!.role !== 'user') trimmed.shift();
+    this.store.delete(key); // re-insert = most recent
     this.store.set(key, trimmed);
+    if (this.store.size > this.maxConversations) {
+      this.store.delete(this.store.keys().next().value!);
+    }
   }
 
   public async clear(key: string): Promise<void> {

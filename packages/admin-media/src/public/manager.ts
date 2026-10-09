@@ -74,6 +74,21 @@ export class AdminMediaManager {
     return this.storage.url(key, expiresInSeconds);
   }
 
+  /** Lists stored files (empty when the storage driver can't list). */
+  public async list(prefix?: string): Promise<MediaFile[]> {
+    return (await this.storage.list?.(prefix)) ?? [];
+  }
+
+  /** Reads a file's bytes, when the storage driver supports it. */
+  public read(key: string): Promise<{ content: Uint8Array; mimeType: string } | undefined> {
+    return this.storage.read?.(key) ?? Promise.resolve(undefined);
+  }
+
+  /** The underlying storage driver. */
+  public get driver(): IMediaStorage {
+    return this.storage;
+  }
+
   /**
    * Validates an upload against the configured rules.
    * Returns an array of validation errors (empty if valid).

@@ -1,6 +1,6 @@
 {
   "name": "jsango",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Production-grade, batteries-included TypeScript backend framework",
   "type": "module",
   "main": "./dist/index.js",
@@ -44,6 +44,7 @@
     "@jsango/admin-auth": "workspace:^",
     "@jsango/admin-audit": "workspace:^",
     "@jsango/admin-server": "workspace:^",
+    "@jsango/admin-media": "workspace:^",
     "@jsango/admin-ui": "workspace:^",
     "@jsango/cli": "workspace:^",
     "ws": "^8.18.0"

@@ -69,12 +69,27 @@ app.admin({
 ```
 
 You can also set `JSANGO_ADMIN_EMAIL` and `JSANGO_ADMIN_PASSWORD`. Without a password, the
-development default `admin123` works locally, and **login is refused when
-`NODE_ENV=production`**.
+development default `admin123` works only with `NODE_ENV=development` or `test`; everywhere else
+(including a server started without `NODE_ENV`) **login is refused until you set a password of 12+
+characters**.
 
-Admin logins last 8 hours (`sessionTtlSeconds`). The **Profile & Security** page lists the account's
-real sessions and can sign out other devices. For the built-in account it also changes the password
-(the current password is required, 12+ characters) and turns two-factor authentication on or off.
+Admin logins last 8 hours (`sessionTtlSeconds`) and end after an hour without activity. App users'
+roles, bans (`isActive`) and `auth.logoutAll()` are re-checked every minute, so removing someone's
+admin role signs them out of the admin too. The **Profile & Security** page lists the account's real
+sessions and can sign out other devices. For the built-in account it also changes the password (the
+current password is required, 12+ characters) and turns two-factor authentication on or off.
+
+### Several instances / restarts
+
+Sessions, login lockouts, export links and the built-in account's 2FA and changed password live in
+a store. With `auth: createAuth(...)` it is your auth store; otherwise it is memory (one instance,
+reset on restart). To share them between instances behind a load balancer:
+
+```ts
+import { DatabaseAuthStore } from 'jsango';
+
+app.admin({ store: new DatabaseAuthStore({ connection: db }), resources: [Order] });
+```
 
 ---
 
@@ -133,6 +148,74 @@ app.admin({
 | `exactCount`, `exportBatchSize`                                              | Large-table tuning (see [Millions of rows](#7-millions-of-rows))                                                                                          |
 
 `new AdminResource({ modelName: 'Order', ... })` works too and also inherits the model's fields.
+
+### Relations
+
+A `belongsTo` relation turns its foreign key column into a dropdown of the related records (register
+both models in `resources`):
+
+```ts
+const Product = defineModel(
+  'Product',
+  { id: fields.id(), name: fields.string(), categoryId: fields.integer() },
+  {
+    relations: { category: relations.belongsTo(() => Category, { foreignKey: 'categoryId' }) },
+  }
+);
+app.admin({ resources: [Product, Category] });
+```
+
+The dropdown loads options once, shows a search box when there are more than 100, and has **+ New**
+and **Edit** buttons that open the related record's form in a side panel; a record saved there is
+selected straight away. `hasMany` / `manyToMany` relations are not editable in the form.
+
+### Files, images and the media library
+
+Mark a column as `image` or `file` to get an upload box and a **Library** picker. The file is
+stored on the first media disk and the column keeps its URL:
+
+```ts
+app.admin({ resources: [{ model: Product, fields: [{ name: 'image', type: 'image' }] }] });
+```
+
+**Media** in the sidebar lists, uploads (several at once, or drag and drop), previews and deletes
+files, with a tab per disk:
+
+```ts
+import { LocalDiskMediaStorage, S3MediaStorage, AdminMediaManager } from 'jsango';
+
+app.admin({
+  media: {
+    local: new LocalDiskMediaStorage({ root: './uploads', publicUrl: '/media' }), // served by the app
+    s3: new S3MediaStorage({
+      bucket: 'assets',
+      region: 'ap-south-1',
+      accessKeyId: process.env.S3_KEY!,
+      secretAccessKey: process.env.S3_SECRET!,
+    }),
+    r2: new S3MediaStorage({
+      bucket: 'assets',
+      region: 'auto',
+      endpoint: 'https://<account>.r2.cloudflarestorage.com', // also MinIO, Spaces, Backblaze B2
+      publicUrl: 'https://cdn.example.com', // optional; without it previews use signed URLs
+      accessKeyId: process.env.R2_KEY!,
+      secretAccessKey: process.env.R2_SECRET!,
+    }),
+    // upload rules
+    avatars: new AdminMediaManager({
+      storage: new LocalDiskMediaStorage({ root: './uploads/avatars', publicUrl: '/avatars' }),
+      validation: { maxSizeBytes: 2 * 1024 * 1024, allowedMimeTypes: ['image/*'] },
+    }),
+  },
+});
+```
+
+Without `media`, there is one `local` disk (`./uploads`, served at `/media`); `media: {}` turns the
+library off. Local files are served with `nosniff` and a sandboxing CSP, so an uploaded HTML or SVG
+file cannot run scripts on your site. The S3 driver signs requests itself (no AWS SDK), works only inside
+its `root` folder (default `uploads`, so a bucket shared with private files stays private), serves
+anything but images, video, audio and PDF as a download, and lists the first 1000 files. The file
+type always comes from the file extension, never from the browser.
 
 ---
 
@@ -332,20 +415,35 @@ The same keyset batching powers the ORM: `Model.query().chunk(1000, fn)` and `.c
 
 ## 8. Permissions
 
-Superusers can do everything. Other admin users need permissions per resource (the resource id is
-the lower-cased model name):
+Superusers and users with the `admin` role can do everything. Users let in by the `staff` role or
+the `admin.access` permission can do **nothing until you grant it** (the resource id is the
+lower-cased model name):
 
-| Permission                                                  | Allows                                     |
-| ----------------------------------------------------------- | ------------------------------------------ |
-| `admin.access` (or role `admin` / `staff`)                  | Entering the admin                         |
-| `admin.<resource>.view`                                     | List, detail, export                       |
-| `admin.<resource>.add` / `.change` / `.delete` / `.restore` | Create / edit / delete / restore           |
-| `admin.<resource>.*`, `admin.*`                             | Everything on one resource / all resources |
-| an action's `permission`                                    | Running that action                        |
-| a widget's or page's `permission`                           | Seeing it                                  |
+| Permission                                                   | Allows                                       |
+| ------------------------------------------------------------ | -------------------------------------------- |
+| `admin.access` (or role `admin` / `staff`)                   | Entering the admin                           |
+| `admin.<resource>.view`                                      | List and detail                              |
+| `admin.<resource>.export`                                    | CSV export (with `view`)                     |
+| `admin.<resource>.add` / `.change` / `.delete` / `.restore`  | Create / edit / delete / restore             |
+| `admin.<resource>.action.<id>` / `.bulk.<id>`                | Running a row / bulk action                  |
+| `admin.<resource>.*`, `admin.*`                              | Everything on one resource / all resources   |
+| `admin.media.view` / `.add` / `.delete` (or `admin.media.*`) | Media library                                |
+| `admin.audit.view`                                           | Audit trail (it shows every resource's data) |
+| an action's `permission`                                     | Running that action                          |
+| a widget's or page's `permission`                            | Seeing it                                    |
 
 Resources a user can't view are hidden from the sidebar. Fields marked `sensitive` are visible only
 to superusers.
+
+```ts
+app.admin({
+  resources: [Order],
+  permissions: {
+    requireSuperuser: true, // only superusers may enter
+    authorizationManager: policies, // your object-level policies (e.g. own tenant only)
+  },
+});
+```
 
 ---
 
@@ -386,17 +484,21 @@ app.admin({
 
 ## 10. Security
 
-| Threat                           | Protection                                                                                                 |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Default or guessable credentials | Login refused in production without a configured password; use `createAuth` users                          |
-| Password guessing                | 5 failures per account per 15 minutes (20 per IP) → `429` (auth-kit lockout when using `createAuth`)       |
-| Stolen session token             | 256-bit random tokens, stored hashed, 8-hour lifetime; sessions can be revoked                             |
-| Mass assignment                  | Only `createFields` / `editFields` are written                                                             |
-| Data leaks                       | Hidden and sensitive fields are stripped server-side; sorting, filtering and export only on visible fields |
-| SQL injection via sort/filter    | Sort and filter fields are allow-listed; values are bound parameters                                       |
-| CSV / formula injection          | Exported cells starting with `= + - @` are prefixed with `'`                                               |
-| Export links leaking             | One-time links valid for 60 seconds; the session token never appears in a URL                              |
-| 2FA secret leaks                 | The QR secret never leaves the page (no third-party QR service)                                            |
+| Threat                           | Protection                                                                                                                         |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Default or guessable credentials | Login refused in production without a configured password; use `createAuth` users                                                  |
+| Password guessing                | 5 failures per account per 15 minutes (20 per IP) → `429` (auth-kit lockout when using `createAuth`)                               |
+| Stolen session token             | 256-bit random tokens, stored hashed, 8-hour lifetime; sessions can be revoked                                                     |
+| Mass assignment                  | Only `createFields` / `editFields` are written                                                                                     |
+| Privilege escalation by staff    | Limited staff get only the permissions you grant (default deny)                                                                    |
+| Clickjacking / injected scripts  | The admin page sends `frame-ancestors 'none'`, `X-Frame-Options: DENY` and a CSP allowing only its own scripts                     |
+| Stale access after a ban         | App users' roles and `isActive` are re-checked every minute; idle sessions end after an hour                                       |
+| Malicious uploads                | The file type comes from the extension, not the browser; S3 serves non-media files as downloads and stays inside its `root` folder |
+| Data leaks                       | Hidden and sensitive fields are stripped server-side; sorting, filtering and export only on visible fields                         |
+| SQL injection via sort/filter    | Sort and filter fields are allow-listed; values are bound parameters                                                               |
+| CSV / formula injection          | Exported cells starting with `= + - @` are prefixed with `'`                                                                       |
+| Export links leaking             | One-time links valid for 60 seconds; the session token never appears in a URL                                                      |
+| 2FA secret leaks                 | The QR secret never leaves the page (no third-party QR service)                                                                    |
 
 ---
 
@@ -416,3 +518,5 @@ All routes are under `/admin/api/v1` (`apiPrefix`) and return `{ ok, data }` or 
 | `GET /dashboard` · `GET /dashboard/widgets/:id`                                                                    | Dashboard                                       |
 | `GET /pages` · `GET /pages/:id` · `GET /pages/:id/widgets/:widget`                                                 | Custom pages                                    |
 | `GET /audit` · `GET /system/health`                                                                                | Audit trail, health                             |
+| `GET /media` · `GET /media/:disk?prefix=`                                                                          | Media disks and their files                     |
+| `POST /media/:disk` (raw body, `x-file-name` header) · `DELETE /media/:disk?key=`                                  | Upload / delete a file                          |

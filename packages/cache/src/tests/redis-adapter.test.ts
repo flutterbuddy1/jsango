@@ -47,6 +47,10 @@ describe('RedisCacheDriver Adapter', () => {
         memory.clear();
         return 'OK';
       }),
+      scan: vi.fn(async (_cursor: string, ...args: (string | number)[]) => {
+        const prefix = String(args[1]).slice(0, -1);
+        return ['0', [...memory.keys()].filter((k) => k.startsWith(prefix))] as [string, string[]];
+      }),
       quit: vi.fn(async () => 'OK'),
     };
 
@@ -68,8 +72,14 @@ describe('RedisCacheDriver Adapter', () => {
     await driver.delete('rkey');
     expect(mockClient.del).toHaveBeenCalledWith('rkey');
 
-    await driver.clear();
-    expect(mockClient.flushdb).toHaveBeenCalled();
+    // clear() only removes its own prefix and never runs FLUSHDB.
+    await driver.set('app:a', '1');
+    await driver.set('other:b', '2');
+    await driver.clear('app:');
+    expect(await driver.has('app:a')).toBe(false);
+    expect(await driver.has('other:b')).toBe(true);
+    await expect(driver.clear()).rejects.toThrow('without a key prefix');
+    expect(mockClient.flushdb).not.toHaveBeenCalled();
 
     await driver.close();
     expect(mockClient.quit).toHaveBeenCalled();

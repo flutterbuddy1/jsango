@@ -42,6 +42,13 @@ graph TD
 
 ---
 
+## `app.openapi()` options
+
+`app.openapi({ path, docsPath, title, middleware })` serves the spec (`/openapi.json`) and Swagger UI
+(`/docs`). Both are public unless you pass `middleware`, e.g. `[auth.required({ roles: ['admin'] })]`
+for an internal API. Admin routes (wherever the admin is mounted) and the docs routes themselves are
+never listed. Swagger UI is loaded from a pinned version of `swagger-ui-dist`.
+
 ## Key APIs
 
 ### `OpenApiGenerator`

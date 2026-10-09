@@ -201,9 +201,16 @@ export class Worker {
           if (jobs.length > 0) {
             claimedAny = true;
             for (const job of jobs) {
-              const jobPromise = this.processJob(job).finally(() => {
-                this.activeJobs.delete(job.id);
-              });
+              const jobPromise = this.processJob(job)
+                .catch((err: unknown) => {
+                  // e.g. the database failed while recording the job's failure: log, never crash
+                  this.logger.error(`Worker [${this.id}] could not finish job ${job.id}`, {
+                    error: err instanceof Error ? err.message : String(err),
+                  });
+                })
+                .finally(() => {
+                  this.activeJobs.delete(job.id);
+                });
               this.activeJobs.set(job.id, jobPromise);
             }
           }
@@ -246,10 +253,14 @@ export class Worker {
     const abortController = new AbortController();
     let timeoutId: NodeJS.Timeout | undefined;
 
-    if (job.timeoutMs > 0) {
+    // A job may not outlive its lease: after it, another worker can claim the same job and run it
+    // a second time. So the effective timeout is at most the lease.
+    const timeoutMs =
+      job.timeoutMs > 0 ? Math.min(job.timeoutMs, this.leaseTimeoutMs) : this.leaseTimeoutMs;
+    if (timeoutMs > 0) {
       timeoutId = setTimeout(() => {
-        abortController.abort(new JobTimeoutError(job.id, job.type, job.timeoutMs));
-      }, job.timeoutMs);
+        abortController.abort(new JobTimeoutError(job.id, job.type, timeoutMs));
+      }, timeoutMs);
     }
 
     const context: JobContext<unknown> = {
@@ -265,16 +276,29 @@ export class Worker {
         await this.hooks.onJobStarted(job);
       }
 
+      // A handler that ignores `signal` would otherwise run past its timeout unnoticed.
+      const timedOut = new Promise<never>((_, reject) =>
+        abortController.signal.addEventListener(
+          'abort',
+          () => reject(new JobTimeoutError(job.id, job.type, job.timeoutMs)),
+          { once: true }
+        )
+      );
+      timedOut.catch(() => {}); // handled by the race below; avoid an unhandled rejection later
+
       // Execute via middleware pipeline
-      await this.middlewarePipeline.execute(context, async () => {
-        if (context.signal.aborted) {
-          throw new JobTimeoutError(job.id, job.type, job.timeoutMs);
-        }
-        await definition.handler(context);
-        if (context.signal.aborted) {
-          throw new JobTimeoutError(job.id, job.type, job.timeoutMs);
-        }
-      });
+      await Promise.race([
+        this.middlewarePipeline.execute(context, async () => {
+          if (context.signal.aborted) {
+            throw new JobTimeoutError(job.id, job.type, job.timeoutMs);
+          }
+          await definition.handler(context);
+          if (context.signal.aborted) {
+            throw new JobTimeoutError(job.id, job.type, job.timeoutMs);
+          }
+        }),
+        timedOut,
+      ]);
 
       if (context.signal.aborted) {
         throw new JobTimeoutError(job.id, job.type, job.timeoutMs);

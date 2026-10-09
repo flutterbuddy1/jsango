@@ -97,4 +97,13 @@ describe('CacheManager', () => {
 
     expect(() => manager.store()).toThrow(CacheError);
   });
+
+  it('clears one namespace without touching the others', async () => {
+    const cache = new CacheManager();
+    await cache.namespace('a').set('k', 1);
+    await cache.namespace('b').set('k', 2);
+    await cache.namespace('a').clear();
+    expect(await cache.namespace('a').get('k')).toBeUndefined();
+    expect(await cache.namespace('b').get('k')).toBe(2);
+  });
 });

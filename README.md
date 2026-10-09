@@ -15,7 +15,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.5.0-green.svg" alt="Version: 1.5.0" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.6.0-green.svg" alt="Version: 1.6.0" /></a>
   <a href="tsconfig.base.json"><img src="https://img.shields.io/badge/TypeScript-Strict%205.8-blue.svg" alt="TypeScript: Strict" /></a>
   <a href="https://flutterbuddy1.github.io/jsango/"><img src="https://img.shields.io/badge/Docs-Landing%20Page-6366f1.svg" alt="Documentation Site" /></a>
 </p>
@@ -114,34 +114,135 @@ app.post(
   }
 );
 
-// Or generate a full CRUD resource in one line:
+// Or generate a REST resource in one line (reads public, writes locked: see below)
 app.crud('/api/users', User);
 
 await app.listen(3000);
 ```
 
-### 2. Real-Time WebSockets & Rooms
+#### CRUD resources with `app.crud`
+
+`app.crud(path, Model, options)` adds `GET /path` (paginated, `?search=`, filters), `GET /path/:id`,
+`POST /path`, `PUT|PATCH /path/:id` and `DELETE /path/:id`. It is safe by default:
+
+- **Reads are public, writes answer 403** until `access` allows them.
+- **Only real columns are written**: the primary key, timestamps, sensitive fields and privilege
+  fields (`isAdmin`, `isSuperuser`, `isStaff`, `role(s)`, `permissions`, `emailVerified`) are ignored
+  in the body, so no `{"isAdmin": true}` mass assignment. List fields yourself with `writable`.
+- **Sensitive fields are never returned**: names with password, secret, token, apiKey or hash;
+  `hidden` adds more.
 
 ```typescript
-import { createApp } from 'jsango';
+import { schema, string, number, badRequest } from 'jsango';
+
+app.crud('/api/products', Product, {
+  // 'public' or middleware, for every route or per `read` / `write` / list|detail|create|update|delete
+  access: { read: 'public', write: auth.required({ roles: ['admin'] }) },
+  searchFields: ['name'], // ?search=phone
+  filterFields: ['categoryId'], // ?categoryId=3
+  writable: ['name', 'price', 'stock', 'categoryId'], // default: every column but id/timestamps/sensitive
+  schema: schema({ name: string().min(2), price: number().min(0) }), // 400 with field errors
+});
+
+// Each user only sees and changes their own rows; business logic runs in hooks.
+app.crud('/api/addresses', Address, {
+  access: auth.required(),
+  scope: (query, ctx) => query.where('userId', auth.identity(ctx).id),
+  hooks: {
+    beforeCreate: (data, ctx) => ({ ...data, userId: auth.identity(ctx).id }),
+    beforeDelete: async (address) => {
+      if (await Order.where('addressId', address.get('id')).first())
+        throw badRequest('Address is in use');
+    },
+  },
+});
+```
+
+Hooks (`beforeCreate`, `afterCreate`, `beforeUpdate`, `afterUpdate`, `beforeDelete`, `afterDelete`)
+run in one database transaction with the write: throwing in any of them rolls it back. `before*`
+hooks may return changed data. With a `scope`, a create or update that would put the record outside
+it (e.g. `ownerId` changed to someone else) is refused with 403 and rolled back.
+
+**When not to use `app.crud`:** a write that is a whole business process (placing an order: check
+stock, apply a coupon, add tax, charge, send email) belongs in its own route or service. Keep the
+reads from `app.crud` and leave out the write it replaces:
+
+```typescript
+app.crud('/api/orders', Order, {
+  access: auth.required(),
+  only: ['list', 'detail'],
+  scope: (query, ctx) => query.where('userId', auth.identity(ctx).id),
+});
+app.post('/api/orders', auth.required(), validate({ body: PlaceOrder }), (ctx) =>
+  placeOrder(auth.identity(ctx), ctx.body)
+);
+```
+
+#### CORS, security headers and rate limits
+
+```typescript
+import { createApp, cors, securityHeaders, rateLimit } from 'jsango';
+
+const app = createApp({ trustProxy: true }); // behind nginx / a load balancer: real client IPs
+
+app.use(securityHeaders()); // nosniff, no framing, referrer policy, HSTS on https
+app.use(cors({ origin: ['https://app.example.com'], credentials: true })); // browser apps elsewhere
+app.use(rateLimit({ max: 300, windowSeconds: 60 })); // per client IP
+
+// Stricter limit on one route (e.g. login); pass `store` to share counts between instances
+app.post('/login', rateLimit({ max: 10, windowSeconds: 60 }), loginHandler);
+```
+
+### 2. Real-Time WebSockets & Rooms
+
+`app.ws` works like an HTTP route: same paths and params, same middleware (`auth.required()` runs
+on the connection request).
+
+```typescript
+import { createApp, createAuth } from 'jsango';
 
 const app = createApp();
+const auth = createAuth({ secret: process.env.AUTH_SECRET!, users: userLookup });
 
-app.ws('/chat', (socket) => {
-  // Join a room
-  socket.on('join', (room) => {
-    socket.join(room);
-    socket.to(room).send({ type: 'notification', text: `User ${socket.id} joined.` });
-  });
+app.ws('/chat/:room', auth.required(), {
+  open(socket) {
+    socket.join(socket.params.room); // socket.user is the signed-in user
+  },
+  message(socket, data) {
+    // every message; JSON is parsed for you
+  },
+  close(socket) {},
+});
 
-  // Broadcast to room
-  socket.on('message', ({ room, text }) => {
-    socket.to(room).send({ type: 'message', from: socket.id, text });
-  });
+// Event style: the client sends { "event": "typing", "data": { ... } }
+app.ws('/live', (socket) => {
+  socket.on('typing', (data) => socket.to('lobby').emit('typing', data)); // everyone else in the room
+});
+
+// Push from anywhere (HTTP routes, jobs, events). Signed-in sockets are in `user:<id>`.
+app.post('/orders', auth.required(), async (ctx) => {
+  const order = await Order.create({ userId: auth.identity(ctx).id });
+  await app.to(`user:${auth.identity(ctx).id}`).emit('order.created', order);
+  return order;
 });
 
 await app.listen(3000);
 ```
+
+| On the socket                                 | Does                                                          |
+| --------------------------------------------- | ------------------------------------------------------------- |
+| `send(data)` / `emit(event, data)`            | Send JSON / send `{ event, data }`                            |
+| `join(room)`, `leave(room)`, `rooms`          | Rooms are shared by all routes                                |
+| `to(room).send/emit(...)`                     | Everyone in the room except this socket                       |
+| `broadcast(data)`                             | Everyone else on the same route                               |
+| `on('message' \| 'close' \| 'error' \| name)` | Listen; a custom name receives client `{ event: name, data }` |
+| `user`, `params`, `request`, `ctx`, `id`      | Signed-in user, route params, the connection request          |
+
+Secure by default: only pages from your own host may connect (`origins: ['https://app.com']` or
+`'*'` to change; apps without an `Origin` header are allowed), messages are limited to 64 KB
+(`maxPayload`), dead connections are dropped by a 30s ping, slow clients are disconnected instead
+of filling memory, and an error in a handler goes to `error` / the log instead of crashing the
+server. `server.close()` closes open sockets.
 
 ### 3. Background Jobs, Events & Cache
 
@@ -169,7 +270,7 @@ const stats = await cache.remember('dashboard.stats', 60, async () => {
 ### 4. Automatic Admin UI & OpenAPI Documentation
 
 ```typescript
-import { createApp } from 'jsango';
+import { createApp, LocalDiskMediaStorage, S3MediaStorage } from 'jsango';
 import { User } from './models/user.js';
 
 const app = createApp();
@@ -184,11 +285,26 @@ app.openapi({
 // Mount Instant Admin Dashboard with Model Introspection
 app.admin({
   path: '/admin',
-  resources: [User],
+  resources: [User, Product, Category],
+  // Optional: media library disks (default: ./uploads served at /media)
+  media: {
+    local: new LocalDiskMediaStorage(),
+    s3: new S3MediaStorage({
+      bucket: 'assets',
+      region: 'ap-south-1',
+      accessKeyId: process.env.S3_KEY!,
+      secretAccessKey: process.env.S3_SECRET!,
+    }),
+  },
 });
 
 await app.listen(3000);
 ```
+
+In the admin, `belongsTo` relations become searchable dropdowns with **+ New** and **Edit** buttons
+that open the related record's form in a side panel. **Media** (sidebar) uploads, previews and deletes
+files on every configured disk (local, S3, Cloudflare R2, MinIO, DigitalOcean Spaces), and `image` /
+`file` fields upload there or pick from the library.
 
 ### 5. Database, Models & Migrations (PostgreSQL, MySQL, SQLite, MongoDB)
 
@@ -263,15 +379,20 @@ const supportAgent = agent({
   tools: { lookupOrder, refundOrder },
 });
 
-// 3. Expose Agent over HTTP & SSE Streaming in 1 line
+// 3. Expose Agent over HTTP & SSE Streaming in 1 line (auth + rate limits via middleware)
 const app = createApp();
-app.agent('/api/support', supportAgent);
+app.agent('/api/support', supportAgent, { middleware: [auth.required()] });
 
 // 4. Or expose Agent over real-time WebSockets
-app.wsAgent('/ws/support', supportAgent);
+app.wsAgent('/ws/support', supportAgent, { middleware: [auth.required()] });
 
 await app.listen(3000);
 ```
+
+`POST /api/support` with `{ input, conversationId? }` answers `{ text, conversationId, toolCalls,
+usage, status }`; send the `conversationId` back to continue the conversation. The history and the
+system prompt are never returned, anonymous visitors get their own server-issued conversation, input
+is capped at 10,000 characters (`maxInputLength`), and a run stops when the client disconnects.
 
 ---
 

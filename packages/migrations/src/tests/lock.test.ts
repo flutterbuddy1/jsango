@@ -94,4 +94,29 @@ describe('MigrationLock', () => {
       }
     }
   });
+
+  it('keeps a long migration from looking stale to another process', async () => {
+    const conn = await db.manager.connection('default');
+    const other = await db.manager.connection('default');
+    try {
+      const lock = new MigrationLock(conn, {
+        ownerId: 'long',
+        lockExpiryMs: 90,
+        heartbeatConnection: () => db.manager.connection('default') as never,
+      });
+      const rival = new MigrationLock(other, {
+        ownerId: 'rival',
+        lockExpiryMs: 90,
+        acquireTimeoutMs: 150,
+        retryIntervalMs: 20,
+      });
+      await lock.withLock(async () => {
+        await new Promise((r) => setTimeout(r, 120)); // longer than the expiry
+        await expect(rival.acquire()).rejects.toThrow(MigrationLockedError);
+      });
+    } finally {
+      await (conn as { release(): Promise<void> }).release();
+      await (other as { release(): Promise<void> }).release();
+    }
+  });
 });

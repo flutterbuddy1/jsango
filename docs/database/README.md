@@ -92,6 +92,7 @@ DATABASE_USER=app
 DATABASE_PASSWORD=secret
 DATABASE_SSL=            # true / require, no-verify (self-signed), false
 DATABASE_POOL_MAX=10
+DATABASE_QUERY_TIMEOUT=30000 # cancel queries after 30s (PostgreSQL / MySQL); also applies to migrations
 DATABASE_FILE=./db.sqlite3   # SQLite only
 ```
 
@@ -254,25 +255,27 @@ Fields are **NOT NULL by default**. Use `nullable: true` for optional columns.
 
 ### Field types
 
-| Field                                  | PostgreSQL                 | MySQL                            | SQLite                              | JS value                                  |
-| -------------------------------------- | -------------------------- | -------------------------------- | ----------------------------------- | ----------------------------------------- |
-| `fields.id()`                          | `SERIAL PRIMARY KEY`       | `INT AUTO_INCREMENT PRIMARY KEY` | `INTEGER PRIMARY KEY AUTOINCREMENT` | `number`                                  |
-| `fields.string({ maxLength })`         | `VARCHAR(n)` (255)         | `VARCHAR(n)`                     | `VARCHAR(n)`                        | `string`                                  |
-| `fields.text()`                        | `TEXT`                     | `LONGTEXT`                       | `TEXT`                              | `string`                                  |
-| `fields.integer()`                     | `INTEGER`                  | `INT`                            | `INTEGER`                           | `number`                                  |
-| `fields.bigint()`                      | `BIGINT`                   | `BIGINT`                         | `BIGINT`                            | `bigint`                                  |
-| `fields.float()` / `number()`          | `DOUBLE PRECISION`         | `DOUBLE`                         | `REAL`                              | `number`                                  |
-| `fields.decimal({ precision, scale })` | `NUMERIC(p,s)`             | `DECIMAL(p,s)`                   | `NUMERIC(p,s)`                      | `number`                                  |
-| `fields.boolean()`                     | `BOOLEAN`                  | `TINYINT(1)`                     | `INTEGER` (0/1)                     | `boolean`                                 |
-| `fields.dateTime()`                    | `TIMESTAMP WITH TIME ZONE` | `DATETIME(3)` (UTC)              | `DATETIME` (ISO text)               | `Date`                                    |
-| `fields.date()` / `time()`             | `DATE` / `TIME`            | `DATE` / `TIME`                  | `DATE` / `TIME`                     | `Date`                                    |
-| `fields.json()`                        | `JSONB`                    | `JSON`                           | `TEXT`                              | object / array                            |
-| `fields.uuid()`                        | `UUID`                     | `CHAR(36)`                       | `VARCHAR(36)`                       | `string`                                  |
-| `fields.binary()`                      | `BYTEA`                    | `LONGBLOB`                       | `BLOB`                              | `Uint8Array`                              |
-| `fields.objectId()`                    | `VARCHAR(24)`              | `VARCHAR(24)`                    | `VARCHAR(24)`                       | `string` (a native `ObjectId` on MongoDB) |
+| Field                                  | PostgreSQL                 | MySQL                            | SQLite                              | JS value                                              |
+| -------------------------------------- | -------------------------- | -------------------------------- | ----------------------------------- | ----------------------------------------------------- |
+| `fields.id()`                          | `SERIAL PRIMARY KEY`       | `INT AUTO_INCREMENT PRIMARY KEY` | `INTEGER PRIMARY KEY AUTOINCREMENT` | `number`                                              |
+| `fields.string({ maxLength })`         | `VARCHAR(n)` (255)         | `VARCHAR(n)`                     | `VARCHAR(n)`                        | `string`                                              |
+| `fields.text()`                        | `TEXT`                     | `LONGTEXT`                       | `TEXT`                              | `string`                                              |
+| `fields.integer()`                     | `INTEGER`                  | `INT`                            | `INTEGER`                           | `number`                                              |
+| `fields.bigint()`                      | `BIGINT`                   | `BIGINT`                         | `BIGINT`                            | `bigint` (a string in JSON)                           |
+| `fields.float()` / `number()`          | `DOUBLE PRECISION`         | `DOUBLE`                         | `REAL`                              | `number`                                              |
+| `fields.decimal({ precision, scale })` | `NUMERIC(p,s)`             | `DECIMAL(p,s)`                   | `NUMERIC(p,s)`                      | `number` (`string` if a number can't hold it exactly) |
+| `fields.boolean()`                     | `BOOLEAN`                  | `TINYINT(1)`                     | `INTEGER` (0/1)                     | `boolean`                                             |
+| `fields.dateTime()`                    | `TIMESTAMP WITH TIME ZONE` | `DATETIME(3)` (UTC)              | `DATETIME` (ISO text)               | `Date`                                                |
+| `fields.date()`                        | `DATE`                     | `DATE`                           | `DATE`                              | `Date` at UTC midnight (`'2026-10-09'` in JSON)       |
+| `fields.time()`                        | `TIME`                     | `TIME`                           | `TIME`                              | `string` (`'09:30:00'`)                               |
+| `fields.json()`                        | `JSONB`                    | `JSON`                           | `TEXT`                              | object / array                                        |
+| `fields.uuid()`                        | `UUID`                     | `CHAR(36)`                       | `VARCHAR(36)`                       | `string`                                              |
+| `fields.binary()`                      | `BYTEA`                    | `LONGBLOB`                       | `BLOB`                              | `Uint8Array`                                          |
+| `fields.objectId()`                    | `VARCHAR(24)`              | `VARCHAR(24)`                    | `VARCHAR(24)`                       | `string` (a native `ObjectId` on MongoDB)             |
 
 Values are converted both ways: booleans come back as `true`/`false` on every database, dates as
-`Date`, JSON as parsed objects.
+`Date`, JSON as parsed objects. Decimals that a JavaScript number can't represent exactly (e.g.
+`NUMERIC(20,8)` amounts) stay strings, so reading and saving a record never changes them.
 
 ### Field options
 
@@ -285,7 +288,7 @@ Values are converted both ways: booleans come back as `true`/`false` on every da
 | `maxLength: n`                | `VARCHAR(n)`                                                                                                          |
 | `precision`, `scale`          | For `decimal`                                                                                                         |
 | `columnName: 'x'`             | Column name when it differs from the property name                                                                    |
-| `primaryKey`, `autoIncrement` | For custom keys, e.g. `fields.uuid({ primaryKey: true, defaultValue: () => crypto.randomUUID() })`                    |
+| `primaryKey`, `autoIncrement` | For custom keys. `fields.uuid({ primaryKey: true })` generates a random UUID for every new row                        |
 
 Model options: `table`, `connection` (named connection), `primaryKey`, `timestamps`
 (`true` or `{ createdAt: 'created_at', updatedAt: 'updated_at' }`), `softDelete`
@@ -398,6 +401,7 @@ await Book.whereNot((q) => q.where('genre', 'kids').orWhere('price', 0)).get();
 await Book.whereBetween('price', [10, 25]).get(); // also whereNotBetween / orWhereBetween
 await Book.whereLike('title', '%guide%').get(); // case-insensitive everywhere
 await Book.whereLike('code', 'AB_%', { caseSensitive: true }).get(); // exact case on PostgreSQL / MongoDB
+await Book.whereContains('title', req.query.search).get(); // user input: % and _ match literally
 await Book.where('price', 'BETWEEN', [10, 25]).get(); // operator form
 await Book.orWhereIn('genre', ['a', 'b']).orWhereNull('pages').get();
 
@@ -494,7 +498,11 @@ await transaction(
 ```
 
 Every model call inside the callback, including nested async functions, uses the transaction.
-You don't need to pass it around. To use an explicit transaction or connection instead:
+You don't need to pass it around.
+
+A `transaction()` inside another one runs in a **savepoint**: if it throws, only its own changes are
+undone and the outer transaction can continue (catch the error to do so). MongoDB has no savepoints,
+so there a failed inner transaction rolls back the whole outer one. To use an explicit transaction or connection instead:
 `User.query().using(tx)`, `User.create(data, { connection: tx })`, `user.save({ connection: tx })`.
 
 ---
@@ -798,7 +806,11 @@ CLI, so TypeScript migrations run without a build step.
       databases.
 - [ ] Size the pool (`DATABASE_POOL_MAX`) so that `instances × pool size` stays below the
       server's `max_connections`.
-- [ ] Call `await db.verify()` before `listen()` so a bad configuration fails at startup.
+- [ ] Call `await db.verify()` before `listen()` so a bad configuration fails at startup. (Without
+      any database configured, models throw in production instead of using a throwaway in-memory
+      database.)
+- [ ] Set `DATABASE_QUERY_TIMEOUT=30000` (or `queryTimeoutMs` in code) so a hung query can't hold
+      a pooled connection forever; long reports can pass `{ timeoutMs }` per query.
 - [ ] Call `await db.close()` on `SIGTERM`.
 - [ ] Run `npx jsango migrate` in the release pipeline, and `migrate:check` in CI.
 - [ ] Back up the database before any migration marked `[destructive]`.

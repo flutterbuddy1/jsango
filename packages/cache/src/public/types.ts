@@ -70,7 +70,8 @@ export interface ICacheDriver {
   set<T = unknown>(key: string, value: T, ttlMs?: number): Promise<void>;
   has(key: string): Promise<boolean>;
   delete(key: string): Promise<boolean>;
-  clear(): Promise<void>;
+  /** Deletes the keys starting with `prefix`, or every key when it is omitted. */
+  clear(prefix?: string): Promise<void>;
 
   increment(key: string, amount?: number): Promise<number>;
   decrement(key: string, amount?: number): Promise<number>;

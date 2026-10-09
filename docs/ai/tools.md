@@ -79,6 +79,13 @@ await adminAgent.run({
 
 ---
 
+## Argument Validation
+
+Tool arguments come from the model, so a prompt injection can put anything in them. Before
+`execute` runs, jsango checks them: with a `schema` (`schema({ ... })`) the arguments are validated
+and coerced and unknown keys are dropped; with a plain JSON schema, required keys must be present
+and undeclared keys are dropped. Invalid arguments become a tool error the model sees, never a call.
+
 ## Human Approval for Sensitive Actions
 
 Tools with `requiresApproval: true` are never executed by the agent itself; the run pauses

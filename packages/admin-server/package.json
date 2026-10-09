@@ -1,6 +1,6 @@
 {
   "name": "@jsango/admin-server",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Admin HTTP API server — CRUD service layer, REST endpoints, and framework integration for jsango Admin",
   "type": "module",
   "main": "./dist/index.js",
@@ -24,7 +24,8 @@
     "@jsango/auth": "workspace:^",
     "@jsango/admin-core": "workspace:^",
     "@jsango/admin-auth": "workspace:^",
-    "@jsango/admin-audit": "workspace:^"
+    "@jsango/admin-audit": "workspace:^",
+    "@jsango/admin-media": "workspace:^"
   },
   "files": [
     "dist"

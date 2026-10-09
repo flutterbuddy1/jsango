@@ -1,6 +1,6 @@
 {
   "name": "@jsango/queue",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Background job queue, workers, retry policies, and drivers for jsango",
   "type": "module",
   "main": "./dist/index.js",

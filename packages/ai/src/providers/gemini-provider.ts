@@ -1,4 +1,9 @@
-import { BaseLlmProvider } from './base-provider.js';
+import {
+  BaseLlmProvider,
+  withTimeout,
+  GENERATE_TIMEOUT_MS,
+  STREAM_TIMEOUT_MS,
+} from './base-provider.js';
 import type { LlmCallOptions, LlmChunk, LlmResponse, LlmStream, LlmToolCall } from '../types.js';
 import { ProviderError } from '../errors.js';
 
@@ -27,13 +32,14 @@ export class GeminiProvider extends BaseLlmProvider {
     const payload = this.buildPayload(options);
 
     try {
-      const url = `${this.baseUrl}/models/${model}:generateContent?key=${this.apiKey}`;
+      // The key goes in a header: URLs end up in proxy and request logs.
+      const url = `${this.baseUrl}/models/${model}:generateContent`;
       const fetchInit: RequestInit = {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': this.apiKey },
         body: JSON.stringify(payload),
       };
-      if (options.signal) fetchInit.signal = options.signal;
+      fetchInit.signal = withTimeout(options.signal, GENERATE_TIMEOUT_MS);
 
       const res = await fetch(url, fetchInit);
 
@@ -87,13 +93,13 @@ export class GeminiProvider extends BaseLlmProvider {
     const baseUrl = this.baseUrl;
 
     const generator = async function* (): AsyncGenerator<LlmChunk, void, unknown> {
-      const url = `${baseUrl}/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
+      const url = `${baseUrl}/models/${model}:streamGenerateContent?alt=sse`;
       const fetchInit: RequestInit = {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
         body: JSON.stringify(payload),
       };
-      if (options.signal) fetchInit.signal = options.signal;
+      fetchInit.signal = withTimeout(options.signal, STREAM_TIMEOUT_MS);
 
       const res = await fetch(url, fetchInit);
 

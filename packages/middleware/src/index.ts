@@ -22,4 +22,12 @@ export {
 
   // Application
   Application,
+
+  // Security
+  cors,
+  securityHeaders,
+  rateLimit,
+  type CorsOptions,
+  type RateLimitOptions,
+  type RateLimitStore,
 } from './public/index.js';

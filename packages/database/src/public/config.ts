@@ -25,6 +25,11 @@ export interface ConnectionConfig {
   readonly url?: string | undefined;
   readonly ssl?: boolean | Record<string, unknown> | undefined;
   readonly pool?: PoolConfig | undefined;
+  /**
+   * Cancels a query running longer than this (PostgreSQL, MySQL). A hung query otherwise holds a
+   * pooled connection forever. Per query: `{ timeoutMs }`. Default: no limit.
+   */
+  readonly queryTimeoutMs?: number | undefined;
   readonly options?: Record<string, unknown> | undefined;
 }
 
@@ -235,6 +240,7 @@ function envNumber(value: string | undefined): number | undefined {
  * | DATABASE_FILE         | SQLite file (default ./db.sqlite3)                           |
  * | DATABASE_SSL          | true / require, no-verify, false                             |
  * | DATABASE_POOL_MIN/MAX | Pool size                                                    |
+ * | DATABASE_QUERY_TIMEOUT | Milliseconds before a query is cancelled (PostgreSQL, MySQL) |
  *
  * With nothing set, it uses SQLite at ./db.sqlite3.
  */
@@ -269,6 +275,7 @@ export function databaseConfigFromEnv(
     ssl: envFlagToSsl(get('SSL')),
     pool:
       poolMin !== undefined || poolMax !== undefined ? { min: poolMin, max: poolMax } : undefined,
+    queryTimeoutMs: envNumber(get('QUERY_TIMEOUT')),
   };
 
   return { default: 'default', connections: { default: connection } };

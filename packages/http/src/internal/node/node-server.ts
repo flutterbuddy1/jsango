@@ -1,4 +1,6 @@
 import { createServer, type Server, type IncomingMessage, type ServerResponse } from 'node:http';
+import { once } from 'node:events';
+import type { Duplex } from 'node:stream';
 import type { AddressInfo } from 'node:net';
 import type { IHttpServer, HttpServerHandler, ServerAddress } from '../../public/server.js';
 import { HttpRequest } from '../../public/request.js';
@@ -13,7 +15,24 @@ export interface NodeHttpServerOptions {
   readonly logger?: ILogger | undefined;
   readonly isProduction?: boolean | undefined;
   readonly maxBodySize?: number | undefined;
+  /**
+   * Behind a reverse proxy / load balancer: `true` (one proxy) or the number of proxies. Client
+   * IP, protocol and host then come from `X-Forwarded-For` / `-Proto` / `-Host`. Default: false
+   * (those headers are ignored, since clients can forge them).
+   */
+  readonly trustProxy?: boolean | number | undefined;
+  /** Keep-alive idle timeout. Default 65s: longer than common load balancer timeouts (60s). */
+  readonly keepAliveTimeoutMs?: number | undefined;
+  /**
+   * Handles HTTP upgrade requests (WebSockets). `ctx` is built like for normal requests (validated
+   * host, `trustProxy`). Without it, upgrade requests are refused.
+   */
+  readonly onUpgrade?:
+    | ((ctx: RequestContext, req: IncomingMessage, socket: Duplex, head: Buffer) => unknown)
+    | undefined;
 }
+
+const VALID_HOST = /^(?:[a-z0-9_.-]+|\[[0-9a-f:.]+\])(?::\d{1,5})?$/i;
 
 export class NodeHttpServer implements IHttpServer {
   private readonly handler: HttpServerHandler;
@@ -61,6 +80,34 @@ export class NodeHttpServer implements IHttpServer {
             error: err instanceof Error ? err.message : String(err),
           });
         });
+      });
+
+      srv.keepAliveTimeout = this.options.keepAliveTimeoutMs ?? 65_000;
+      srv.headersTimeout = srv.keepAliveTimeout + 1_000;
+
+      srv.on('upgrade', (req: IncomingMessage, socket: Duplex, head: Buffer) => {
+        const onUpgrade = this.options.onUpgrade;
+        if (!onUpgrade) {
+          socket.destroy();
+          return;
+        }
+        const controller = new AbortController();
+        socket.once('close', () => controller.abort());
+        Promise.resolve()
+          .then(() => {
+            const ctx = new RequestContext({
+              request: this.translateRequest(req, controller.signal),
+              logger: this.logger,
+              signal: controller.signal,
+            });
+            return onUpgrade(ctx, req, socket, head);
+          })
+          .catch((err: unknown) => {
+            this.logger.error('Upgrade request failed', {
+              error: err instanceof Error ? err.message : String(err),
+            });
+            socket.destroy();
+          });
       });
 
       srv.on('error', (err: Error) => {
@@ -135,6 +182,18 @@ export class NodeHttpServer implements IHttpServer {
       }
 
       await this.sendResponse(response, res);
+    } catch (err) {
+      // Never leave a request hanging: answer 400 if nothing was sent, else cut the connection.
+      this.logger.error('Request failed', {
+        error: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined,
+      });
+      if (!res.headersSent) {
+        res.statusCode = 400;
+        res.end();
+      } else {
+        res.destroy(err instanceof Error ? err : undefined);
+      }
     } finally {
       this.activeControllers.delete(abortController);
       this.activeRequests--;
@@ -142,9 +201,34 @@ export class NodeHttpServer implements IHttpServer {
   }
 
   private translateRequest(req: IncomingMessage, signal: AbortSignal): HttpRequest {
-    const protocol = (req.socket as { encrypted?: boolean })?.encrypted ? 'https' : 'http';
-    const host = req.headers.host ?? 'localhost';
-    const fullUrl = `${protocol}://${host}${req.url ?? '/'}`;
+    const hops = this.options.trustProxy === true ? 1 : Number(this.options.trustProxy || 0);
+    // The value a trusted proxy added: proxies append, so count `hops` entries from the right.
+    const forwarded = (name: string): string | undefined => {
+      const raw = req.headers[name];
+      if (!hops || !raw) return undefined;
+      const list = String(raw)
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean);
+      return list[Math.max(0, list.length - hops)];
+    };
+
+    const protocol =
+      forwarded('x-forwarded-proto') === 'https' ||
+      (req.socket as { encrypted?: boolean })?.encrypted
+        ? 'https'
+        : 'http';
+    // The Host header is client input: it must never change the path (`Host: x/admin?`).
+    const rawHost = forwarded('x-forwarded-host') ?? req.headers.host ?? '';
+    const host = VALID_HOST.test(rawHost) ? rawHost : 'localhost';
+    const target = req.url ?? '/';
+    const pathAndQuery = target.startsWith('/')
+      ? target
+      : (() => {
+          const u = new URL(target, 'http://localhost'); // absolute-form request target
+          return u.pathname + u.search;
+        })();
+    const fullUrl = `${protocol}://${host}${pathAndQuery}`;
 
     const headersRecord: Record<string, string | readonly string[] | undefined> = {};
     for (const [key, val] of Object.entries(req.headers)) {
@@ -174,7 +258,7 @@ export class NodeHttpServer implements IHttpServer {
       headers: headersRecord,
       body: toAsyncIterable(req),
       maxBodySize: this.options.maxBodySize,
-      ip: req.socket.remoteAddress,
+      ip: forwarded('x-forwarded-for') ?? req.socket.remoteAddress,
       protocol,
       signal,
     });
@@ -216,28 +300,14 @@ export class NodeHttpServer implements IHttpServer {
       return;
     }
 
-    // Stream response
-    if ('getReader' in body) {
-      const reader = (body as ReadableStream<Uint8Array>).getReader();
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          if (value) {
-            res.write(Buffer.from(value.buffer, value.byteOffset, value.byteLength));
-          }
-        }
-      } finally {
-        reader.releaseLock();
+    // Stream response (web ReadableStream or AsyncIterable). Leaving the loop early (client gone)
+    // cancels the source, so e.g. an LLM stream stops instead of generating for nobody.
+    const chunks = body as AsyncIterable<Uint8Array>;
+    for await (const chunk of chunks) {
+      if (res.destroyed) break;
+      if (!res.write(Buffer.from(chunk.buffer, chunk.byteOffset, chunk.byteLength))) {
+        await Promise.race([once(res, 'drain'), once(res, 'close')]);
       }
-      res.end();
-      response.markCompleted();
-      return;
-    }
-
-    // AsyncIterable stream
-    for await (const chunk of body as AsyncIterable<Uint8Array>) {
-      res.write(Buffer.from(chunk.buffer, chunk.byteOffset, chunk.byteLength));
     }
     res.end();
     response.markCompleted();

@@ -385,9 +385,11 @@ createAuth({
 | Firebase    | `https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com` | `https://securetoken.google.com/PROJECT_ID`        |
 | Keycloak    | `https://HOST/realms/REALM/protocol/openid-connect/certs`                                   | `https://HOST/realms/REALM`                        |
 
-Keys are cached for 10 minutes and refetched when the provider rotates them. Expiry,
-`iss` and `aud` are always checked. Your own tokens and the provider's can be accepted side
-by side.
+Keys are cached for 10 minutes and refetched when the provider rotates them (fetches time out after
+5 seconds). Expiry, `iss` and `aud` are always checked. **`audience` is required**: without it, a
+token the same provider issued for any other app (e.g. any "Sign in with Google" site) would be
+accepted. Pass `audience: false` only if your provider issues none. Your own tokens and the
+provider's can be accepted side by side.
 
 ---
 
@@ -458,22 +460,23 @@ seconds of clock drift, work only once, and are brute-force limited.
 
 ## 11. What jsango protects you from
 
-| Threat                               | Protection                                                                                                                      |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| Password database leak               | scrypt (memory-hard) with per-password salt; automatic rehash on login                                                          |
-| Online password guessing             | 5 failures per account per 15 minutes (20 per IP) → `429`                                                                       |
-| Account enumeration                  | One generic error message; unknown users cost the same hashing time                                                             |
-| Stolen access token                  | 15-minute lifetime; `logout()` revokes it immediately                                                                           |
-| Stolen refresh token                 | Rotation on every use; reuse revokes the whole login                                                                            |
-| JWT forgery / algorithm confusion    | HMAC key derived from your secret, `alg` pinned to HS256; external tokens accept asymmetric algorithms only; `none` is rejected |
-| Tokens that never expire             | Every token has `exp`; tokens without one are rejected                                                                          |
-| Session fixation / cookie tampering  | New random id per login; HMAC-signed cookie; HttpOnly + SameSite                                                                |
-| CSRF on cookie sessions              | Trusted `Origin` / `Referer` required for state-changing requests                                                               |
-| OAuth login CSRF / code interception | Signed one-time `state` + PKCE (S256)                                                                                           |
-| TOTP brute force / replay            | Attempt limit + each code accepted once                                                                                         |
-| Disabled user keeps access           | `isActive` checked on login, refresh and every session request                                                                  |
-| Leaking the user record              | Token results never serialize `user`                                                                                            |
-| API key database leak                | Only SHA-256 hashes are stored and compared                                                                                     |
+| Threat                                | Protection                                                                                                                        |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Password database leak                | scrypt (memory-hard) with per-password salt; automatic rehash on login                                                            |
+| Online password guessing              | 5 failures per account per 15 minutes (20 per IP) → `429`                                                                         |
+| Account enumeration                   | One generic error message; unknown users cost the same hashing time                                                               |
+| Stolen access token                   | 15-minute lifetime; `logout()` revokes it immediately                                                                             |
+| Stolen refresh token                  | Rotation on every use (atomic: of two concurrent refreshes only one wins); reuse more than a minute later revokes the whole login |
+| JWT forgery / algorithm confusion     | HMAC key derived from your secret, `alg` pinned to HS256; external tokens accept asymmetric algorithms only; `none` is rejected   |
+| Tokens that never expire              | Every token has `exp`; tokens without one are rejected                                                                            |
+| Session fixation / cookie tampering   | New random id per login; HMAC-signed cookie; HttpOnly + SameSite                                                                  |
+| CSRF on cookie sessions               | Trusted `Origin` / `Referer` required for state-changing requests                                                                 |
+| OAuth login CSRF / code interception  | Signed one-time `state` + PKCE (S256)                                                                                             |
+| TOTP brute force / replay             | Attempt limit + each code accepted once (also with spaces added)                                                                  |
+| Disabled user keeps access            | `isActive` checked on login, refresh, API keys and every session request                                                          |
+| Tokens from other apps (external IdP) | `audience` is required for external tokens                                                                                        |
+| Leaking the user record               | Token results never serialize `user`                                                                                              |
+| API key database leak                 | Only SHA-256 hashes are stored and compared                                                                                       |
 
 **Lower-level building blocks** are still available when you need full control: `JwtService`,
 `ScryptPasswordHasher`, `TotpService`, the `authenticate()` / `authorize()` middleware with

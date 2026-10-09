@@ -31,7 +31,9 @@ const SECRET_PATTERNS: ReadonlyArray<[RegExp, string]> = [
   [/\b([a-z][a-z0-9+.-]*:\/\/)[^\s/:@]+:[^\s/@]+@/gi, '$1<user>:<password>@'], // credentials in URLs
   [/-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g, '<private key>'],
   [/\beyJ[\w-]{8,}\.[\w-]{8,}\.[\w-]{8,}\b/g, '<jwt>'],
+  [/\bsk-ant-[A-Za-z0-9_-]{20,}/g, '<api key>'], // Anthropic
   [/\b(?:sk|pk|rk)[-_](?:live|test|proj)?[-_]?[A-Za-z0-9]{16,}\b/g, '<api key>'],
+  [/\bAIza[0-9A-Za-z_-]{35}\b/g, '<google key>'],
   [/\bgh[pousr]_[A-Za-z0-9]{20,}\b/g, '<github token>'],
   [/\bAKIA[0-9A-Z]{16}\b/g, '<aws key>'],
   [/\bxox[abprs]-[A-Za-z0-9-]{10,}\b/g, '<slack token>'],
@@ -46,7 +48,11 @@ const SECRET_PATTERNS: ReadonlyArray<[RegExp, string]> = [
 /** Values from the project's .env files (any value of 6+ characters is treated as private). */
 function envValues(cwd: string): string[] {
   const values: string[] = [];
-  for (const name of ['.env', '.env.local', '.env.production', '.env.development']) {
+  // Every .env* file (.env.test, .env.staging, ...), not only the common ones.
+  const names = fs.existsSync(cwd)
+    ? fs.readdirSync(cwd).filter((n) => n === '.env' || n.startsWith('.env.'))
+    : [];
+  for (const name of names) {
     const file = path.join(cwd, name);
     if (!fs.existsSync(file)) continue;
     for (const line of fs.readFileSync(file, 'utf8').split('\n')) {

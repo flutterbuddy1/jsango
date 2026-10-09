@@ -2,7 +2,7 @@
  * createAuth(): every authentication method and security guarantee, over real HTTP.
  */
 import * as crypto from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import {
   createApp,
@@ -13,6 +13,7 @@ import {
   HttpResponse,
   JwtService,
   JwtTokenVerifier,
+  JwksVerifier,
   Base64Url,
   type Auth,
 } from '../packages/jsango/dist/index.js';
@@ -201,14 +202,40 @@ describe('createAuth: password login & tokens', () => {
     expect(second.status).toBe(200);
     expect(second.json.refreshToken).not.toBe(first.refreshToken);
 
-    const replay = await t.call('POST', '/refresh', { body: { refreshToken: first.refreshToken } });
-    expect(replay.status).toBe(401);
-    expect(replay.json.error.message).toMatch(/already used/);
-    // the legitimate (newest) token was revoked too, forcing a fresh login
-    expect(
-      (await t.call('POST', '/refresh', { body: { refreshToken: second.json.refreshToken } }))
-        .status
-    ).toBe(401);
+    // Right after rotation, the old token is refused without revoking: a parallel refresh (two
+    // tabs, a retry) is not theft.
+    const parallel = await t.call('POST', '/refresh', {
+      body: { refreshToken: first.refreshToken },
+    });
+    expect(parallel.status).toBe(401);
+    expect(parallel.json.error.message).toMatch(/just used/);
+
+    // Later, reusing it means it was stolen: the whole login is revoked.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(Date.now() + 61_000);
+      const replay = await t.call('POST', '/refresh', {
+        body: { refreshToken: first.refreshToken },
+      });
+      expect(replay.status).toBe(401);
+      expect(replay.json.error.message).toMatch(/already used/);
+      // the legitimate (newest) token was revoked too, forcing a fresh login
+      expect(
+        (await t.call('POST', '/refresh', { body: { refreshToken: second.json.refreshToken } }))
+          .status
+      ).toBe(401);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('lets only one of two concurrent refreshes with the same token win', async () => {
+    const pair = await t.auth.issueTokens(t.users[0]!);
+    const results = await Promise.allSettled([
+      t.auth.refresh(pair.refreshToken),
+      t.auth.refresh(pair.refreshToken),
+    ]);
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
   });
 
   it('logout revokes the access and refresh token immediately', async () => {
@@ -312,6 +339,15 @@ describe('createAuth: API keys and MFA', () => {
       (await t.call('GET', '/me', { headers: { authorization: `ApiKey ${key}` } })).json.id
     ).toBe('7');
     expect((await t.call('GET', '/me', { headers: { 'x-api-key': `${key}x` } })).status).toBe(401);
+
+    // A deactivated user's keys stop working too.
+    const owner = t.users.find((u) => u.id === 7)!;
+    owner.active = false;
+    try {
+      expect((await t.call('GET', '/me', { headers: { 'x-api-key': key } })).status).toBe(401);
+    } finally {
+      owner.active = true;
+    }
   });
 
   it('requires a TOTP code when MFA is enabled and blocks code replay', async () => {
@@ -339,6 +375,10 @@ describe('createAuth: API keys and MFA', () => {
     await expect(t.auth.verifyMfa(step1.mfaToken, code)).rejects.toThrow(
       /Invalid authentication code/
     );
+    // ...also when the same code is sent with spaces
+    await expect(
+      t.auth.verifyMfa(step1.mfaToken, `${code.slice(0, 3)} ${code.slice(3)}`)
+    ).rejects.toThrow(/Invalid authentication code/);
     // an MFA token is not an access token
     expect((await t.call('GET', '/me', { token: step1.mfaToken })).status).toBe(401);
   });
@@ -387,6 +427,16 @@ describe('createAuth: external identity provider (JWKS)', () => {
     });
   });
   afterAll(() => t.close());
+
+  it('requires an audience, so tokens for other apps of the same provider are refused', () => {
+    expect(
+      () =>
+        new JwksVerifier({
+          jwksUrl: 'https://accounts.google.com/jwks',
+          issuer: 'https://accounts.google.com',
+        } as never)
+    ).toThrow(/requires audience/);
+  });
 
   it('accepts RS256 and ES256 tokens from the provider', async () => {
     const claims = {

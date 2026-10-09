@@ -105,7 +105,9 @@ export class CacheStore implements ICacheStore {
 
   public async clear(): Promise<void> {
     try {
-      await this.driver.clear();
+      // Only this store's keys ('app:env:prefix:namespace:'), not other namespaces / apps.
+      const own = this.keyBuilder.build('x');
+      await this.driver.clear(own.slice(0, -1) || undefined);
       this.stampedeLock.clear();
     } catch (err) {
       this.statsErrors++;

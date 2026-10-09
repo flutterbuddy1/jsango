@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   Application as MiddlewareApplication,
   type ApplicationOptions,
@@ -8,9 +9,14 @@ import {
   HttpRequest,
   HttpResponse,
   RequestContext,
+  ForbiddenError,
+  BadRequestError,
   createNodeHttpServer,
   type IHttpServer,
 } from '@jsango/http';
+import type { IValidator } from '@jsango/validation';
+import { isProductionEnv } from '@jsango/core';
+import { StructuredLogger } from '@jsango/observability';
 import type {
   RouteHandler,
   RouteOptions,
@@ -22,8 +28,10 @@ import {
   defaultModelRegistry,
   getDatabaseManager,
   hasDatabaseManager,
+  transaction,
   type DefinedModelStatic,
   type Model,
+  type QueryBuilder,
 } from '@jsango/orm';
 import {
   AdminRegistry,
@@ -33,13 +41,25 @@ import {
   type DashboardWidget,
 } from '@jsango/admin-core';
 import { AdminServer, type IAdminQueryAdapter, type AdminListQuery } from '@jsango/admin-server';
-import { AdminPermissionChecker } from '@jsango/admin-auth';
+import { AdminPermissionChecker, type AdminAuthOptions } from '@jsango/admin-auth';
 import { AdminAuditLogger, InMemoryAuditStore, type IAuditStore } from '@jsango/admin-audit';
-import { Auth } from '@jsango/auth';
+import { AdminMediaManager, LocalDiskMediaStorage, type IMediaStorage } from '@jsango/admin-media';
+import { Auth, getIdentity, type AuthStore } from '@jsango/auth';
 import { createAdminUiHandler } from '@jsango/admin-ui';
 import { OpenApiRegistry, OpenApiGenerator } from '@jsango/openapi';
-import { Agent } from '@jsango/ai';
-import { WebSocketEndpointManager, type WebSocketRouteCallback } from './websocket-wrapper.js';
+import { Agent, type AgentRunResult } from '@jsango/ai';
+import {
+  WebSocketEndpointManager,
+  type ISimpleWebSocket,
+  type RoomSender,
+  type WebSocketRouteCallback,
+} from './websocket-wrapper.js';
+
+export type CrudOperation = 'list' | 'detail' | 'create' | 'update' | 'delete';
+
+/** `'public'`, or middleware such as `auth.required({ roles: ['admin'] })`. */
+export type CrudAccess =
+  'public' | ((ctx: RequestContext, next: () => Promise<HttpResponse>) => unknown);
 
 export interface CrudOptions {
   /** Fields matched by `?search=text` (case-insensitive contains). */
@@ -48,6 +68,88 @@ export interface CrudOptions {
   readonly filterFields?: readonly string[];
   readonly defaultPageSize?: number;
   readonly maxPageSize?: number;
+  /**
+   * Who can call the routes: one value for all of them, or per operation (`read` = list + detail,
+   * `write` = create + update + delete). Default: reads are public and writes answer 403 until
+   * you allow them, e.g. `access: { write: auth.required({ roles: ['admin'] }) }`.
+   */
+  readonly access?: CrudAccess | Partial<Record<CrudOperation | 'read' | 'write', CrudAccess>>;
+  /** Register only these routes, e.g. `['list', 'detail']`. Default: all five. */
+  readonly only?: readonly CrudOperation[];
+  /**
+   * Fields the request body may set; anything else is ignored. Default: every model field except
+   * the primary key, timestamps, the soft-delete column and `hidden` fields.
+   */
+  readonly writable?: readonly string[];
+  /** Fields never sent in responses. Default: names with password, secret, token, apiKey or hash. */
+  readonly hidden?: readonly string[];
+  /**
+   * Validates writes (`schema({ ... })`): the body on create, the record with the changes applied
+   * on update. Failures answer 400 with the field errors.
+   */
+  readonly schema?: IValidator<any>;
+  /** Limits every list / detail / update / delete query, e.g. to the signed-in user's rows. */
+  readonly scope?: (query: QueryBuilder<any>, ctx: RequestContext) => QueryBuilder<any>;
+  /**
+   * Business logic around writes. They run in one database transaction with the write: throw
+   * (`badRequest(...)`, `forbidden(...)`) to cancel it. `before*` hooks may return changed data.
+   */
+  readonly hooks?: CrudHooks;
+}
+
+type CrudData = Record<string, unknown>;
+
+export interface CrudHooks {
+  beforeCreate?(data: CrudData, ctx: RequestContext): CrudData | void | Promise<CrudData | void>;
+  afterCreate?(item: Model, ctx: RequestContext): unknown;
+  beforeUpdate?(
+    data: CrudData,
+    item: Model,
+    ctx: RequestContext
+  ): CrudData | void | Promise<CrudData | void>;
+  afterUpdate?(item: Model, ctx: RequestContext): unknown;
+  beforeDelete?(item: Model, ctx: RequestContext): unknown;
+  afterDelete?(item: Model, ctx: RequestContext): unknown;
+}
+
+const escapeHtml = (text: string) => text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
+const SENSITIVE_FIELD = /password|secret|token|api_?key|hash/i;
+/** Never writable by default: a user could otherwise grant themselves a role. */
+const PRIVILEGE_FIELD =
+  /^(is_?(admin|superuser|staff|verified)|roles?|permissions|email_?verified)$/i;
+
+/** A query-string integer, or the default when missing / not a number. */
+const intParam = (raw: string | null | undefined, fallback: number) => {
+  const n = Number.parseInt(raw ?? '', 10);
+  return Number.isFinite(n) ? n : fallback;
+};
+
+export interface AgentRouteOptions {
+  /** Route middleware, e.g. `[auth.required()]` or a rate limiter. Default: none (public). */
+  readonly middleware?: readonly RouteArg[];
+  /** Model calls per run. Default: the agent's own (10). */
+  readonly maxSteps?: number;
+  /** Longest accepted input in characters. Default 10,000. */
+  readonly maxInputLength?: number;
+}
+
+/**
+ * What the HTTP API returns: the answer, tool calls and usage, never `messages` (the whole history,
+ * including the system prompt) or raw errors.
+ */
+function publicResult(result: AgentRunResult, conversationId: string) {
+  return {
+    runId: result.runId,
+    conversationId,
+    status: result.status,
+    text: result.text,
+    output: result.output,
+    toolCalls: result.toolCalls.map(({ name, durationMs }) => ({ name, durationMs })),
+    usage: result.usage,
+    durationMs: result.durationMs,
+    approvalRequest: result.approvalRequest,
+  };
 }
 
 export interface AdminOptions {
@@ -101,6 +203,19 @@ export interface AdminOptions {
   readonly pages?: readonly AdminPage[];
   /** Where the audit log is stored (default: in memory). */
   readonly auditStore?: IAuditStore;
+  /**
+   * Where admin sessions, login lockouts and the built-in account's 2FA live. Default: the
+   * `createAuth` store when `auth` is one, else memory. Use `new DatabaseAuthStore({ connection })`
+   * when you run several instances or want them to survive restarts.
+   */
+  readonly store?: AuthStore;
+  /**
+   * Who can do what. Superusers and users with the `admin` role can do everything; `staff` users
+   * need permissions like `admin.<resource>.view|add|change|delete|export`, `admin.media.*`,
+   * `admin.audit.view`. `requireSuperuser: true` admits superusers only; `authorizationManager`
+   * adds your own (object-level) policies.
+   */
+  readonly permissions?: AdminAuthOptions;
   /** Extra checks on the System page; the database is checked automatically. */
   readonly healthChecks?: Readonly<Record<string, () => unknown>>;
   /** Lifetime of an admin login in seconds. Default 8 hours. */
@@ -115,6 +230,13 @@ export interface AdminOptions {
   readonly logoText?: string;
   /** Browser tab icon. Defaults to logoUrl. */
   readonly faviconUrl?: string;
+  /**
+   * Media disks for the admin media library, by name: `new LocalDiskMediaStorage(...)`,
+   * `new S3MediaStorage(...)` (S3, R2, MinIO, Spaces) or an `AdminMediaManager` with upload
+   * rules. The first disk receives form uploads. Default: `{ local: new LocalDiskMediaStorage() }`
+   * (`./uploads`, served at `/media`). Pass `{}` to disable.
+   */
+  readonly media?: Readonly<Record<string, IMediaStorage | AdminMediaManager>>;
 }
 
 export interface AdminCredentials {
@@ -132,6 +254,13 @@ export type AdminResourceEntry =
 
 export interface OpenApiOptions {
   readonly path?: string;
+  /** Swagger UI page. Default `/docs`. */
+  readonly docsPath?: string;
+  /**
+   * Middleware for the spec and the docs page, e.g. `[auth.required({ roles: ['admin'] })]` for an
+   * internal API. Default: public. Admin routes are never listed.
+   */
+  readonly middleware?: readonly RouteArg[];
   readonly title?: string;
   readonly version?: string;
   readonly description?: string;
@@ -184,10 +313,19 @@ export class JSangoApplication {
   private isProduction: boolean;
 
   constructor(options: ApplicationOptions = {}) {
-    this.isProduction = options.isProduction ?? process.env.NODE_ENV === 'production';
+    this.isProduction = options.isProduction ?? isProductionEnv();
     this.app = new MiddlewareApplication({
       ...options,
       isProduction: this.isProduction,
+      // Without a logger, 500s would vanish. Tests stay quiet.
+      logger:
+        options.logger ??
+        (process.env['NODE_ENV'] === 'test'
+          ? undefined
+          : new StructuredLogger({
+              minLevel: 'warn',
+              format: this.isProduction ? 'json' : 'text',
+            })),
     });
   }
 
@@ -261,9 +399,26 @@ export class JSangoApplication {
 
   // --- WebSocket Simplicity ---
 
-  public ws(path: string, callback: WebSocketRouteCallback): this {
-    this.wsManager.register(path, callback);
+  /**
+   * WebSocket route. Middleware (e.g. `auth.required()`) runs on the upgrade request, like on HTTP
+   * routes: `app.ws('/chat/:room', auth.required(), { open, message, close })`.
+   */
+  public ws(path: string, ...args: [...RouteArg[], WebSocketRouteCallback]): this {
+    const callback = args.pop() as WebSocketRouteCallback;
+    const middleware = args.filter((a) => typeof a === 'function') as never[];
+    this.wsManager.register(path, middleware, callback);
     return this;
+  }
+
+  /**
+   * Sends to every WebSocket in a room, from anywhere (HTTP routes, jobs, events). Each socket is
+   * in `user:<id>` when signed in and `route:<path>` for its route.
+   */
+  public to(room: string): RoomSender {
+    return {
+      send: (data) => this.wsManager.sendTo(room, data),
+      emit: (event, data) => this.wsManager.sendTo(room, { event, data }),
+    };
   }
 
   // --- CRUD Generation ---
@@ -271,27 +426,113 @@ export class JSangoApplication {
   public crud(
     basePath: string,
     modelClass: DefinedModelStatic<any, any>,
-    options?: CrudOptions
+    options: CrudOptions = {}
   ): this {
     const rootPath = basePath.startsWith('/') ? basePath : `/${basePath}`;
     const idPath = `${rootPath}/:id`;
-    const defaultPageSize = options?.defaultPageSize ?? 20;
+    const defaultPageSize = options.defaultPageSize ?? 20;
+    const meta = modelClass.metadata;
+    const fieldNames = [...meta.fields.keys()];
 
-    // 1. List
-    this.get(rootPath, async (ctx: RequestContext) => {
-      const page = Math.max(1, parseInt(ctx.request.query.get('page') ?? '1', 10));
+    // `hidden` adds to the sensitive defaults: hiding one field must not reveal the password.
+    const hidden = new Set([
+      ...fieldNames.filter((f) => SENSITIVE_FIELD.test(f)),
+      ...(options.hidden ?? []),
+    ]);
+    const readOnly = new Set([
+      meta.primaryKey,
+      ...hidden,
+      ...fieldNames.filter((f) => PRIVILEGE_FIELD.test(f)),
+    ]);
+    if (meta.timestamps.enabled)
+      readOnly.add(meta.timestamps.createdAt).add(meta.timestamps.updatedAt);
+    if (meta.softDelete.enabled) readOnly.add(meta.softDelete.deletedAt);
+    const writable = new Set(options.writable ?? fieldNames.filter((f) => !readOnly.has(f)));
+
+    const query = (ctx: RequestContext) =>
+      options.scope ? options.scope(modelClass.query(), ctx) : modelClass.query();
+    const output = (item: Model) => {
+      const json = item.toJSON();
+      for (const f of hidden) delete json[f];
+      return json;
+    };
+    const input = async (ctx: RequestContext): Promise<CrudData> => {
+      const body = await ctx.request.body.json().catch(() => ({}));
+      const data: CrudData = {};
+      if (body && typeof body === 'object' && !Array.isArray(body)) {
+        for (const [k, v] of Object.entries(body)) if (writable.has(k)) data[k] = v;
+      }
+      return data;
+    };
+    /** Validates `record` with the schema; returns the validated values of `data`'s keys or a 400. */
+    const check = async (data: CrudData, record: CrudData): Promise<CrudData | HttpResponse> => {
+      if (!options.schema) return data;
+      const res = await options.schema.validate(record);
+      if (!res.success) {
+        return HttpResponse.json(
+          {
+            error: {
+              code: 'ERR_VALIDATION_FAILED',
+              message: 'Validation failed for incoming request.',
+              details: res.errors,
+            },
+          },
+          { status: 400 }
+        );
+      }
+      const valid = (res.data ?? {}) as CrudData;
+      return Object.fromEntries(Object.keys(data).map((k) => [k, k in valid ? valid[k] : data[k]]));
+    };
+    // Writes with hooks share one transaction, so a throwing hook rolls the write back.
+    const atomic = <T>(fn: () => Promise<T>) =>
+      options.hooks || options.scope ? transaction(fn) : fn();
+    /** With a scope, a write can't create or move a record outside it (e.g. to another owner). */
+    const assertInScope = async (ctx: RequestContext, item: Model) => {
+      if (options.scope && !(await query(ctx).find(item.get(meta.primaryKey)))) {
+        throw new ForbiddenError('This change would move the record outside what you can access.');
+      }
+    };
+
+    const access = options.access;
+    const route = (
+      op: CrudOperation,
+      method: 'get' | 'post' | 'put' | 'patch' | 'delete',
+      path: string,
+      handler: RouteHandler
+    ) => {
+      if (options.only && !options.only.includes(op)) return;
+      const group = op === 'list' || op === 'detail' ? 'read' : 'write';
+      const rule =
+        typeof access === 'string' || typeof access === 'function'
+          ? access
+          : (access?.[op] ?? access?.[group] ?? (group === 'read' ? 'public' : undefined));
+      if (!rule) {
+        this[method](path, () => {
+          throw new ForbiddenError(
+            `${op} is not allowed on ${rootPath}. Allow it with app.crud(..., { access: { ${op}: ... } }).`
+          );
+        });
+      } else if (rule === 'public') {
+        this[method](path, handler);
+      } else {
+        this[method](path, rule, handler);
+      }
+    };
+
+    route('list', 'get', rootPath, async (ctx: RequestContext) => {
+      const page = Math.min(1_000_000, Math.max(1, intParam(ctx.request.query.get('page'), 1)));
       const pageSize = Math.min(
-        options?.maxPageSize ?? 100,
-        Math.max(1, parseInt(ctx.request.query.get('pageSize') ?? String(defaultPageSize), 10))
+        options.maxPageSize ?? 100,
+        Math.max(1, intParam(ctx.request.query.get('pageSize'), defaultPageSize))
       );
-      const search = ctx.request.query.get('search');
+      const search = ctx.request.query.get('search')?.slice(0, 200);
 
-      let query = modelClass.query();
+      let q = query(ctx);
 
-      for (const field of options?.filterFields ?? []) {
+      for (const field of options.filterFields ?? []) {
         const raw = ctx.request.query.get(field);
         if (raw === null || raw === undefined) continue;
-        const type = modelClass.metadata.getField(field)?.type;
+        const type = meta.getField(field)?.type;
         const value =
           raw === 'null'
             ? null
@@ -300,62 +541,73 @@ export class JSangoApplication {
               : type === 'integer' || type === 'float' || type === 'decimal'
                 ? Number(raw)
                 : raw;
-        query = query.where(field, value);
+        if (typeof value === 'number' && !Number.isFinite(value)) {
+          throw new BadRequestError(`Invalid value for "${field}".`);
+        }
+        q = q.where(field, value);
       }
 
-      const searchFields = options?.searchFields ?? [];
+      const searchFields = options.searchFields ?? [];
       if (search && searchFields.length > 0) {
         // Grouped so the OR between search fields cannot bypass the filters above.
-        query = query.where((q) =>
-          searchFields.reduce((acc, field) => acc.orWhereLike(field, `%${search}%`), q)
+        q = q.where((w: QueryBuilder<any>) =>
+          searchFields.reduce((acc, field) => acc.orWhereContains(field, search), w)
         );
       }
 
-      return query.paginate({ page, pageSize });
+      const result = await q.paginate({ page, pageSize });
+      return { ...result, items: result.items.map((item) => output(item as Model)) };
     });
 
-    // 2. Detail
-    this.get(idPath, async (ctx: RequestContext) => {
+    route('detail', 'get', idPath, async (ctx: RequestContext) => {
       const id = ctx.request.params['id'];
-      const item = await modelClass.find(id);
-      if (!item) {
-        return HttpResponse.notFound(`Item with id "${id}" not found.`);
-      }
-      return item;
+      const item = await query(ctx).find(id);
+      if (!item) return HttpResponse.notFound(`Item with id "${id}" not found.`);
+      return output(item as Model);
     });
 
-    // 3. Create
-    this.post(rootPath, async (ctx: RequestContext) => {
-      const body = (await ctx.request.body.json().catch(() => ({}))) as Record<string, unknown>;
-      const item = await modelClass.create(body as any);
-      return HttpResponse.created(item);
+    route('create', 'post', rootPath, async (ctx: RequestContext) => {
+      const data = await input(ctx);
+      const valid = await check(data, data);
+      if (valid instanceof HttpResponse) return valid;
+      const item = await atomic(async () => {
+        const final = (await options.hooks?.beforeCreate?.(valid, ctx)) ?? valid;
+        const created = (await modelClass.create(final as any)) as Model;
+        await assertInScope(ctx, created);
+        await options.hooks?.afterCreate?.(created, ctx);
+        return created;
+      });
+      return HttpResponse.created(output(item));
     });
 
-    // 4. Update
     const updateHandler: RouteHandler = async (ctx: RequestContext) => {
       const id = ctx.request.params['id'];
-      const item = await modelClass.find(id);
-      if (!item) {
-        return HttpResponse.notFound(`Item with id "${id}" not found.`);
-      }
-      const body = (await ctx.request.body.json().catch(() => ({}))) as Record<string, unknown>;
-      for (const [key, val] of Object.entries(body)) {
-        item.set(key, val);
-      }
-      await item.save();
-      return item;
+      const item = (await query(ctx).find(id)) as Model | null;
+      if (!item) return HttpResponse.notFound(`Item with id "${id}" not found.`);
+      const data = await input(ctx);
+      const valid = await check(data, { ...item.toJSON(), ...data });
+      if (valid instanceof HttpResponse) return valid;
+      await atomic(async () => {
+        const final = (await options.hooks?.beforeUpdate?.(valid, item, ctx)) ?? valid;
+        for (const [key, val] of Object.entries(final)) item.set(key, val);
+        await item.save();
+        await assertInScope(ctx, item);
+        await options.hooks?.afterUpdate?.(item, ctx);
+      });
+      return output(item);
     };
-    this.put(idPath, updateHandler);
-    this.patch(idPath, updateHandler);
+    route('update', 'put', idPath, updateHandler);
+    route('update', 'patch', idPath, updateHandler);
 
-    // 5. Delete
-    this.delete(idPath, async (ctx: RequestContext) => {
+    route('delete', 'delete', idPath, async (ctx: RequestContext) => {
       const id = ctx.request.params['id'];
-      const item = await modelClass.find(id);
-      if (!item) {
-        return HttpResponse.notFound(`Item with id "${id}" not found.`);
-      }
-      await item.delete();
+      const item = (await query(ctx).find(id)) as Model | null;
+      if (!item) return HttpResponse.notFound(`Item with id "${id}" not found.`);
+      await atomic(async () => {
+        await options.hooks?.beforeDelete?.(item, ctx);
+        await item.delete();
+        await options.hooks?.afterDelete?.(item, ctx);
+      });
       return HttpResponse.noContent();
     });
 
@@ -392,7 +644,19 @@ export class JSangoApplication {
     for (const widget of options.dashboard ?? []) registry.dashboard.registerWidget(widget);
     for (const page of options.pages ?? []) registry.registerPage(page);
 
-    const permissions = new AdminPermissionChecker();
+    const permissions = new AdminPermissionChecker(options.permissions);
+    if (isProductionEnv() && !options.auditStore) {
+      process.emitWarning(
+        'app.admin() keeps the audit log in memory: it is lost on restart. Pass auditStore.',
+        { code: 'JSANGO_MEMORY_AUDIT' }
+      );
+    }
+    if (isProductionEnv() && !options.store && !(options.auth instanceof Auth)) {
+      process.emitWarning(
+        'app.admin() keeps sessions and 2FA in memory: single instance only, reset on restart. Pass store: new DatabaseAuthStore(...).',
+        { code: 'JSANGO_MEMORY_ADMIN_STORE' }
+      );
+    }
     const audit = new AdminAuditLogger({ store: options.auditStore ?? new InMemoryAuditStore() });
     const queryAdapter = createOrmAdminAdapter();
     const authKit = options.auth instanceof Auth ? options.auth : undefined;
@@ -408,6 +672,36 @@ export class JSangoApplication {
     }
     Object.assign(healthChecks, options.healthChecks);
 
+    const media: Record<string, AdminMediaManager> = {};
+    for (const [name, disk] of Object.entries(
+      options.media ?? { local: new LocalDiskMediaStorage() }
+    )) {
+      media[name] =
+        disk instanceof AdminMediaManager ? disk : new AdminMediaManager({ storage: disk });
+      // Local disks with a path URL are served by the app.
+      const driver = media[name].driver;
+      if (driver instanceof LocalDiskMediaStorage && driver.publicUrl.startsWith('/')) {
+        this.get(
+          `${driver.publicUrl}/*mediaKey`,
+          { metadata: { admin: true } },
+          async (ctx: RequestContext) => {
+            const key = (ctx.request.params as Record<string, string>)['mediaKey'] ?? '';
+            const file = await driver.read(decodeURIComponent(key));
+            if (!file) return HttpResponse.notFound();
+            return new HttpResponse(file.content, {
+              headers: {
+                'content-type': file.mimeType,
+                'x-content-type-options': 'nosniff',
+                // Uploaded HTML/SVG must not run scripts on the app's origin.
+                'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+                'cache-control': 'public, max-age=86400',
+              },
+            });
+          }
+        );
+      }
+    }
+
     const adminServer = new AdminServer({
       registry,
       permissions,
@@ -420,6 +714,8 @@ export class JSangoApplication {
         (authKit ? undefined : (options.auth as AdminCredentials | undefined)),
       sessionTtlSeconds: options.sessionTtlSeconds,
       healthChecks,
+      media,
+      store: options.store,
     });
 
     adminServer.mount(this.app.router);
@@ -437,8 +733,9 @@ export class JSangoApplication {
       faviconUrl: options.faviconUrl,
     });
 
-    this.get(uiPath, uiHandler);
-    this.get(`${uiPath}/*adminPath`, uiHandler);
+    const hidden = { metadata: { admin: true } }; // not part of the public OpenAPI spec
+    this.get(uiPath, hidden, uiHandler);
+    this.get(`${uiPath}/*adminPath`, hidden, uiHandler);
 
     return this;
   }
@@ -456,22 +753,24 @@ export class JSangoApplication {
       registry: this.openapiRegistry,
     });
 
-    this.get(openapiPath, () => {
+    const middleware = [...(options.middleware ?? []), { metadata: { openapi: { hidden: true } } }];
+    this.get(openapiPath, ...middleware, () => {
       return generator.generate(this.app.router);
     });
 
     // Swagger UI documentation page with high-contrast modern theme
-    this.get('/docs', () => {
+    const title = escapeHtml(options.title ?? 'JSango API Documentation');
+    this.get(options.docsPath ?? '/docs', ...middleware, () => {
       return HttpResponse.html(`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${options.title ?? 'JSango API Documentation'}</title>
+  <title>${title}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui.css" />
   <style>
     :root {
       --bg-main: #0b0f19;
@@ -843,7 +1142,7 @@ export class JSangoApplication {
   <header class="brand-header">
     <div class="brand-logo">
       <span class="brand-badge">JSANGO</span>
-      <span class="brand-title">${options.title ?? 'REST API'}</span>
+      <span class="brand-title">${title}</span>
     </div>
     <a href="${openapiPath}" target="_blank" class="spec-link">
       <span>Raw OpenAPI JSON ↗</span>
@@ -852,7 +1151,7 @@ export class JSangoApplication {
 
   <div id="swagger-ui"></div>
 
-  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script src="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui-bundle.js"></script>
   <script>
     window.ui = SwaggerUIBundle({
       url: '${openapiPath}',
@@ -873,71 +1172,99 @@ export class JSangoApplication {
   }
 
   /**
-   * Mounts an AI Agent as an HTTP endpoint.
-   * Handles POST /agent with JSON { input, conversationId, context }
-   * and GET /agent?input=... with optional Server-Sent Events (SSE) streaming.
+   * Mounts an AI agent over HTTP: `POST path` with `{ input, conversationId? }` returns the result,
+   * `GET path?input=...` (with `Accept: text/event-stream` or `&stream=true`) streams events (SSE).
+   * Add auth / rate limits with `middleware`, e.g. `{ middleware: [auth.required()] }`.
    */
-  public agent(path: string, targetAgent: Agent, options?: { maxSteps?: number }): this {
-    // POST Handler
-    this.post(path, async (ctx: any) => {
-      const body = (await ctx.request.json().catch(() => ({}))) as any;
-      const input = body?.input ?? body?.message ?? '';
-      const conversationId = body?.conversationId ?? body?.sessionId;
-      const userContext = (ctx.request as any).identity ?? (ctx.request as any).user;
-
-      const result = await targetAgent.run({
+  public agent(path: string, targetAgent: Agent, options: AgentRouteOptions = {}): this {
+    const maxInput = options.maxInputLength ?? 10_000;
+    const prepare = (ctx: RequestContext, raw: { input?: unknown; conversationId?: unknown }) => {
+      const input = String(raw.input ?? '');
+      if (!input) throw new BadRequestError('"input" is required.');
+      if (input.length > maxInput)
+        throw new BadRequestError(`"input" is longer than ${maxInput} characters.`);
+      const identity = getIdentity(ctx);
+      const user = identity.isAuthenticated ? identity : undefined;
+      // Anonymous conversations get a server-issued, unguessable id (a client-picked one could
+      // collide with another visitor's).
+      const conversationId =
+        typeof raw.conversationId === 'string' && (user || raw.conversationId.length >= 20)
+          ? raw.conversationId
+          : randomUUID();
+      return {
         input,
-        maxSteps: options?.maxSteps,
-        context: {
-          user: userContext,
-          conversationId,
-          requestId: ctx.request.id,
+        conversationId,
+        run: {
+          input,
+          maxSteps: options.maxSteps,
+          signal: ctx.signal, // client gone: stop calling the model
+          context: {
+            user,
+            tenantId: user?.tenantId,
+            conversationId,
+            requestId: ctx.requestId,
+            signal: ctx.signal,
+          },
         },
-      });
+      };
+    };
+    const middleware = options.middleware ?? [];
 
-      return HttpResponse.json(result);
+    this.post(path, ...middleware, async (ctx: RequestContext) => {
+      const body = (await ctx.request.json().catch(() => ({}))) as Record<string, unknown>;
+      const { conversationId, run } = prepare(ctx, {
+        input: body['input'] ?? body['message'],
+        conversationId: body['conversationId'] ?? body['sessionId'],
+      });
+      return publicResult(await targetAgent.run(run), conversationId);
     });
 
-    // GET / SSE Handler
-    this.get(path, async (ctx: any) => {
-      const input = (ctx.request.query?.['input'] ?? ctx.request.query?.['q'] ?? '') as string;
-      const conversationId = ctx.request.query?.['conversationId'] as string | undefined;
+    this.get(path, ...middleware, async (ctx: RequestContext) => {
+      const query = ctx.request.query;
+      const { conversationId, run } = prepare(ctx, {
+        input: query.get('input') ?? query.get('q'),
+        conversationId: query.get('conversationId'),
+      });
       const wantsStream =
-        ctx.request.query?.['stream'] === 'true' ||
-        ctx.request.headers.get('accept')?.includes('text/event-stream');
+        query.get('stream') === 'true' ||
+        Boolean(ctx.request.headers.get('accept')?.includes('text/event-stream'));
+      if (!wantsStream) return publicResult(await targetAgent.run(run), conversationId);
 
-      if (!wantsStream) {
-        const result = await targetAgent.run({
-          input,
-          context: { conversationId, requestId: ctx.request.id },
-        });
-        return HttpResponse.json(result);
-      }
-
-      // SSE Streaming response
+      const encoder = new TextEncoder();
+      const isProduction = this.isProduction;
+      const events = targetAgent.stream(run)[Symbol.asyncIterator]();
       const readable = new ReadableStream<Uint8Array>({
-        async start(controller) {
+        async pull(controller) {
           try {
-            for await (const event of targetAgent.stream({
-              input,
-              context: { conversationId, requestId: ctx.request.id },
-            })) {
-              controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(event)}\n\n`));
+            const { done, value } = await events.next();
+            if (done) {
+              controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+              controller.close();
+              return;
             }
-            controller.enqueue(new TextEncoder().encode(`data: [DONE]\n\n`));
+            const event = value as { type: string; data?: unknown };
+            const safe =
+              event.type === 'run.failed' && isProduction
+                ? { type: 'run.failed', data: { error: 'The agent run failed.' } }
+                : event;
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(safe)}\n\n`));
+          } catch {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ type: 'run.failed' })}\n\n`)
+            );
             controller.close();
-          } catch (err: unknown) {
-            controller.error(err);
           }
         },
+        async cancel() {
+          await events.return?.(); // client disconnected: stop the run
+        },
       });
-
       return new HttpResponse(readable, {
         status: 200,
         headers: {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
-          Connection: 'keep-alive',
+          'X-Conversation-Id': conversationId,
         },
       });
     });
@@ -946,32 +1273,49 @@ export class JSangoApplication {
   }
 
   /**
-   * Mounts an AI Agent as a Real-time WebSocket endpoint.
-   * Streams token deltas, tool calls, and progress events automatically.
+   * Mounts an AI agent as a WebSocket endpoint: each message `{ input }` (or a string) starts a run
+   * and its events are streamed back. One run at a time per connection.
    */
-  public wsAgent(path: string, targetAgent: Agent): this {
-    return this.ws(path, (socket) => {
+  public wsAgent(path: string, targetAgent: Agent, options: AgentRouteOptions = {}): this {
+    const maxInput = options.maxInputLength ?? 10_000;
+    return this.ws(path, ...(options.middleware ?? []), (socket: ISimpleWebSocket) => {
+      let running: AbortController | undefined;
+      socket.on('close', () => running?.abort());
       socket.on('message', async (data: any) => {
-        const input = typeof data === 'string' ? data : (data?.input ?? data?.text ?? '');
-        const conversationId = data?.conversationId ?? socket.id;
-
+        // One run at a time per connection: a client can't start unlimited parallel LLM calls.
+        if (running)
+          return socket.send({ type: 'run.failed', error: 'A run is already in progress.' });
+        const input = typeof data === 'string' ? data : String(data?.input ?? data?.text ?? '');
+        if (!input || input.length > maxInput)
+          return socket.send({ type: 'run.failed', error: 'Invalid or too long input.' });
+        running = new AbortController();
         try {
-          socket.send({ type: 'run.started', agent: targetAgent.name, input });
-
+          await socket.send({ type: 'run.started', agent: targetAgent.name, input });
           for await (const event of targetAgent.stream({
             input,
+            maxSteps: options.maxSteps,
+            signal: running.signal,
             context: {
-              conversationId,
+              user: socket.user,
+              tenantId: socket.user?.tenantId,
+              conversationId: socket.id,
               requestId: `ws_${socket.id}_${Date.now()}`,
+              signal: running.signal,
             },
           })) {
-            socket.send(event);
+            await socket.send(event);
           }
         } catch (err: unknown) {
-          socket.send({
+          await socket.send({
             type: 'run.failed',
-            error: err instanceof Error ? err.message : String(err),
+            error: this.isProduction
+              ? 'The agent run failed.'
+              : err instanceof Error
+                ? err.message
+                : String(err),
           });
+        } finally {
+          running = undefined;
         }
       });
     });
@@ -987,19 +1331,27 @@ export class JSangoApplication {
     const server = createNodeHttpServer(async (ctx) => this.app.handle(ctx), {
       logger: this.app.logger,
       isProduction: this.isProduction,
+      trustProxy: this.app.config.trustProxy,
+      maxBodySize: this.app.config.maxBodySize,
+      onUpgrade: this.wsManager.hasRoutes()
+        ? (ctx, req, socket, head) =>
+            this.wsManager.handleUpgrade(ctx, req, socket, head, {
+              logger: this.app.logger,
+              isProduction: this.isProduction,
+            })
+        : undefined,
     });
 
     await server.listen(port, host);
 
-    // If WebSocket routes are registered, bind the WebSocket upgrade listener
-    if (this.wsManager.hasRoutes() && 'getUnderlyingServer' in server) {
-      const nodeHttpServer = (server as { getUnderlyingServer(): any }).getUnderlyingServer();
-      if (nodeHttpServer) {
-        this.wsManager.attach(nodeHttpServer);
-      }
-    }
+    // Closing the server also closes open WebSockets (they no longer belong to the HTTP server).
+    const closeHttp = server.close.bind(server);
+    server.close = async (timeoutMs?: number) => {
+      await this.wsManager.close();
+      await closeHttp(timeoutMs);
+    };
 
-    if (!this.isProduction && process.env.NODE_ENV !== 'test') {
+    if (!this.isProduction && process.env['NODE_ENV'] !== 'test') {
       /* eslint-disable no-console */
       console.log(`\n  ⚡ JSango Server running at http://${host}:${port}`);
       const wsRoutes = this.wsManager.getRoutes();
@@ -1048,7 +1400,7 @@ function createOrmAdminAdapter(): IAdminQueryAdapter {
       q = q.where((g: any) =>
         searchFields.reduce(
           (acc: any, f, i) =>
-            i === 0 ? acc.whereLike(f, `%${search}%`) : acc.orWhereLike(f, `%${search}%`),
+            i === 0 ? acc.whereContains(f, search) : acc.orWhereContains(f, search),
           g
         )
       );

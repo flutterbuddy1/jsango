@@ -59,7 +59,7 @@ ICacheDriver (raw storage backend)
 
 Low-level driver contract implemented by all storage backends:
 
-- `get<T>`, `set<T>`, `has`, `delete`, `clear`
+- `get<T>`, `set<T>`, `has`, `delete`, `clear(prefix?)` (a store or namespace only clears its own keys; the Redis driver uses `SCAN` + `DEL` and refuses to clear without a prefix, so it never runs `FLUSHDB`)
 - `increment`, `decrement`
 - `expire`, `ttl`
 - `getMany<T>`, `setMany<T>`, `deleteMany` (batch operations)

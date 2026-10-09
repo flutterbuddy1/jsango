@@ -487,3 +487,46 @@ describe('JSango AI Platform', () => {
     });
   });
 });
+
+describe('agent memory', () => {
+  it('rebuilds the system prompt each turn instead of growing it', async () => {
+    const provider = new FakeLlmProvider().setDefaultResponse('ok');
+    const lookup = tool({
+      name: 'lookup',
+      description: 'Look something up',
+      input: { q: 'x' },
+      execute: async () => 'x',
+    });
+    const bot = agent({ instructions: 'Be brief', provider, tools: { lookup }, memory: true });
+    for (let i = 0; i < 3; i++) await bot.run({ input: `turn ${i}`, context: { user: { id: 1 } } });
+    const prompts = provider.callHistory.map((c) => c.messages.filter((m) => m.role === 'system'));
+    expect(prompts.every((p) => p.length === 1)).toBe(true);
+    expect(prompts[2]![0]!.content).toBe(prompts[0]![0]!.content);
+    expect(provider.callHistory[2]!.messages.filter((m) => m.role === 'user')).toHaveLength(3);
+  });
+});
+
+describe('tool argument safety', () => {
+  it('validates arguments with the schema and keeps MCP callers out of guarded tools', async () => {
+    const { schema, string, number } = await import('@jsango/validation');
+    const { ToolExecutor } = await import('../tools/tool-executor.js');
+    const { McpServer } = await import('../index.js');
+    const transfer = tool({
+      name: 'transfer',
+      description: 'Move money',
+      schema: schema({ to: string(), amount: number().min(1) }),
+      execute: (input: { to: string; amount: number }) => input,
+    });
+    const bad = await ToolExecutor.execute({ tool: transfer, arguments: { to: 'x', amount: -5 } });
+    expect(bad.error).toMatch(/Invalid arguments/);
+    const ok = await ToolExecutor.execute({
+      tool: transfer,
+      arguments: { to: 'x', amount: 5, admin: true },
+    });
+    expect(ok.output).toEqual({ to: 'x', amount: 5 }); // unknown keys dropped
+
+    const server = new McpServer();
+    server.registerTool({ ...transfer, requiresApproval: true });
+    await expect(server.callTool('transfer', { to: 'x', amount: 5 })).rejects.toThrow(/approval/);
+  });
+});

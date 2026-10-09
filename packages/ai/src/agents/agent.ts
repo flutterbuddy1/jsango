@@ -116,19 +116,24 @@ export class Agent<TOutput = string> {
       context.user && typeof context.user === 'object'
         ? (context.user as { id?: unknown }).id
         : context.user;
+    const hasUser = userId !== undefined && userId !== null;
     const conversationKey = [
       context.tenantId !== undefined ? `t:${context.tenantId}` : undefined,
-      userId !== undefined && userId !== null ? `u:${String(userId)}` : undefined,
+      hasUser ? `u:${String(userId)}` : undefined,
       context.conversationId ?? 'default',
     ]
       .filter((part) => part !== undefined)
       .join('|');
-    const history: LlmMessage[] = this.memoryStore
-      ? await this.memoryStore.get(conversationKey)
+    // Anonymous callers without a conversationId get no memory: one shared 'default' conversation
+    // would show every visitor the others' messages.
+    const memory = hasUser || context.conversationId ? this.memoryStore : undefined;
+    // The system prompt is rebuilt every run (never stored), so it can't grow turn after turn.
+    const history: LlmMessage[] = memory
+      ? (await memory.get(conversationKey)).filter((m) => m.role !== 'system')
       : [];
     const messages: LlmMessage[] = [...history];
 
-    if (instructions && (messages.length === 0 || messages[0]?.role !== 'system')) {
+    if (instructions) {
       messages.unshift({ role: 'system', content: instructions });
     }
 
@@ -310,8 +315,11 @@ export class Agent<TOutput = string> {
     }
 
     // Save updated memory
-    if (this.memoryStore) {
-      await this.memoryStore.set(conversationKey, messages);
+    if (memory) {
+      await memory.set(
+        conversationKey,
+        messages.filter((m) => m.role !== 'system')
+      );
     }
 
     emit({ type: 'run.completed', data: { text: finalAnswer, usage } });

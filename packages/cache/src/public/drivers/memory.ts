@@ -95,8 +95,9 @@ export class MemoryCacheDriver implements ICacheDriver {
     return this.lru.delete(key);
   }
 
-  public async clear(): Promise<void> {
-    this.lru.clear();
+  public async clear(prefix?: string): Promise<void> {
+    if (!prefix) return this.lru.clear();
+    for (const key of [...this.lru.keys()]) if (key.startsWith(prefix)) this.lru.delete(key);
   }
 
   public async increment(key: string, amount = 1): Promise<number> {

@@ -173,10 +173,16 @@ export function createApplication() {
   }));
 
   app.get('/health', () => ({ status: 'healthy' }));
-  app.get('/health/database', async () => ({ connections: await db.health() }));
+  // Status only: error details (hostnames, usernames) stay in the server log.
+  app.get('/health/database', async () => {
+    const results = await db.health();
+    const healthy = results.every((r) => r.status === 'healthy');
+    return { status: healthy ? 'healthy' : 'unhealthy' };
+  });
 
-  // GET/POST /users, GET/PUT/PATCH/DELETE /users/:id
-  app.crud('/users', User);
+  // GET /users, GET /users/:id (email hidden: it's personal data). POST/PUT/PATCH/DELETE answer
+  // 403 until you allow them, e.g. { access: { write: auth.required({ roles: ['admin'] }) } }
+  app.crud('/users', User, { hidden: ['email'] });
 
   return app;
 }
@@ -188,10 +194,12 @@ if (process.env.NODE_ENV !== 'test') {
 
   // Fail fast with a clear message if the database is unreachable or misconfigured.
   await db.verify();
-  await app.listen(port, host);
+  const server = await app.listen(port, host);
   console.log(\`Listening on http://\${host}:\${port}\`);
 
+  // Rolling deploys: stop accepting connections, finish in-flight requests, then close the pool.
   const shutdown = async () => {
+    await server.close(10_000);
     await db.close();
     process.exit(0);
   };
@@ -219,8 +227,14 @@ DATABASE_PASSWORD=
 # true / require, no-verify (self-signed certificates), false
 DATABASE_SSL=
 DATABASE_POOL_MAX=10
+# Cancel queries running longer than this many ms (PostgreSQL / MySQL), e.g. 30000 for the app.
+# Applies to migrations too: leave empty (no limit) where long index builds run.
+DATABASE_QUERY_TIMEOUT=
 
 PORT=3000
+# Leave unset (or production) on servers: anything except development/test runs in production
+# mode (generic error messages, secure cookies, no default admin password).
+# NODE_ENV=development
 
 # ---- Auth (createAuth) ----------------------------------------------------
 # 32+ random characters: openssl rand -base64 48
@@ -284,7 +298,11 @@ instead of other libraries. Refresh it after upgrading jsango: \`npx jsango ai:i
     // A ready-to-use .env (SQLite) so the first `npm run migrate` works without editing.
     const envPath = path.join(targetDir, '.env');
     if (!fs.existsSync(envPath)) {
-      fs.writeFileSync(envPath, files['.env.example']!, 'utf8');
+      fs.writeFileSync(
+        envPath,
+        files['.env.example']!.replace('# NODE_ENV=development', 'NODE_ENV=development'),
+        'utf8'
+      );
     }
 
     if (context.output.isJson) {

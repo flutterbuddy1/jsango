@@ -222,6 +222,10 @@ export async function completeAuthorization(
   }
   try {
     const profile = await provider.profile(accessToken, tokens, fetchFn);
+    // A missing id would become the string "undefined" and sign every user into one account.
+    if (!profile.id || profile.id === 'undefined' || profile.id === 'null') {
+      throw new Error('the profile has no user id');
+    }
     return { ...profile, provider: provider.name, accessToken };
   } catch (err) {
     throw new OAuthError(

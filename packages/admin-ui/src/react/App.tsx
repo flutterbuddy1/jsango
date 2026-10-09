@@ -8,6 +8,7 @@ import { ProfileSecurityView } from './views/ProfileSecurityView.js';
 import { AuditTrailView } from './views/AuditTrailView.js';
 import { SystemDiagnosticsView } from './views/SystemDiagnosticsView.js';
 import { LoginView } from './views/LoginView.js';
+import { MediaLibraryView } from './views/MediaLibraryView.js';
 
 export const AppContent: React.FC = () => {
   const { route, resources } = useAdmin();
@@ -55,6 +56,10 @@ export const AppContent: React.FC = () => {
   if (route.startsWith('#page/')) {
     const pageId = decodeURIComponent(route.replace('#page/', ''));
     return <CustomPageView key={pageId} pageId={pageId} />;
+  }
+
+  if (route === '#media') {
+    return <MediaLibraryView />;
   }
 
   if (route === '#system') {

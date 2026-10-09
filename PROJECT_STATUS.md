@@ -9,6 +9,7 @@
 
 ## Current Phase
 
+**v1.6.0 — SECURITY & PRODUCTION HARDENING** (Completed — full framework audit: production defaults, admin permissions and shared session store, WebSocket redesign, `app.crud` / `app.agent` safety, ORM transactions and pool, auth, queue, cache; built-in `cors()` / `securityHeaders()` / `rateLimit()`; admin media library and relation fields)
 **PHASE 20 — JSANGO AI PLATFORM ("FIRST-CLASS LLM, AI AGENT & ORCHESTRATION RUNTIME")** (Completed — v1.0.7 Stable)
 **COMPLETE PROJECT REBRAND (django-js → JSango)** (Completed — v1.0.0 Stable)
 **PHASE 18 — JSANGO ENTERPRISE ADMIN UI FOUNDATION** (Completed — v1.0.0 Stable)

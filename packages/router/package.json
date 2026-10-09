@@ -1,6 +1,6 @@
 {
   "name": "@jsango/router",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Route registration and route matching for jsango",
   "type": "module",
   "main": "./dist/index.js",

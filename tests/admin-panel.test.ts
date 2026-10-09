@@ -2,7 +2,7 @@
  * The admin panel over real HTTP on SQLite: login security, list queries on a few thousand rows,
  * bulk delete, streamed CSV export, dashboards, custom pages, health checks and sessions.
  */
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DatabaseManager } from '../packages/database/dist/index.js';
 import {
   createApp,
@@ -456,7 +456,25 @@ describe('admin panel login', () => {
       expect((await h.call('GET', '/dashboard/widgets/finance', { token: staffer })).status).toBe(
         404
       );
+
+      // Limited staff only get what their permissions grant (no more "default allow").
+      expect((await h.call('GET', '/resources/adminproduct', { token: staffer })).status).toBe(200);
+      expect(
+        (
+          await h.call('PATCH', '/resources/adminproduct/1', {
+            token: staffer,
+            body: { name: 'x' },
+          })
+        ).status
+      ).toBe(403);
+
+      // Banning / signing out the user everywhere ends their admin session (re-checked each minute).
+      await auth.logoutAll(1);
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(Date.now() + 61_000);
+      expect((await h.call('GET', '/auth/me', { token: boss })).status).toBe(401);
     } finally {
+      vi.useRealTimers();
       await h.close();
     }
   });

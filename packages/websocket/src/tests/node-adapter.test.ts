@@ -90,4 +90,18 @@ describe('NodeWebSocketAdapter', () => {
     const err = await errorPromise;
     expect(err.message).toMatch(/401|Unexpected server response/);
   });
+
+  it('authenticates connections in standalone (port) mode too', async () => {
+    adapter = new NodeWebSocketAdapter({ port: 0, host: '127.0.0.1', path: '/ws' });
+    await new Promise((r) => setTimeout(r, 20));
+    const port = (adapter as unknown as { httpServer: HttpServer }).httpServer.address() as {
+      port: number;
+    };
+    const status = await new Promise<number>((resolve) => {
+      const client = new WSClient(`ws://127.0.0.1:${port.port}/ws`);
+      client.on('unexpected-response', (_req, res) => resolve(res.statusCode ?? 0));
+      client.on('open', () => resolve(101));
+    });
+    expect(status).toBe(401);
+  });
 });

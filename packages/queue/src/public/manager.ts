@@ -1,5 +1,5 @@
 import type { ILogger } from '@jsango/core';
-import { NoopLogger } from '@jsango/core';
+import { NoopLogger, isProductionEnv } from '@jsango/core';
 import type { DispatchOptions, IQueueDriver, JobDefinition, WorkerOptions } from './types.js';
 import { QueueError } from './errors.js';
 import { Queue } from './queue.js';
@@ -63,7 +63,15 @@ export class QueueManager {
     };
 
     // Register memory driver factory by default
-    this.registerDriver('memory', () => new MemoryQueueDriver());
+    this.registerDriver('memory', () => {
+      if (isProductionEnv()) {
+        process.emitWarning(
+          'jsango queue uses the in-memory driver: queued jobs are lost on restart and not shared between instances. Configure the database or Redis driver.',
+          { code: 'JSANGO_MEMORY_QUEUE' }
+        );
+      }
+      return new MemoryQueueDriver();
+    });
   }
 
   public registerDriver(name: string, factory: QueueDriverFactory | IQueueDriver): this {

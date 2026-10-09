@@ -52,6 +52,8 @@ export function tool<TInput = any, TOutput = any>(
     name: optionsOrName.name,
     description: optionsOrName.description,
     inputSchema,
+    inputValidator:
+      typeof rawSchemaDef?.validate === 'function' ? (rawSchemaDef as never) : undefined,
     execute: optionsOrName.execute,
     requiresApproval: optionsOrName.requiresApproval,
     permissions: optionsOrName.permissions,

@@ -10,3 +10,13 @@ export interface IApplicationLifecycle {
   boot(): Promise<void>;
   shutdown(): Promise<void>;
 }
+
+/**
+ * True unless `NODE_ENV` is `development` or `test`. Fails closed: a server started without
+ * `NODE_ENV` (common in Docker / PM2) gets production behaviour (generic errors, secure cookies,
+ * no default admin password).
+ */
+export function isProductionEnv(): boolean {
+  const env = process.env['NODE_ENV'];
+  return env !== 'development' && env !== 'test';
+}

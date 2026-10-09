@@ -13,6 +13,7 @@ import {
   Layers,
   Package,
   ExternalLink,
+  Image,
 } from 'lucide-react';
 
 const ICON_MAP: Record<string, React.FC<{ style?: React.CSSProperties }>> = {
@@ -147,6 +148,16 @@ export const Sidebar: React.FC = () => {
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <UserCheck style={{ width: 15, height: 15 }} />
               <span>Profile & Security</span>
+            </span>
+          </a>
+          <a
+            href="#media"
+            className={`nav-link-item ${route === '#media' ? 'active' : ''}`}
+            onClick={() => setMobileSidebarOpen(false)}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Image style={{ width: 15, height: 15 }} />
+              <span>Media</span>
             </span>
           </a>
           <a

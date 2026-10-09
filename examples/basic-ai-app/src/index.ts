@@ -250,11 +250,10 @@ export function createApplication() {
   // });
   // Automatic CRUD Endpoints for Products:
   // - GET    /api/products       (list with search & pagination)
-  // - POST   /api/products       (create)
   // - GET    /api/products/:id   (detail)
-  // - PUT    /api/products/:id   (update)
-  // - DELETE /api/products/:id   (delete)
-  app.crud('/api/products', Product);
+  // Writes (POST, PUT/PATCH, DELETE) answer 403 until `access` allows them; products are edited
+  // in the admin panel here.
+  app.crud('/api/products', Product, { searchFields: ['name', 'category'] });
 
   // Mount AI Agent directly as an HTTP endpoint:
   // - POST /api/agent/chat  -> Body: { "input": "Do you have MacBook?" }

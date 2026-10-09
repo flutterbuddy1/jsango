@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ModelMetadata, fields } from '@jsango/orm';
+import { ModelMetadata, fields, relations } from '@jsango/orm';
 import { AutoResourceGenerator } from '../public/auto-generator.js';
 
 describe('AutoResourceGenerator', () => {
@@ -41,5 +41,26 @@ describe('AutoResourceGenerator', () => {
     // List fields should omit sensitive fields by default
     expect(resource.listFields).not.toContain('passwordHash');
     expect(resource.listFields).not.toContain('apiKey');
+  });
+
+  it('turns a belongsTo foreign key into a relation picker', () => {
+    const metadata = new ModelMetadata({
+      name: 'Product',
+      table: 'products',
+      fields: {
+        id: fields.integer({ primaryKey: true, autoIncrement: true }),
+        categoryId: fields.integer(),
+      },
+      relations: {
+        category: relations.belongsTo(() => ({ metadata: { name: 'Category' } }) as never, {
+          foreignKey: 'categoryId',
+        }),
+      },
+    });
+    const resource = AutoResourceGenerator.generateFromModel(metadata);
+    const fk = resource.getField('categoryId');
+    expect(fk?.type).toBe('relation');
+    expect(fk?.relationTarget).toBe('Category');
+    expect(resource.getField('category')).toBeUndefined();
   });
 });

@@ -271,6 +271,9 @@ importers:
       '@jsango/admin-core':
         specifier: workspace:^
         version: link:../admin-core
+      '@jsango/admin-media':
+        specifier: workspace:^
+        version: link:../admin-media
       '@jsango/auth':
         specifier: workspace:^
         version: link:../auth
@@ -491,6 +494,9 @@ importers:
       '@jsango/admin-core':
         specifier: workspace:^
         version: link:../admin-core
+      '@jsango/admin-media':
+        specifier: workspace:^
+        version: link:../admin-media
       '@jsango/admin-server':
         specifier: workspace:^
         version: link:../admin-server

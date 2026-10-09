@@ -45,6 +45,11 @@ const result = await server.handleJsonRpc({
 
 Protect the endpoint like any other route, e.g. with your auth middleware.
 
+Tools served over MCP go through the same checks as inside an agent: arguments are validated, a
+tool with `requiresApproval` is refused (MCP has no approval step), and a tool with `permissions`
+is refused because MCP callers have no identity. Put the MCP route behind `auth.required()` if it
+should not be public.
+
 ### Local servers (stdio)
 
 Desktop clients (Claude Code, Cursor, VS Code) start local MCP servers as a process and talk over

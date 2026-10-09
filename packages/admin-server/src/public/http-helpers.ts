@@ -56,12 +56,9 @@ export function sendError(
 }
 
 /**
- * Extracts the requesting actor's IP address from standard headers.
+ * The client's IP address. Proxy headers are only used when the app trusts its proxy
+ * (`createApp({ trustProxy })`); otherwise they are client-forgeable.
  */
 export function extractIpAddress(req: HttpRequest): string | undefined {
-  return (
-    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
-    req.headers.get('x-real-ip') ??
-    undefined
-  );
+  return req.ip;
 }

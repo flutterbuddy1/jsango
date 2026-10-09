@@ -34,6 +34,7 @@ export class Application {
   public readonly container: Container;
   public readonly logger: ILogger;
   public readonly isProduction: boolean;
+  public readonly config: ApplicationOptions;
 
   private readonly globalPipeline = new MiddlewarePipeline();
   private readonly registry = new MiddlewareRegistry();
@@ -41,6 +42,7 @@ export class Application {
 
   constructor(options: ApplicationOptions = {}) {
     this.logger = options.logger ?? new NoopLogger();
+    this.config = options;
     this.isProduction = options.isProduction ?? true;
     this.container = options.container ?? new Container();
     this.router = options.router ?? new Router();
@@ -152,10 +154,14 @@ export class Application {
   }
 
   private async handleError(error: unknown, ctx: RequestContext): Promise<HttpResponse> {
-    this.logger.error('Request pipeline execution error', {
-      requestId: ctx.requestId,
-      error: error instanceof Error ? error.message : String(error),
-    });
+    // 4xx are client mistakes; log server errors only, with the stack.
+    if (((error as { statusCode?: number } | null)?.statusCode ?? 500) >= 500) {
+      this.logger.error('Request pipeline execution error', {
+        requestId: ctx.requestId,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+    }
 
     if (this.customErrorHandler) {
       try {
@@ -176,6 +182,8 @@ export class Application {
     const server = createNodeHttpServer(async (ctx) => this.handle(ctx), {
       logger: this.logger,
       isProduction: this.isProduction,
+      trustProxy: this.config.trustProxy,
+      maxBodySize: this.config.maxBodySize,
     });
     await server.listen(port, host);
     return server;

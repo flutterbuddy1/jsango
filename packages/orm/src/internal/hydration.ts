@@ -16,6 +16,17 @@ function implicitType(metadata: ModelMetadata, fieldName: string): 'dateTime' | 
   return undefined;
 }
 
+/** Whether `num` prints back as the decimal string `text` (ignoring leading / trailing zeros). */
+function numberHoldsExactly(text: string, num: number): boolean {
+  let normalized = text
+    .trim()
+    .replace(/^\+/, '')
+    .replace(/^(-?)0+(?=\d)/, '$1');
+  if (normalized.includes('.')) normalized = normalized.replace(/0+$/, '').replace(/\.$/, '');
+  if (normalized === '-0') normalized = '0';
+  return String(num) === normalized;
+}
+
 export class Hydrator {
   public static hydrateRow(
     rawRow: Record<string, unknown>,
@@ -34,9 +45,25 @@ export class Hydrator {
       }
 
       switch (type) {
-        case 'dateTime':
-        case 'date':
         case 'time':
+          // A time of day ('09:30:00') is not a Date: `new Date('09:30:00')` is invalid.
+          attributes[fieldName] =
+            val instanceof Date ? val.toISOString().slice(11, 19) : String(val);
+          break;
+
+        case 'date':
+          // Calendar dates are kept at UTC midnight. Drivers that return a local-midnight Date
+          // (pg) would otherwise shift the day for servers east of UTC.
+          if (val instanceof Date) {
+            attributes[fieldName] = new Date(
+              Date.UTC(val.getFullYear(), val.getMonth(), val.getDate())
+            );
+          } else {
+            attributes[fieldName] = new Date(String(val).slice(0, 10));
+          }
+          break;
+
+        case 'dateTime':
           if (val instanceof Date) {
             attributes[fieldName] = val;
           } else if (typeof val === 'string' || typeof val === 'number') {
@@ -65,7 +92,12 @@ export class Hydrator {
             attributes[fieldName] = val;
           } else if (typeof val === 'string') {
             const num = Number(val);
-            attributes[fieldName] = Number.isNaN(num) ? val : num;
+            // A decimal a JS number can't hold exactly (e.g. NUMERIC(20,8)) stays a string, so
+            // reading and saving it back never changes the stored value.
+            attributes[fieldName] =
+              Number.isNaN(num) || (type === 'decimal' && !numberHoldsExactly(val, num))
+                ? val
+                : num;
           } else {
             attributes[fieldName] = val;
           }

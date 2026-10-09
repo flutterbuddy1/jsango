@@ -174,15 +174,32 @@ function escapeRegex(text: string): string {
 /** SQL LIKE pattern -> anchored regular expression (`%` = any run, `_` = one character). */
 export function likeToRegex(pattern: string): string {
   let out = '';
+  let escaped = false;
   for (const ch of pattern) {
-    if (ch === '%') out += '.*';
+    if (escaped) out += escapeRegex(ch);
+    else if (ch === '\\') {
+      escaped = true;
+      continue;
+    } else if (ch === '%') out += '.*';
     else if (ch === '_') out += '.';
     else out += escapeRegex(ch);
+    escaped = false;
   }
-  return `^${out}$`;
+  // Runs of `%` would make `.*.*.*` (slow backtracking): one is enough.
+  return `^${out.replace(/(\.\*)+/g, '.*')}$`;
 }
 
 type Filter = Record<string, unknown>;
+
+function isOperatorObject(value: unknown): boolean {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    !(value instanceof Date) &&
+    Object.keys(value).some((k) => k.startsWith('$') && k !== '$oid')
+  );
+}
 
 export class MongoTranslator {
   private readonly info: EngineModelInfo;
@@ -194,6 +211,8 @@ export class MongoTranslator {
   /** Field name in the document: the primary key is `_id`; `table.column` loses the prefix. */
   public field(column: string): string {
     const name = column.includes('.') ? column.slice(column.lastIndexOf('.') + 1) : column;
+    // `where(req.body)` must not be able to inject operators such as `$where` / `$expr`.
+    if (name.startsWith('$')) throw new QueryError(`Invalid field name "${name}".`);
     return name === this.info.primaryKey ? '_id' : name;
   }
 
@@ -252,7 +271,9 @@ export class MongoTranslator {
         const v = this.value(node.column, node.value);
         switch (op) {
           case '=':
-            return { [field]: v };
+            // A value like {"$ne": null} from a JSON body must compare as a value, not run as an
+            // operator (it would match every document, e.g. on a login lookup).
+            return { [field]: isOperatorObject(v) ? { $eq: v } : v };
           case '!=':
           case '<>':
             return { [field]: { $ne: v } };
@@ -378,10 +399,9 @@ export class MongoEngine implements QueryEngine {
 
   public async count(ctx: QueryContext, ast: CountAst, info: EngineModelInfo): Promise<number> {
     const t = new MongoTranslator(info);
-    const filter = t.filter(ast.scope, ast.where);
-    if (ast.column) {
-      Object.assign(filter, { [t.field(ast.column)]: { $ne: null } });
-    }
+    const where = t.filter(ast.scope, ast.where);
+    // $and keeps an existing condition on the same field (Object.assign would overwrite it).
+    const filter = ast.column ? { $and: [where, { [t.field(ast.column)]: { $ne: null } }] } : where;
     const res = await this.exec<{ count: number }>(ctx, {
       op: 'count',
       collection: ast.table,

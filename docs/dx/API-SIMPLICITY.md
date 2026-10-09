@@ -91,10 +91,8 @@ import { createApp } from 'jsango';
 const app = createApp();
 
 app.ws('/chat', (socket) => {
-  socket.on('message', async (data: any) => {
-    if (data.type === 'join') socket.join(data.room);
-    else await socket.to(data.room).send(data);
-  });
+  socket.on('join', (room: string) => socket.join(room)); // client sends { event: 'join', data: 'lobby' }
+  socket.on('say', ({ room, text }) => socket.to(room).emit('said', { text }));
 });
 
 await app.listen(3000);

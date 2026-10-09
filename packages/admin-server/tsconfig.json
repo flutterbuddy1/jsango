@@ -11,7 +11,8 @@
     { "path": "../auth" },
     { "path": "../admin-core" },
     { "path": "../admin-auth" },
-    { "path": "../admin-audit" }
+    { "path": "../admin-audit" },
+    { "path": "../admin-media" }
   ],
   "include": ["src/**/*"],
   "exclude": ["**/*.test.ts", "**/*.spec.ts"]

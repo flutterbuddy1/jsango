@@ -19,6 +19,7 @@ export interface AdminResourceField {
   choices?: Array<{ value: any; label: string }>;
   helpText?: string;
   relatedResource?: string;
+  relationType?: 'belongsTo' | 'hasOne' | 'hasMany' | 'manyToMany';
 }
 
 export interface AdminCustomAction {
@@ -58,6 +59,7 @@ export interface AdminResource {
   actions?: AdminCustomAction[];
   bulkActions?: AdminBulkAction[];
   inlines?: AdminInlineRelation[];
+  primaryKey?: string;
 }
 
 export interface ToastMessage {
@@ -399,16 +401,15 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({
                     ? 'date'
                     : f.type === 'text' || f.type === 'uuid'
                     ? 'string'
-                    : f.type === 'file' || f.type === 'image'
-                    ? f.type
-                    : f.type === 'relation' || f.name.endsWith('Id') || f.foreignKey
+                    : f.foreignKey
                     ? 'relation'
                     : f.type,
                 required: f.required,
                 readOnly: f.readonly,
                 choices: f.enumChoices || f.choices,
-                helpText: f.helpText,
-                relatedResource: f.relatedResource || f.foreignKey?.resource || (f.name.endsWith('Id') ? f.name.replace(/Id$/, 's') : undefined),
+                helpText: f.helpText || f.description,
+                relatedResource: f.relatedResource || f.foreignKey?.resource,
+                relationType: f.relationType,
               }));
               const listDisplay: string[] =
                 schema.listFields ||

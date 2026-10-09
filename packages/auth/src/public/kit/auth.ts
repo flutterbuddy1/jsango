@@ -1,4 +1,5 @@
 import * as crypto from 'node:crypto';
+import { isProductionEnv } from '@jsango/core';
 import { HttpResponse, type RequestContext } from '@jsango/http';
 import { JwtService, type JwtPayload } from '../authentication/jwt.js';
 import { ScryptPasswordHasher, type IPasswordHasher } from '../authentication/password.js';
@@ -91,7 +92,7 @@ export interface CreateAuthOptions<TUser> {
     readonly cookieName?: string | undefined;
     /** Session lifetime in seconds (sliding). Default 7 days. */
     readonly ttl?: number | undefined;
-    /** Secure cookies. Default: true when NODE_ENV=production. */
+    /** Secure cookies. Default: true unless NODE_ENV is development or test. */
     readonly secure?: boolean | undefined;
     readonly sameSite?: 'Strict' | 'Lax' | 'None' | undefined;
     readonly domain?: string | undefined;
@@ -162,7 +163,6 @@ export class TooManyAttemptsError extends AuthenticationError {
 
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 // A valid scrypt hash of a random string: verifying against it costs the same as a real check.
-let dummyHash: Promise<string> | undefined;
 
 function sha256(value: string): string {
   return crypto.createHash('sha256').update(value).digest('hex');
@@ -191,6 +191,7 @@ export class Auth<TUser = Record<string, unknown>> {
   private readonly hasher: IPasswordHasher;
   private readonly cookieKey: Buffer;
   private readonly external: JwksVerifier | undefined;
+  private dummyHash: Promise<string> | undefined;
   private readonly providers = new Map<string, OAuthProvider>();
 
   public constructor(options: CreateAuthOptions<TUser>) {
@@ -217,7 +218,7 @@ export class Auth<TUser = Record<string, unknown>> {
       ? new JwksVerifier({ fetch: options.fetch, ...options.external })
       : undefined;
     for (const p of options.oauth ?? []) this.providers.set(p.name, p);
-    if (!options.store && process.env['NODE_ENV'] === 'production') {
+    if (!options.store && isProductionEnv()) {
       // eslint-disable-next-line no-console -- one-time startup warning
       console.warn(
         '[jsango auth] Using the in-memory auth store in production: sessions, refresh tokens and lockouts are lost on restart and not shared between instances. Pass `store: new DatabaseAuthStore({ connection: db })`.'
@@ -318,6 +319,21 @@ export class Auth<TUser = Record<string, unknown>> {
     });
   }
 
+  /**
+   * The current identity of a user, re-read from your user store, or undefined when the user no
+   * longer exists, is inactive, or was signed out everywhere (`logoutAll`) after `signedInAtMs`.
+   * Lets long-lived sessions (e.g. the admin's) pick up role changes and bans.
+   */
+  public async currentIdentity(
+    userId: string,
+    signedInAtMs: number
+  ): Promise<Identity | undefined> {
+    const user = await this.options.users.findById(userId);
+    if (!user || !(await this.isActive(user)) || (await this.revokedBefore(userId, signedInAtMs)))
+      return undefined;
+    return this.identityOf(user);
+  }
+
   private async isActive(user: TUser): Promise<boolean> {
     return this.options.users.isActive ? await this.options.users.isActive(user) : true;
   }
@@ -377,8 +393,9 @@ export class Auth<TUser = Record<string, unknown>> {
       ok = await this.hasher.verify(String(password ?? ''), hash);
     } else {
       // Same work as a real check, so response time does not reveal whether the account exists.
-      dummyHash ??= new ScryptPasswordHasher().hash(random());
-      await this.hasher.verify(String(password ?? ''), await dummyHash);
+      // With the configured hasher: a scrypt dummy would be rejected instantly by e.g. bcrypt.
+      this.dummyHash ??= this.hasher.hash(random());
+      await this.hasher.verify(String(password ?? ''), await this.dummyHash);
     }
 
     if (!ok || !user || !(await this.isActive(user))) {
@@ -416,11 +433,12 @@ export class Auth<TUser = Record<string, unknown>> {
     await this.guard(keys);
     const user = await this.options.users.findById(claims.sub);
     const secret = user ? (user as Record<string, unknown>)[this.mfaField] : undefined;
+    // Normalised first: '123 456' must not count as a different (unused) code than '123456'.
+    const normalized = String(code ?? '').replace(/\s+/g, '');
     const valid =
-      typeof secret === 'string' &&
-      this.totp.verifyToken(String(code ?? ''), secret, { window: 1 });
+      typeof secret === 'string' && this.totp.verifyToken(normalized, secret, { window: 1 });
     // Each code works once (replay protection within its validity window).
-    const usedKey = `mfa-used:${claims.sub}:${String(code)}`;
+    const usedKey = `mfa-used:${claims.sub}:${normalized}`;
     if (!valid || !user || (await this.store.get(usedKey)) || !(await this.isActive(user))) {
       await this.fail(keys);
       throw new InvalidCredentialsError('Invalid authentication code.');
@@ -479,11 +497,19 @@ export class Auth<TUser = Record<string, unknown>> {
     const raw = family ? await this.store.get(`rf:${family}`) : undefined;
     if (!raw) throw new InvalidCredentialsError('Refresh token is invalid or expired.');
     const record = JSON.parse(raw) as { sub: string; hash: string; iat: number };
+    const usedKey = `rfu:${sha256(refreshToken)}`;
     if (!equal(record.hash, sha256(refreshToken))) {
+      // Rotated in the last minute: a parallel refresh (two tabs, a retry), not theft.
+      if (await this.store.get(usedKey))
+        throw new InvalidCredentialsError('Refresh token was just used; use the newer one.');
       await this.store.delete(`rf:${family}`);
       throw new InvalidCredentialsError(
         'Refresh token was already used. All sessions of this login were revoked; please sign in again.'
       );
+    }
+    // Atomic claim: of two concurrent refreshes with the same token, only one rotates it.
+    if ((await this.store.increment(usedKey, 60)) > 1) {
+      throw new InvalidCredentialsError('Refresh token was just used; use the newer one.');
     }
     if (await this.revokedBefore(record.sub, record.iat)) {
       await this.store.delete(`rf:${family}`);
@@ -534,7 +560,11 @@ export class Auth<TUser = Record<string, unknown>> {
   /** Revokes a refresh token (e.g. a mobile app signing out without an access token). */
   public async revokeRefreshToken(refreshToken: string): Promise<void> {
     const family = String(refreshToken ?? '').split('.')[0];
-    if (family) await this.store.delete(`rf:${family}`);
+    const raw = family ? await this.store.get(`rf:${family}`) : undefined;
+    // Only the token itself can revoke its login (the family id alone is visible in access tokens).
+    if (raw && equal((JSON.parse(raw) as { hash: string }).hash, sha256(refreshToken))) {
+      await this.store.delete(`rf:${family}`);
+    }
   }
 
   /**
@@ -543,7 +573,11 @@ export class Auth<TUser = Record<string, unknown>> {
    */
   public async logoutAll(userId: string | number): Promise<void> {
     const ttl = Math.max(this.refreshTtl, this.sessionTtl, this.accessTtl);
-    await this.store.set(`uv:${userId}`, String(Date.now()), ttl);
+    const cutoff = Date.now();
+    await this.store.set(`uv:${userId}`, String(cutoff), ttl);
+    // Return only once the clock has moved past the cutoff: everything issued until now is
+    // revoked, and a login right after this call is never mistaken for an old one.
+    while (Date.now() <= cutoff) await new Promise((r) => setTimeout(r, 1));
   }
 
   private async revokedBefore(sub: string, issuedAtMs: number): Promise<boolean> {
@@ -569,7 +603,7 @@ export class Auth<TUser = Record<string, unknown>> {
     );
     response.setCookie(this.cookieName, this.signCookie(id), {
       httpOnly: true,
-      secure: this.options.session?.secure ?? process.env['NODE_ENV'] === 'production',
+      secure: this.options.session?.secure ?? isProductionEnv(),
       sameSite: this.options.session?.sameSite ?? 'Lax',
       path: '/',
       maxAge: this.sessionTtl,
@@ -642,7 +676,7 @@ export class Auth<TUser = Record<string, unknown>> {
         this.signCookie(Base64Url.encode(JSON.stringify({ p: provider.name, state, verifier }))),
         {
           httpOnly: true,
-          secure: this.options.session?.secure ?? process.env['NODE_ENV'] === 'production',
+          secure: this.options.session?.secure ?? isProductionEnv(),
           sameSite: 'Lax', // must survive the top-level redirect back from the provider
           path: '/',
           maxAge: 600,
@@ -790,7 +824,8 @@ export class Auth<TUser = Record<string, unknown>> {
       const key = ctx.request.headers.get(header) ?? /^ApiKey\s+(\S+)$/i.exec(authorization)?.[1];
       if (key) {
         const owner = await this.options.apiKeys.find(sha256(key));
-        if (!owner) return failed('invalid_credentials', 'apiKey', 'Invalid API key.');
+        if (!owner || !(await this.isActive(owner)))
+          return failed('invalid_credentials', 'apiKey', 'Invalid API key.');
         const fields = this.fields(owner);
         const identity = new ServiceAccountIdentity({
           id: String(fields.id),

@@ -7,6 +7,13 @@ export interface MigrationLockOptions {
   readonly lockExpiryMs?: number | undefined;
   readonly retryIntervalMs?: number | undefined;
   readonly ownerId?: string | undefined;
+  /**
+   * Opens a second connection used to refresh the lock while migrations run, so a migration
+   * longer than `lockExpiryMs` is never taken for a crashed one by a concurrent deploy. The
+   * migration's own connection can't do it: its updates would wait inside its transaction.
+   */
+  readonly heartbeatConnection?:
+    (() => Promise<IDatabaseConnection & { release(): Promise<void> }>) | undefined;
 }
 
 export class MigrationLock {
@@ -16,6 +23,7 @@ export class MigrationLock {
   private readonly lockExpiryMs: number;
   private readonly retryIntervalMs: number;
   private readonly ownerId: string;
+  private readonly heartbeatConnection: MigrationLockOptions['heartbeatConnection'];
   private isAcquired = false;
 
   public constructor(connection: IDatabaseConnection, options?: MigrationLockOptions) {
@@ -25,6 +33,7 @@ export class MigrationLock {
     // long-running migrations are never taken over by a concurrent deploy.
     this.lockExpiryMs = options?.lockExpiryMs ?? 15 * 60_000;
     this.retryIntervalMs = options?.retryIntervalMs ?? 200;
+    this.heartbeatConnection = options?.heartbeatConnection;
     this.ownerId =
       options?.ownerId ??
       `pid_${process.pid}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
@@ -106,11 +115,44 @@ export class MigrationLock {
 
   public async withLock<T>(fn: () => Promise<T>): Promise<T> {
     await this.acquire();
+    const stopHeartbeat = await this.startHeartbeat();
     try {
       return await fn();
     } finally {
+      await stopHeartbeat();
       await this.release();
     }
+  }
+
+  /** Refreshes `acquired_at` every third of the expiry from a separate connection. */
+  private async startHeartbeat(): Promise<() => Promise<void>> {
+    const conn = await this.heartbeatConnection?.().catch(() => undefined);
+    if (!conn) return async () => {};
+    const beat = async () => {
+      const now = new Date().toISOString();
+      if (isMongoExecutor(conn)) {
+        await conn.execute!({
+          op: 'updateOne',
+          collection: MigrationLock.TABLE_NAME,
+          filter: { _id: 'lock', owner_id: this.ownerId },
+          update: { $set: { acquired_at: now } },
+        });
+      } else {
+        await conn.query(
+          adaptIdentifierQuotes(
+            conn,
+            `UPDATE "${MigrationLock.TABLE_NAME}" SET "acquired_at" = ? WHERE "id" = ? AND "owner_id" = ?`
+          ),
+          [now, 'lock', this.ownerId]
+        );
+      }
+    };
+    const timer = setInterval(() => void beat().catch(() => {}), this.lockExpiryMs / 3);
+    timer.unref();
+    return async () => {
+      clearInterval(timer);
+      await conn.release().catch(() => {});
+    };
   }
 
   private async tryAcquire(): Promise<boolean> {

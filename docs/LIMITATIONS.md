@@ -43,3 +43,23 @@ This document provides a transparent, honest overview of the architectural limit
 ## 6. Observability
 
 - **High-Cardinality Metric Label Protection**: `MetricRegistry` enforces a maximum cardinality limit (default 1,000 label permutations per metric). High-entropy inputs (such as raw user IDs or UUIDs in label keys) will be rejected to prevent unbounded memory growth.
+
+---
+
+## 7. Known gaps (1.6)
+
+- **Admin row-level filtering**: object-level policies (`permissions.authorizationManager`) are
+  checked on update and delete, but list and CSV export only check the resource. Use resource
+  permissions or separate resources until a query scope hook lands.
+- **Access tokens after refresh-token theft**: when a reused refresh token revokes a login, access
+  tokens already issued for it stay valid until they expire (15 minutes by default).
+- **Big integers on SQLite**: values above 2^53 lose precision in the SQLite driver itself; use
+  PostgreSQL or MySQL for `bigint` columns that large.
+- **Query timeouts are opt-in** (`DATABASE_QUERY_TIMEOUT` / `queryTimeoutMs`) because they also
+  apply to migrations.
+- **Agent approvals**: a run paused by a tool with `requiresApproval` can't be resumed yet; start a
+  new run after approving.
+- **Swagger UI** is loaded from unpkg at a pinned version, without Subresource Integrity.
+- **In-memory defaults**: the queue driver, the admin audit log and (without `createAuth`) the admin
+  session store live in memory. They warn in production; configure persistent stores for
+  multi-instance deployments.

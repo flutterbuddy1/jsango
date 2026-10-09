@@ -8,7 +8,7 @@ describe('DatabaseQueueDriver Contract Tests', () => {
     const db = new DatabaseManager({
       default: 'default',
       connections: {
-        default: { driver: 'memory' },
+        default: { driver: 'sqlite', filename: ':memory:' },
       },
     });
 

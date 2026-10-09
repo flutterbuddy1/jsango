@@ -3,6 +3,10 @@ export {
   createApp,
   JSangoApplication,
   type CrudOptions,
+  type CrudAccess,
+  type CrudHooks,
+  type CrudOperation,
+  type AgentRouteOptions,
   type AdminOptions,
   type AdminCredentials,
   type AdminResourceEntry,
@@ -27,6 +31,12 @@ export {
   type IMiddleware,
   type MiddlewareDefinition,
   type NextFunction,
+  cors,
+  securityHeaders,
+  rateLimit,
+  type CorsOptions,
+  type RateLimitOptions,
+  type RateLimitStore,
 } from '@jsango/middleware';
 
 // Validation & Schemas
@@ -58,6 +68,7 @@ export {
   model,
   defineModel,
   fields,
+  relations,
   Model,
   QueryBuilder,
   ModelRegistry,
@@ -139,6 +150,7 @@ export {
   type ISimpleWebSocket,
   type WebSocketRouteCallback,
   type WebSocketRouteHandlers,
+  type RoomSender,
 } from './websocket-wrapper.js';
 export {
   WebSocketManager,
@@ -177,6 +189,14 @@ export {
   type IAdminQueryAdapter,
 } from '@jsango/admin-server';
 export { type IAuditStore, type AdminAuditEntry } from '@jsango/admin-audit';
+export {
+  AdminMediaManager,
+  LocalDiskMediaStorage,
+  S3MediaStorage,
+  InMemoryMediaStorage,
+  type IMediaStorage,
+  type S3MediaStorageOptions,
+} from '@jsango/admin-media';
 export { OpenApiRegistry, OpenApiGenerator } from '@jsango/openapi';
 export { StructuredLogger, MetricRegistry, HealthRegistry, Tracer } from '@jsango/observability';
 

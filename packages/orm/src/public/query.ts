@@ -51,6 +51,11 @@ export interface GroupByOptions {
   readonly limit?: number | undefined;
 }
 
+/** Escapes `\\`, `%` and `_` so user text matches literally inside a LIKE pattern. */
+export function escapeLike(text: string): string {
+  return text.replace(/[\\%_]/g, '\\$&');
+}
+
 export class QueryBuilder<TModel extends Model = Model> {
   private readonly modelClass: ModelStatic<TModel>;
   private readonly ast: SelectAst;
@@ -395,6 +400,18 @@ export class QueryBuilder<TModel extends Model = Model> {
       value: pattern,
       boolean: 'OR',
     });
+  }
+
+  /**
+   * Case-insensitive "contains" for user input (search boxes): `%` and `_` in `text` match
+   * literally instead of acting as wildcards.
+   */
+  public whereContains(column: string, text: string): QueryBuilder<TModel> {
+    return this.whereLike(column, `%${escapeLike(text)}%`);
+  }
+
+  public orWhereContains(column: string, text: string): QueryBuilder<TModel> {
+    return this.orWhereLike(column, `%${escapeLike(text)}%`);
   }
 
   /**

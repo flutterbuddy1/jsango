@@ -96,7 +96,8 @@ export const fields = {
     return createField<T>('date', options);
   },
 
-  time<T = Date>(options?: CustomFieldOptions<T>): FieldDefinition<NoInfer<T>> {
+  /** A time of day, read as a string like `'09:30:00'`. */
+  time<T = string>(options?: CustomFieldOptions<T>): FieldDefinition<NoInfer<T>> {
     return createField<T>('time', options);
   },
 
@@ -119,8 +120,13 @@ export const fields = {
     });
   },
 
+  /** A UUID string. As a primary key a new random UUID (v4) is generated automatically. */
   uuid<T = string>(options?: CustomFieldOptions<T>): FieldDefinition<NoInfer<T>> {
-    return createField<T>('uuid', options);
+    const isPk = options?.primaryKey === true;
+    return createField<T>('uuid', {
+      ...(isPk ? { defaultValue: (() => crypto.randomUUID()) as unknown as () => T } : {}),
+      ...options,
+    });
   },
 
   binary<T = Uint8Array>(options?: CustomFieldOptions<T>): FieldDefinition<NoInfer<T>> {

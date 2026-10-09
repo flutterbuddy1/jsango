@@ -1,3 +1,4 @@
+import { isProductionEnv } from '@jsango/core';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import {
   DatabaseManager,
@@ -21,6 +22,10 @@ interface GlobalState {
 interface AmbientTransaction {
   readonly connectionName: string;
   readonly tx: IDatabaseTransaction;
+  /** Nesting depth, for unique savepoint names. */
+  depth: number;
+  /** A nested transaction failed on a database without savepoints (MongoDB). */
+  failed: boolean;
 }
 
 const globalState = globalThis as unknown as GlobalState;
@@ -42,13 +47,20 @@ export function setDatabaseManager(manager: DatabaseManager): void {
 }
 
 /**
- * Returns the active DatabaseManager. When none has been configured an in-memory database is
- * created so that quick experiments work, but applications should always call
+ * Returns the active DatabaseManager. When none has been configured, development and tests get an
+ * in-memory database so quick experiments work; production throws. Applications should always call
  * setDatabaseManager() (the generated `src/database.ts` does this).
  */
 export function getDatabaseManager(): DatabaseManager {
   let manager = globalState[MANAGER_KEY];
   if (!manager) {
+    // In production a forgotten setDatabaseManager() would silently keep data in memory and lose
+    // it on restart: fail loudly instead.
+    if (isProductionEnv()) {
+      throw new Error(
+        'No database configured: call setDatabaseManager() (see src/database.ts). The in-memory fallback only runs with NODE_ENV=development or test.'
+      );
+    }
     manager = new DatabaseManager({
       default: 'default',
       connections: {
@@ -84,7 +96,9 @@ export function clearDatabaseManager(): void {
  * });
  * ```
  *
- * Calling transaction() while one is already active on the same connection reuses it.
+ * Calling transaction() while one is already active on the same connection runs it in a savepoint:
+ * if the inner callback throws, only its changes are undone. On MongoDB (no savepoints) the whole
+ * outer transaction is rolled back instead.
  */
 export async function transaction<T>(
   callback: (tx: IDatabaseTransaction) => Promise<T>,
@@ -95,15 +109,38 @@ export async function transaction<T>(
   const current = transactionStorage().getStore();
 
   if (current && current.connectionName === connectionName && !current.tx.isCompleted) {
-    return callback(current.tx);
+    const name = `jsango_sp_${++current.depth}`;
+    // Without a savepoint, a caught inner error would let the outer transaction commit a
+    // half-applied change (Postgres even turns that COMMIT into a silent ROLLBACK).
+    const hasSavepoint = await current.tx.savepoint(name).then(
+      () => true,
+      () => false
+    );
+    try {
+      const result = await callback(current.tx);
+      if (hasSavepoint) await current.tx.releaseSavepoint(name);
+      return result;
+    } catch (err) {
+      if (hasSavepoint) await current.tx.rollbackTo(name);
+      else current.failed = true;
+      throw err;
+    } finally {
+      current.depth--;
+    }
   }
 
   const conn = await manager.connection(connectionName, { timeoutMs: options?.timeoutMs });
   try {
-    return await conn.transaction(
-      (tx) => transactionStorage().run({ connectionName, tx }, () => callback(tx)),
-      options
-    );
+    return await conn.transaction(async (tx) => {
+      const ambient: AmbientTransaction = { connectionName, tx, depth: 0, failed: false };
+      const result = await transactionStorage().run(ambient, () => callback(tx));
+      if (ambient.failed) {
+        throw new Error(
+          'A nested transaction failed and this database has no savepoints: the whole transaction was rolled back.'
+        );
+      }
+      return result;
+    }, options);
   } finally {
     await conn.release();
   }

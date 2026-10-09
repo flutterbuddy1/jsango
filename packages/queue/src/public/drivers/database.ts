@@ -152,84 +152,43 @@ export class DatabaseQueueDriver implements IQueueDriver {
 
     const now = Date.now();
 
-    return this.db.transaction(async (tx) => {
-      const selectSql = `SELECT * FROM ${this.tableName} WHERE queue_name = ?`;
-      const res = await tx.query<JobRow>(selectSql, [queueName]);
+    // Claimable: pending, due scheduled jobs, or processing jobs whose lease expired.
+    const claimable = `(status = 'pending' OR (status = 'scheduled' AND scheduled_at <= ?) OR (status = 'processing' AND locked_until IS NOT NULL AND locked_until <= ?))`;
+    // Filtering, ordering and LIMIT run in the database (not by loading the whole table). A few
+    // extra candidates make up for rows another worker claims first.
+    const res = await this.db.query<JobRow>(
+      `SELECT * FROM ${this.tableName} WHERE queue_name = ? AND ${claimable}
+       ORDER BY priority DESC, COALESCE(scheduled_at, created_at) ASC LIMIT ?`,
+      [queueName, now, now, count * 3]
+    );
 
-      const candidates: JobRow[] = [];
-      for (const row of res.rows) {
-        if (row.status === 'completed' || row.status === 'cancelled' || row.status === 'failed') {
-          continue;
-        }
+    const claimedJobs: Job<Payload>[] = [];
+    for (const row of res.rows) {
+      if (claimedJobs.length >= count) break;
+      const newAttempt = Number(row.attempt) + 1;
+      const lockedUntil = now + leaseTimeoutMs;
+      // Atomic claim: the row is updated only if it is still claimable. Two workers can select
+      // the same row, but only one UPDATE matches it.
+      const updated = await this.db.query(
+        `UPDATE ${this.tableName}
+         SET status = ?, attempt = ?, locked_at = ?, locked_until = ?, locked_by = ?
+         WHERE id = ? AND ${claimable}`,
+        ['processing', newAttempt, now, lockedUntil, workerId, row.id, now, now]
+      );
+      if (updated.rowCount !== 1) continue;
 
-        if (row.status === 'pending') {
-          candidates.push(row);
-          continue;
-        }
-
-        if (row.status === 'scheduled' && Number(row.scheduled_at) <= now) {
-          candidates.push(row);
-          continue;
-        }
-
-        if (
-          row.status === 'processing' &&
-          row.locked_until !== null &&
-          row.locked_until !== undefined &&
-          now >= Number(row.locked_until)
-        ) {
-          candidates.push(row);
-        }
-      }
-
-      if (candidates.length === 0) {
-        return [];
-      }
-
-      // Sort candidate rows: priority DESC, scheduled_at / created_at ASC
-      candidates.sort((a, b) => {
-        const pA = Number(a.priority);
-        const pB = Number(b.priority);
-        if (pB !== pA) {
-          return pB - pA;
-        }
-        const tA = Number(a.scheduled_at || a.created_at);
-        const tB = Number(b.scheduled_at || b.created_at);
-        return tA - tB;
-      });
-
-      const selected = candidates.slice(0, count);
-      const claimedJobs: Job<Payload>[] = [];
-
-      for (const row of selected) {
-        const newAttempt = Number(row.attempt) + 1;
-        const lockedUntil = now + leaseTimeoutMs;
-        const updateSql = `
-          UPDATE ${this.tableName}
-          SET status = ?,
-              attempt = ?,
-              locked_at = ?,
-              locked_until = ?,
-              locked_by = ?
-          WHERE id = ?
-        `;
-
-        await tx.query(updateSql, ['processing', newAttempt, now, lockedUntil, workerId, row.id]);
-
-        const updatedRow: JobRow = {
+      claimedJobs.push(
+        this.mapRowToJob<Payload>({
           ...row,
           status: 'processing',
           attempt: newAttempt,
           locked_at: now,
           locked_until: lockedUntil,
           locked_by: workerId,
-        };
-
-        claimedJobs.push(this.mapRowToJob<Payload>(updatedRow));
-      }
-
-      return claimedJobs;
-    });
+        })
+      );
+    }
+    return claimedJobs;
   }
 
   public async acknowledge(queueName: string, jobId: string): Promise<boolean> {

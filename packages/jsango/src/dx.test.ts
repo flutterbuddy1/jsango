@@ -209,7 +209,7 @@ describe('Phase 19 DX Overhaul — JSango Simplified Developer Experience', () =
     });
 
     const app = createApp();
-    app.crud('/products', Product);
+    app.crud('/products', Product, { access: 'public' });
 
     // 1. POST /products (Create)
     const postRes = await app.handle(

@@ -10,4 +10,5 @@ export {
   type ApplicationState,
   type LifecycleHook,
   type IApplicationLifecycle,
+  isProductionEnv,
 } from './public/index.js';

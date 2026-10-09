@@ -1,10 +1,13 @@
 import * as crypto from 'node:crypto';
+import { isProductionEnv } from '@jsango/core';
 import type { IRouter, RouteHandler } from '@jsango/router';
 import type { HttpRequest, RequestContext } from '@jsango/http';
-import { HttpResponse, HttpStatus } from '@jsango/http';
+import { HttpError, HttpResponse, HttpStatus } from '@jsango/http';
 import {
   type Identity,
   type Auth,
+  type AuthStore,
+  MemoryAuthStore,
   UserIdentity,
   TotpService,
   TooManyAttemptsError,
@@ -21,8 +24,9 @@ import {
 } from '@jsango/admin-core';
 import type { AdminPermissionChecker } from '@jsango/admin-auth';
 import type { AdminAuditLogger } from '@jsango/admin-audit';
+import { mimeFromName, type AdminMediaManager } from '@jsango/admin-media';
 import { AdminCrudService } from './crud-service.js';
-import { parseListQuery, sendJson, sendError, extractIpAddress } from './http-helpers.js';
+import { parseListQuery, sendJson, sendError } from './http-helpers.js';
 import type { IAdminQueryAdapter } from './types.js';
 
 export interface AdminCredentialsOptions {
@@ -60,6 +64,14 @@ export interface AdminServerOptions {
   readonly sessionTtlSeconds?: number | undefined;
   /** Extra checks shown on the System page, e.g. `{ redis: () => redis.ping() }`. */
   readonly healthChecks?: Readonly<Record<string, () => unknown>> | undefined;
+  /** Media disks shown in the admin media library, e.g. `{ local: new AdminMediaManager(...) }`. */
+  readonly media?: Readonly<Record<string, AdminMediaManager>> | undefined;
+  /**
+   * Where admin sessions, login lockouts, export links and the built-in account's 2FA and password
+   * live. Default: the `authKit`'s store, else memory (single instance; lost on restart). Use
+   * `new DatabaseAuthStore({ connection: db })` to share them between instances.
+   */
+  readonly store?: AuthStore | undefined;
   /** Resolves the identity for requests that don't carry an admin session token. */
   readonly resolveIdentity?:
     ((req: HttpRequest) => Promise<Identity | undefined> | Identity | undefined) | undefined;
@@ -67,12 +79,17 @@ export interface AdminServerOptions {
 
 interface AdminSession {
   readonly id: string;
-  readonly identity: Identity;
+  readonly userId: string;
+  readonly profile: { readonly email: string; readonly name: string };
   readonly createdAt: number;
   lastActive: number;
   readonly device: string;
   readonly ip: string;
 }
+
+const FOREVER = 10 * 365 * 24 * 3600; // store TTL for settings that don't expire
+const IDLE_MS = 60 * 60 * 1000; // a session unused for an hour ends
+const RECHECK_MS = 60 * 1000; // how often app users' roles / bans are re-read
 
 const DEFAULT_PASSWORD = 'admin123';
 const MAX_LOGIN_FAILURES = 5;
@@ -98,6 +115,8 @@ const safeEqual = (a: string, b: string) =>
  *   POST   /resources/:resourceId/:id/restore    POST /resources/:resourceId/:id/actions/:actionId
  *   POST   /resources/:resourceId/bulk/:actionId (built-in: `delete`)
  *   GET    /audit
+ *   GET    /media | /media/:disk?prefix=        POST /media/:disk (raw body, x-file-name header)
+ *   DELETE /media/:disk?key=
  */
 export class AdminServer {
   private readonly registry: AdminRegistry;
@@ -109,22 +128,18 @@ export class AdminServer {
   private readonly resolver: AdminServerOptions['resolveIdentity'];
   private readonly sessionTtlMs: number;
   private readonly healthChecks: Readonly<Record<string, () => unknown>>;
+  private readonly media: Readonly<Record<string, AdminMediaManager>>;
   private readonly totp = new TotpService();
   private readonly adminEmail: string;
   private readonly adminUsername: string;
-  private adminPassword: string;
+  private readonly adminPassword: string;
   private readonly passwordConfigured: boolean;
   private readonly adminName: string;
-  /** Keyed by sha256(token): a leaked memory dump doesn't reveal usable tokens. */
-  private readonly sessions = new Map<string, AdminSession>();
-  private readonly loginFailures = new Map<string, { count: number; resetAt: number }>();
-  private readonly twoFactor = new Map<string, { secret: string; backupCodes: string[] }>();
-  private readonly pending2fa = new Map<string, string>();
+  /** Sessions are keyed by sha256(token): a leaked store doesn't reveal usable tokens. */
+  private readonly store: AuthStore;
+  /** Per-instance cache of app users' identities, re-read every RECHECK_MS. */
+  private readonly identities = new Map<string, { identity: Identity; checkedAt: number }>();
   private readonly fallbackDashboard: AdminDashboard;
-  private readonly exportTickets = new Map<
-    string,
-    { identity: Identity; resourceId: string; expiresAt: number }
-  >();
 
   constructor(options: AdminServerOptions) {
     this.registry = options.registry;
@@ -135,6 +150,8 @@ export class AdminServer {
     this.resolver = options.resolveIdentity;
     this.sessionTtlMs = (options.sessionTtlSeconds ?? 8 * 3600) * 1000;
     this.healthChecks = options.healthChecks ?? {};
+    this.media = options.media ?? {};
+    this.store = options.store ?? options.authKit?.store ?? new MemoryAuthStore();
 
     const creds = options.credentials ?? options.auth;
     const env = process.env;
@@ -176,8 +193,16 @@ export class AdminServer {
     ]);
   }
 
-  public mount(router: IRouter): void {
+  public mount(appRouter: IRouter): void {
     const p = this.prefix;
+    // Admin routes are tagged so the public OpenAPI spec leaves them out, wherever they're mounted.
+    const admin = { metadata: { admin: true } };
+    const router = {
+      get: (path: string, h: RouteHandler) => appRouter.get(path, h, admin),
+      post: (path: string, h: RouteHandler) => appRouter.post(path, h, admin),
+      patch: (path: string, h: RouteHandler) => appRouter.patch(path, h, admin),
+      delete: (path: string, h: RouteHandler) => appRouter.delete(path, h, admin),
+    } as IRouter;
 
     router.post(
       `${p}/auth/login`,
@@ -226,11 +251,11 @@ export class AdminServer {
 
     router.get(
       `${p}/dashboard`,
-      this.admin((_ctx, identity) => sendJson(this.boardJson(this.dashboard(), identity)))
+      this.admin((_ctx, identity) => sendJson(this.boardJson(this.dashboard(identity), identity)))
     );
     router.get(
       `${p}/dashboard/widgets/:widgetId`,
-      this.admin((ctx, identity) => this.widgetData(ctx, this.dashboard(), identity))
+      this.admin((ctx, identity) => this.widgetData(ctx, this.dashboard(identity), identity))
     );
     router.get(
       `${p}/pages`,
@@ -262,19 +287,22 @@ export class AdminServer {
     );
     router.get(
       `${p}/resources/:resourceId/schema`,
-      this.resource((_ctx, r, identity) => sendJson({ schema: this.crud.getSchema(r, identity) }))
+      this.resource((_ctx, r, identity) => sendJson({ schema: this.schemaFor(r, identity) }))
     );
     // Export: POST returns a one-time download URL (valid 60s), so the browser can stream the
     // file natively without putting the session token in a URL.
     router.post(
       `${p}/resources/:resourceId/export`,
       this.resource(async (ctx, r, identity) => {
+        if (!(await this.permissions.canExport(identity, r))) {
+          throw new AdminAuthorizationError({ resource: r.id, action: 'export' });
+        }
         const ticket = crypto.randomBytes(24).toString('base64url');
-        this.exportTickets.set(ticket, {
-          identity,
-          resourceId: r.id,
-          expiresAt: Date.now() + 60_000,
-        });
+        await this.store.set(
+          `admin:t:${sha256(ticket)}`,
+          JSON.stringify({ resourceId: r.id, identity: identity.toJSON() }),
+          60
+        );
         const params = new URLSearchParams(String((await this.body(ctx))['query'] ?? ''));
         params.set('ticket', ticket);
         return sendJson({ url: `/resources/${encodeURIComponent(r.id)}/export?${params}` });
@@ -283,25 +311,21 @@ export class AdminServer {
     router.get(
       `${p}/resources/:resourceId/export`,
       this.route(async (ctx) => {
-        const ticketId = ctx.request.query.get('ticket') ?? '';
-        const ticket = this.exportTickets.get(ticketId);
-        this.exportTickets.delete(ticketId);
-        for (const [id, t] of this.exportTickets)
-          if (t.expiresAt < Date.now()) this.exportTickets.delete(id);
+        const key = `admin:t:${sha256(ctx.request.query.get('ticket') ?? '')}`;
+        const raw = await this.store.get(key);
+        await this.store.delete(key); // one-time link
+        const ticket = raw
+          ? (JSON.parse(raw) as { resourceId: string; identity: Record<string, unknown> })
+          : undefined;
         const resource = this.registry.getResource(this.param(ctx, 'resourceId'));
-        if (
-          !ticket ||
-          ticket.expiresAt < Date.now() ||
-          !resource ||
-          resource.id !== ticket.resourceId
-        ) {
+        if (!ticket || !resource || resource.id !== ticket.resourceId) {
           return sendError(
             401,
             'ERR_ADMIN_UNAUTHORIZED',
             'Download link expired. Start the export again.'
           );
         }
-        return this.exportCsv(ctx, resource, ticket.identity);
+        return this.exportCsv(ctx, resource, identityFromJSON(ticket.identity));
       })
     );
     router.get(
@@ -389,7 +413,9 @@ export class AdminServer {
 
     router.get(
       `${p}/audit`,
-      this.admin(async (ctx) => {
+      this.admin(async (ctx, identity) => {
+        if (!this.canViewAudit(identity))
+          return sendError(403, 'ERR_ADMIN_FORBIDDEN', 'You cannot view the audit log.');
         const qs = ctx.request.query;
         const limit = Math.min(Math.max(parseInt(qs.get('limit') ?? '50', 10) || 50, 1), 200);
         return sendJson(
@@ -403,6 +429,93 @@ export class AdminServer {
             offset: Math.max(parseInt(qs.get('offset') ?? '0', 10) || 0, 0),
           })
         );
+      })
+    );
+
+    this.mountMedia(router, p);
+  }
+
+  /** Limited staff need `admin.media.view` / `.add` / `.delete` (or `admin.media.*`). */
+  private canUseMedia(identity: Identity, action: 'view' | 'add' | 'delete'): boolean {
+    return (
+      this.permissions.hasFullAccess(identity) ||
+      identity.hasPermission(`admin.media.${action}`) ||
+      identity.hasPermission('admin.media.*') ||
+      identity.hasPermission('admin.*')
+    );
+  }
+
+  private mountMedia(router: IRouter, p: string): void {
+    const disk = (ctx: RequestContext, identity: Identity, action: 'view' | 'add' | 'delete') => {
+      if (!this.canUseMedia(identity, action))
+        throw new AdminAuthorizationError({ resource: 'media', action });
+      const name = this.param(ctx, 'disk');
+      const manager = Object.hasOwn(this.media, name) ? this.media[name] : undefined;
+      if (!manager) throw new AdminResourceNotFoundError(`media:${name}`);
+      return manager;
+    };
+    router.get(
+      `${p}/media`,
+      this.admin((_ctx, identity) =>
+        sendJson({
+          disks: this.canUseMedia(identity, 'view')
+            ? Object.keys(this.media).map((name) => ({ name }))
+            : [],
+        })
+      )
+    );
+    router.get(
+      `${p}/media/:disk`,
+      this.admin(async (ctx, identity) =>
+        sendJson({
+          files: await disk(ctx, identity, 'view').list(
+            ctx.request.query.get('prefix') ?? undefined
+          ),
+        })
+      )
+    );
+    router.post(
+      `${p}/media/:disk`,
+      this.admin(async (ctx, identity) => {
+        const manager = disk(ctx, identity, 'add');
+        const rawName = ctx.request.headers.get('x-file-name') ?? 'file';
+        let originalName = rawName;
+        try {
+          originalName = decodeURIComponent(rawName);
+        } catch {
+          // not percent-encoded: use as sent
+        }
+        try {
+          const file = await manager.upload({
+            content: await ctx.request.body.bytes(),
+            originalName,
+            // From the file extension, never the client's Content-Type: a `.png` sent as
+            // text/html must not be stored (and later served) as a web page.
+            mimeType: mimeFromName(originalName),
+            prefix: ctx.request.query.get('prefix') ?? undefined,
+          });
+          return sendJson({ file }, HttpStatus.CREATED);
+        } catch (err) {
+          if ((err as { code?: string }).code === 'ERR_ADMIN_MEDIA_VALIDATION')
+            return sendError(422, 'ERR_ADMIN_VALIDATION', (err as Error).message);
+          throw err;
+        }
+      })
+    );
+    router.delete(
+      `${p}/media/:disk`,
+      this.admin(async (ctx, identity) => {
+        const manager = disk(ctx, identity, 'delete');
+        const key = ctx.request.query.get('key');
+        if (!key) return sendError(400, 'ERR_ADMIN_VALIDATION', '"key" is required.');
+        await manager.delete(key);
+        await this.audit.log('delete', {
+          resourceId: 'media',
+          objectId: key,
+          actor: { id: identity.id },
+          ...this.reqContext(ctx),
+        });
+        return sendJson(null, HttpStatus.NO_CONTENT);
       })
     );
   }
@@ -481,7 +594,8 @@ export class AdminServer {
   }
 
   private ip(ctx: RequestContext): string {
-    return extractIpAddress(ctx.request) ?? ctx.request.ip ?? 'unknown';
+    // request.ip honours createApp({ trustProxy }); raw X-Forwarded-For is client-forgeable.
+    return ctx.request.ip ?? 'unknown';
   }
 
   // ------------------------------------------------------------------
@@ -492,24 +606,87 @@ export class AdminServer {
     return /^Bearer\s+(\S+)$/i.exec(ctx.request.headers.get('authorization') ?? '')?.[1];
   }
 
-  private currentSession(ctx: RequestContext): { key: string; session: AdminSession } | undefined {
+  private sessionKey(ctx: RequestContext): string | undefined {
     const token = this.bearer(ctx);
-    if (!token) return undefined;
-    const key = sha256(token);
-    const session = this.sessions.get(key);
-    if (!session) return undefined;
-    if (Date.now() - session.createdAt > this.sessionTtlMs) {
-      this.sessions.delete(key);
+    return token ? sha256(token) : undefined;
+  }
+
+  private async readSession(key: string | undefined): Promise<AdminSession | undefined> {
+    const raw = key ? await this.store.get(`admin:s:${key}`) : undefined;
+    if (!raw) return undefined;
+    const session = JSON.parse(raw) as AdminSession;
+    if (Date.now() - session.lastActive > IDLE_MS) {
+      await this.endSession(key!, session.userId);
       return undefined;
     }
-    return { key, session };
+    return session;
+  }
+
+  private async writeSession(key: string, session: AdminSession): Promise<void> {
+    const ttl = Math.ceil((session.createdAt + this.sessionTtlMs - Date.now()) / 1000);
+    if (ttl > 0) await this.store.set(`admin:s:${key}`, JSON.stringify(session), ttl);
+  }
+
+  private async endSession(key: string, userId: string): Promise<void> {
+    this.identities.delete(key);
+    await this.store.delete(`admin:s:${key}`);
+    await this.setSessionIndex(
+      userId,
+      (await this.sessionIndex(userId)).filter((k) => k !== key)
+    );
+  }
+
+  /** Session keys of a user (the store has no listing, so each user has an index). */
+  private async sessionIndex(userId: string): Promise<string[]> {
+    return JSON.parse((await this.store.get(`admin:u:${userId}`)) ?? '[]') as string[];
+  }
+
+  private async setSessionIndex(userId: string, keys: string[]): Promise<void> {
+    if (keys.length === 0) await this.store.delete(`admin:u:${userId}`);
+    else await this.store.set(`admin:u:${userId}`, JSON.stringify(keys), this.sessionTtlMs / 1000);
+  }
+
+  private builtInIdentity(): Identity {
+    return new UserIdentity({
+      id: 'admin',
+      isSuperuser: true,
+      roles: ['admin', 'superuser'],
+      permissions: ['admin.access', 'admin.*'],
+      metadata: { username: this.adminUsername, email: this.adminEmail, name: this.adminName },
+    });
+  }
+
+  /**
+   * The session's identity. App users are re-read every minute, so a ban, a removed admin role or
+   * `auth.logoutAll()` ends their admin session too.
+   */
+  private async sessionIdentity(key: string, session: AdminSession): Promise<Identity | undefined> {
+    if (!this.authKit) return session.userId === 'admin' ? this.builtInIdentity() : undefined;
+    const cached = this.identities.get(key);
+    if (cached && Date.now() - cached.checkedAt < RECHECK_MS) return cached.identity;
+    const current = await this.authKit.currentIdentity(session.userId, session.createdAt);
+    if (!current || !this.permissions.canAccessAdmin(current)) {
+      await this.endSession(key, session.userId);
+      return undefined;
+    }
+    const identity = withProfile(current, session.profile);
+    this.identities.set(key, { identity, checkedAt: Date.now() });
+    return identity;
   }
 
   private async resolveIdentity(ctx: RequestContext): Promise<Identity | undefined> {
-    const current = this.currentSession(ctx);
-    if (current) {
-      current.session.lastActive = Date.now();
-      return current.session.identity;
+    const key = this.sessionKey(ctx);
+    const session = await this.readSession(key);
+    if (session) {
+      const identity = await this.sessionIdentity(key!, session);
+      if (identity) {
+        // Saved at most once a minute, not on every request.
+        if (Date.now() - session.lastActive > RECHECK_MS) {
+          session.lastActive = Date.now();
+          await this.writeSession(key!, session);
+        }
+        return identity;
+      }
     }
     if (this.authKit) {
       const result = await this.authKit.authenticate(ctx);
@@ -518,51 +695,88 @@ export class AdminServer {
     return this.resolver ? this.resolver(ctx.request) : undefined;
   }
 
-  private startSession(ctx: RequestContext, identity: Identity): string {
+  private async startSession(
+    ctx: RequestContext,
+    identity: Identity,
+    profile: AdminSession['profile']
+  ): Promise<string> {
     const token = crypto.randomBytes(32).toString('base64url');
-    this.sessions.set(sha256(token), {
+    const key = sha256(token);
+    await this.writeSession(key, {
       id: crypto.randomUUID(),
-      identity,
+      userId: identity.id,
+      profile,
       createdAt: Date.now(),
       lastActive: Date.now(),
       device: parseDeviceFromUserAgent(ctx.request.headers.get('user-agent') ?? ''),
       ip: this.ip(ctx),
     });
+    await this.setSessionIndex(identity.id, [...(await this.sessionIndex(identity.id)), key]);
     return token;
   }
 
-  private sessionsOf(identityId: string): Array<[string, AdminSession]> {
-    return [...this.sessions].filter(
-      ([, s]) => s.identity.id === identityId && Date.now() - s.createdAt <= this.sessionTtlMs
+  /** Live sessions of a user, as [key, session]; prunes expired ones from the index. */
+  private async sessionsOf(userId: string): Promise<Array<[string, AdminSession]>> {
+    const live: Array<[string, AdminSession]> = [];
+    for (const key of await this.sessionIndex(userId)) {
+      const session = await this.readSession(key);
+      if (session) live.push([key, session]);
+    }
+    await this.setSessionIndex(
+      userId,
+      live.map(([k]) => k)
     );
+    return live;
   }
 
   // ------------------------------------------------------------------
   // Login
   // ------------------------------------------------------------------
 
-  private lockedOut(keys: string[]): boolean {
-    return keys.some((k) => {
-      const entry = this.loginFailures.get(k);
-      if (entry && entry.resetAt < Date.now()) this.loginFailures.delete(k);
-      return (
-        (this.loginFailures.get(k)?.count ?? 0) >=
-        (k.startsWith('ip:') ? MAX_LOGIN_FAILURES * 4 : MAX_LOGIN_FAILURES)
-      );
-    });
+  /**
+   * Lockout counters for the built-in account. Per login + IP (5): a stranger can't lock the real
+   * admin out from another IP. Per login (50) and per IP (20): bounds distributed guessing.
+   */
+  private lockoutKeys(login: string, ip: string): Array<[string, number]> {
+    const user = sha256(login.toLowerCase());
+    return [
+      [`admin:f:ui:${user}:${ip}`, MAX_LOGIN_FAILURES],
+      [`admin:f:u:${user}`, MAX_LOGIN_FAILURES * 10],
+      [`admin:f:ip:${ip}`, MAX_LOGIN_FAILURES * 4],
+    ];
   }
 
-  private recordFailure(keys: string[]): void {
-    for (const k of keys) {
-      const entry = this.loginFailures.get(k) ?? { count: 0, resetAt: Date.now() + LOCKOUT_MS };
-      entry.count++;
-      this.loginFailures.set(k, entry);
+  private async lockedOut(keys: Array<[string, number]>): Promise<boolean> {
+    for (const [key, limit] of keys) {
+      if (Number((await this.store.get(key)) ?? 0) >= limit) return true;
     }
+    return false;
+  }
+
+  private async recordFailure(keys: Array<[string, number]>): Promise<void> {
+    for (const [key] of keys) await this.store.increment(key, LOCKOUT_MS / 1000);
+  }
+
+  /** The built-in account's password: a changed one (scrypt-hashed in the store) or the env one. */
+  private async adminPasswordOk(password: string): Promise<boolean> {
+    const stored = await this.store.get('admin:password');
+    if (!stored) return safeEqual(password, this.adminPassword);
+    const [salt, hash] = stored.split(':');
+    const actual = crypto.scryptSync(password, Buffer.from(salt!, 'base64'), 32);
+    return crypto.timingSafeEqual(actual, Buffer.from(hash!, 'base64'));
+  }
+
+  private async twoFactorOf(): Promise<{ secret: string; backupCodes: string[] } | undefined> {
+    const raw = await this.store.get('admin:2fa');
+    return raw ? JSON.parse(raw) : undefined;
   }
 
   private async login(ctx: RequestContext): Promise<HttpResponse> {
     const body = await this.body(ctx);
     const login = String(body['email'] ?? body['username'] ?? '').trim();
+    if (login.length > 254) {
+      return sendError(400, 'ERR_VALIDATION', 'Email/username is too long.');
+    }
     const password = String(body['password'] ?? '');
     const totpCode = typeof body['totpCode'] === 'string' ? body['totpCode'].trim() : '';
     if (!login || !password) {
@@ -606,15 +820,16 @@ export class AdminServer {
         return sendError(401, 'ERR_INVALID_CREDENTIALS', 'Invalid email/username or password.');
       }
     } else {
-      if (!this.passwordConfigured && process.env['NODE_ENV'] === 'production') {
+      const weakDefault = !this.passwordConfigured || this.adminPassword.length < 12;
+      if (weakDefault && isProductionEnv() && !(await this.store.get('admin:password'))) {
         return sendError(
           503,
           'ERR_ADMIN_NOT_CONFIGURED',
-          'Admin login is disabled: set JSANGO_ADMIN_PASSWORD or use admin({ auth: createAuth(...) }).'
+          'Admin login is disabled: set a JSANGO_ADMIN_PASSWORD of 12+ characters or use admin({ auth: createAuth(...) }).'
         );
       }
-      const keys = [`user:${login.toLowerCase()}`, `ip:${this.ip(ctx)}`];
-      if (this.lockedOut(keys))
+      const keys = this.lockoutKeys(login, this.ip(ctx));
+      if (await this.lockedOut(keys))
         return sendError(
           429,
           'ERR_TOO_MANY_ATTEMPTS',
@@ -624,13 +839,13 @@ export class AdminServer {
       const userOk = [this.adminEmail, this.adminUsername].some(
         (u) => u.toLowerCase() === login.toLowerCase()
       );
-      const passwordOk = safeEqual(password, this.adminPassword);
+      const passwordOk = await this.adminPasswordOk(password);
       if (!userOk || !passwordOk) {
-        this.recordFailure(keys);
+        await this.recordFailure(keys);
         return sendError(401, 'ERR_INVALID_CREDENTIALS', 'Invalid email/username or password.');
       }
 
-      const tfa = this.twoFactor.get('admin');
+      const tfa = await this.twoFactorOf();
       if (tfa) {
         if (!totpCode)
           return sendJson({
@@ -638,22 +853,28 @@ export class AdminServer {
             requires2fa: true,
             message: 'Enter the 6-digit code from your authenticator app.',
           });
-        const backup = this.totp.verifyAndConsumeBackupCode(totpCode, tfa.backupCodes);
-        if (!this.totp.verifyToken(totpCode, tfa.secret, { window: 1 }) && !backup.valid) {
-          this.recordFailure(keys);
+        const code = totpCode.replace(/\s+/g, '');
+        const backup = this.totp.verifyAndConsumeBackupCode(code, tfa.backupCodes);
+        const totpOk =
+          this.totp.verifyToken(code, tfa.secret, { window: 1 }) &&
+          !(await this.store.get(`admin:2fa-used:${code}`));
+        if (!totpOk && !backup.valid) {
+          await this.recordFailure(keys);
           return sendError(400, 'ERR_INVALID_2FA', 'Invalid two-factor code.');
         }
-        if (backup.valid) tfa.backupCodes = backup.remainingCodes;
+        if (backup.valid) {
+          await this.store.set(
+            'admin:2fa',
+            JSON.stringify({ ...tfa, backupCodes: backup.remainingCodes }),
+            FOREVER
+          );
+        } else {
+          await this.store.set(`admin:2fa-used:${code}`, '1', 120); // each code works once
+        }
       }
-      for (const k of keys) this.loginFailures.delete(k);
+      for (const [key] of keys.slice(0, 2)) await this.store.delete(key);
 
-      identity = new UserIdentity({
-        id: 'admin',
-        isSuperuser: true,
-        roles: ['admin', 'superuser'],
-        permissions: ['admin.access', 'admin.*'],
-        metadata: { username: this.adminUsername, email: this.adminEmail, name: this.adminName },
-      });
+      identity = this.builtInIdentity();
       profile = { email: this.adminEmail, name: this.adminName };
     }
 
@@ -671,7 +892,7 @@ export class AdminServer {
       });
     }
 
-    const token = this.startSession(ctx, identity);
+    const token = await this.startSession(ctx, identity, profile);
     await this.audit.log('login', {
       resourceId: 'auth',
       objectId: identity.id,
@@ -694,13 +915,14 @@ export class AdminServer {
   }
 
   private async logout(ctx: RequestContext): Promise<HttpResponse> {
-    const current = this.currentSession(ctx);
-    if (current) {
-      this.sessions.delete(current.key);
+    const key = this.sessionKey(ctx);
+    const session = await this.readSession(key);
+    if (session) {
+      await this.endSession(key!, session.userId);
       await this.audit.log('logout', {
         resourceId: 'auth',
-        objectId: current.session.identity.id,
-        actor: { id: current.session.identity.id },
+        objectId: session.userId,
+        actor: { id: session.userId },
         ...this.reqContext(ctx),
       });
     }
@@ -724,9 +946,9 @@ export class AdminServer {
     });
   }
 
-  private profile(identity: Identity): HttpResponse {
+  private async profile(identity: Identity): Promise<HttpResponse> {
     const meta = (identity.metadata ?? {}) as Record<string, unknown>;
-    const tfa = this.authKit ? undefined : this.twoFactor.get(identity.id);
+    const tfa = this.authKit ? undefined : await this.twoFactorOf();
     return sendJson({
       user: {
         id: identity.id,
@@ -759,7 +981,7 @@ export class AdminServer {
     const body = await this.body(ctx);
     const current = String(body['currentPassword'] ?? '');
     const next = String(body['newPassword'] ?? '');
-    if (!safeEqual(current, this.adminPassword))
+    if (!(await this.adminPasswordOk(current)))
       return sendError(400, 'ERR_ADMIN_VALIDATION', 'Current password is incorrect.');
     if (next.length < 12)
       return sendError(
@@ -768,11 +990,17 @@ export class AdminServer {
         'New password must be at least 12 characters long.'
       );
 
-    this.adminPassword = next;
+    const salt = crypto.randomBytes(16);
+    const hash = crypto.scryptSync(next, salt, 32);
+    await this.store.set(
+      'admin:password',
+      `${salt.toString('base64')}:${hash.toString('base64')}`,
+      FOREVER
+    );
     // Sign out every other session of this account.
-    const currentKey = this.currentSession(ctx)?.key;
-    for (const [key] of this.sessionsOf(identity.id))
-      if (key !== currentKey) this.sessions.delete(key);
+    const currentKey = this.sessionKey(ctx);
+    for (const [key] of await this.sessionsOf(identity.id))
+      if (key !== currentKey) await this.endSession(key, identity.id);
 
     await this.audit.log('update', {
       resourceId: 'auth_security',
@@ -783,26 +1011,25 @@ export class AdminServer {
     });
     return sendJson({
       ok: true,
-      message:
-        'Password updated. It lasts until the server restarts: set JSANGO_ADMIN_PASSWORD to make it permanent.',
+      message: 'Password updated.',
     });
   }
 
-  private setup2fa(identity: Identity): HttpResponse {
+  private async setup2fa(identity: Identity): Promise<HttpResponse> {
     const blocked = this.builtInOnly(identity);
     if (blocked) return blocked;
     const { secret, uri } = this.totp.generateSecret({
       issuer: 'JSango Admin',
       accountName: this.adminEmail,
     });
-    this.pending2fa.set(identity.id, secret);
+    await this.store.set('admin:2fa-pending', secret, 600);
     return sendJson({ secret, uri });
   }
 
   private async verify2fa(ctx: RequestContext, identity: Identity): Promise<HttpResponse> {
     const blocked = this.builtInOnly(identity);
     if (blocked) return blocked;
-    const secret = this.pending2fa.get(identity.id);
+    const secret = await this.store.get('admin:2fa-pending');
     if (!secret)
       return sendError(
         400,
@@ -818,8 +1045,8 @@ export class AdminServer {
       );
     }
     const backupCodes = this.totp.generateBackupCodes(8);
-    this.twoFactor.set(identity.id, { secret, backupCodes: [...backupCodes] });
-    this.pending2fa.delete(identity.id);
+    await this.store.set('admin:2fa', JSON.stringify({ secret, backupCodes }), FOREVER);
+    await this.store.delete('admin:2fa-pending');
     await this.audit.log('update', {
       resourceId: 'auth_security',
       objectId: identity.id,
@@ -838,11 +1065,11 @@ export class AdminServer {
   private async disable2fa(ctx: RequestContext, identity: Identity): Promise<HttpResponse> {
     const blocked = this.builtInOnly(identity);
     if (blocked) return blocked;
-    if (!safeEqual(String((await this.body(ctx))['password'] ?? ''), this.adminPassword)) {
+    if (!(await this.adminPasswordOk(String((await this.body(ctx))['password'] ?? '')))) {
       return sendError(400, 'ERR_ADMIN_VALIDATION', 'Password is incorrect.');
     }
-    this.twoFactor.delete(identity.id);
-    this.pending2fa.delete(identity.id);
+    await this.store.delete('admin:2fa');
+    await this.store.delete('admin:2fa-pending');
     await this.audit.log('update', {
       resourceId: 'auth_security',
       objectId: identity.id,
@@ -857,9 +1084,9 @@ export class AdminServer {
     });
   }
 
-  private listSessions(ctx: RequestContext, identity: Identity): HttpResponse {
-    const currentKey = this.currentSession(ctx)?.key;
-    const sessions = this.sessionsOf(identity.id)
+  private async listSessions(ctx: RequestContext, identity: Identity): Promise<HttpResponse> {
+    const currentKey = this.sessionKey(ctx);
+    const sessions = (await this.sessionsOf(identity.id))
       .sort(([a], [b]) => (a === currentKey ? -1 : b === currentKey ? 1 : 0))
       .map(([key, s]) => ({
         id: s.id,
@@ -875,9 +1102,9 @@ export class AdminServer {
 
   private async deleteSession(ctx: RequestContext, identity: Identity): Promise<HttpResponse> {
     const sessionId = this.param(ctx, 'sessionId');
-    const entry = this.sessionsOf(identity.id).find(([, s]) => s.id === sessionId);
+    const entry = (await this.sessionsOf(identity.id)).find(([, s]) => s.id === sessionId);
     if (!entry) return sendError(404, 'ERR_NOT_FOUND', 'Session not found.');
-    this.sessions.delete(entry[0]);
+    await this.endSession(entry[0], identity.id);
     await this.audit.log('delete', {
       resourceId: 'auth_security',
       objectId: sessionId,
@@ -889,9 +1116,9 @@ export class AdminServer {
   }
 
   private async terminateOthers(ctx: RequestContext, identity: Identity): Promise<HttpResponse> {
-    const currentKey = this.currentSession(ctx)?.key;
-    for (const [key] of this.sessionsOf(identity.id))
-      if (key !== currentKey) this.sessions.delete(key);
+    const currentKey = this.sessionKey(ctx);
+    for (const [key] of await this.sessionsOf(identity.id))
+      if (key !== currentKey) await this.endSession(key, identity.id);
     await this.audit.log('delete', {
       resourceId: 'auth_security',
       objectId: identity.id,
@@ -906,10 +1133,23 @@ export class AdminServer {
   // Dashboard & pages
   // ------------------------------------------------------------------
 
-  private dashboard(): AdminDashboard {
-    return this.registry.dashboard.getWidgets().length > 0
+  /** The fallback dashboard shows audit entries, so it follows the audit log's permission. */
+  private dashboard(identity: Identity): AdminDashboard {
+    return this.registry.dashboard.getWidgets().length > 0 || !this.canViewAudit(identity)
       ? this.registry.dashboard
       : this.fallbackDashboard;
+  }
+
+  /**
+   * The audit log holds before/after values of every resource, so limited staff need the
+   * `admin.audit.view` permission to read it.
+   */
+  private canViewAudit(identity: Identity): boolean {
+    return (
+      this.permissions.hasFullAccess(identity) ||
+      identity.hasPermission('admin.audit.view') ||
+      identity.hasPermission('admin.*')
+    );
   }
 
   private boardJson(board: AdminDashboard, identity: Identity) {
@@ -964,9 +1204,22 @@ export class AdminServer {
         navigationGroup: r.navigationGroup,
         navigationIcon: r.navigationIcon,
         navigationOrder: r.navigationOrder,
-        schema: this.crud.getSchema(r, identity), // inline, so the UI needs one request, not N+1
+        schema: this.schemaFor(r, identity), // inline, so the UI needs one request, not N+1
       }));
     return sendJson({ resources });
+  }
+
+  /** Schema with each relation field's target model resolved to its admin resource id. */
+  private schemaFor(r: AdminResource, identity: Identity) {
+    const schema = this.crud.getSchema(r, identity);
+    return {
+      ...schema,
+      fields: schema.fields.map((f) =>
+        f.relationTarget
+          ? { ...f, relatedResource: this.registry.getResource(f.relationTarget)?.id }
+          : f
+      ),
+    };
   }
 
   private async exportCsv(
@@ -1045,7 +1298,6 @@ export class AdminServer {
         pid: process.pid,
         resourcesCount: this.registry.getAllResources().length,
         pagesCount: this.registry.getAllPages().length,
-        activeSessions: this.sessions.size,
         services,
       },
     });
@@ -1063,6 +1315,9 @@ export class AdminServer {
     if (err instanceof AdminValidationError)
       return sendError(422, 'ERR_ADMIN_VALIDATION', err.message);
     if (err instanceof AdminActionError) return sendError(400, 'ERR_ADMIN_ACTION', err.message);
+    // e.g. 413 for an upload over the body size limit
+    if (err instanceof HttpError && err.statusCode < 500)
+      return sendError(err.statusCode, err.code, err.message);
     return sendError(500, 'ERR_INTERNAL', 'An internal error occurred.');
   }
 }
@@ -1102,4 +1357,26 @@ function formatRelativeTime(ts: number): string {
   if (mins < 60) return `${mins}m ago`;
   const hours = Math.floor(mins / 60);
   return hours < 24 ? `${hours}h ago` : `${Math.floor(hours / 24)}d ago`;
+}
+
+function identityFromJSON(json: Record<string, unknown>): Identity {
+  return new UserIdentity({
+    id: String(json['id']),
+    roles: (json['roles'] as string[] | undefined) ?? [],
+    permissions: (json['permissions'] as string[] | undefined) ?? [],
+    tenantId: json['tenantId'] as string | undefined,
+    isSuperuser: json['isSuperuser'] === true,
+    metadata: (json['metadata'] as Record<string, unknown> | undefined) ?? {},
+  });
+}
+
+function withProfile(identity: Identity, profile: { email: string; name: string }): Identity {
+  return new UserIdentity({
+    id: identity.id,
+    roles: [...identity.roles],
+    permissions: [...identity.permissions],
+    tenantId: identity.tenantId,
+    isSuperuser: identity.isSuperuser,
+    metadata: { ...profile, ...identity.metadata },
+  });
 }

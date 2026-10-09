@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 /**
  * Chakra UI v3 Admin Single-Page App (SPA) Engine
  * React-Powered, 100% Mobile-Friendly, Enterprise-Grade Django Admin equivalent.
@@ -593,6 +594,97 @@ export function renderAdminSpaHtml(options: AdminSpaOptions = {}): string {
       padding: 1rem;
     }
 
+    /* Side drawer (related-record forms, media) */
+    .admin-drawer-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 95;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .admin-drawer {
+      height: 100%;
+      background: var(--chakra-colors-bg-surface);
+      border-left: 1px solid var(--chakra-colors-border-subtle);
+      box-shadow: -12px 0 32px rgba(0, 0, 0, 0.25);
+      display: flex;
+      flex-direction: column;
+      animation: drawerIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes drawerIn {
+      from { transform: translateX(32px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .admin-drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.85rem 1.25rem;
+      border-bottom: 1px solid var(--chakra-colors-border-subtle);
+    }
+    .admin-drawer-body { flex: 1; overflow-y: auto; padding: 1.25rem; }
+
+    /* Media library */
+    .media-toolbar { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; }
+    .media-disk-tabs { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-right: auto; }
+    .media-dropzone {
+      border: 1.5px dashed transparent;
+      border-radius: 10px;
+      min-height: 180px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .media-dropzone.active {
+      border-color: var(--chakra-colors-brand-solid);
+      background: var(--chakra-colors-bg-subtle);
+    }
+    .media-empty { padding: 3rem 1rem; text-align: center; color: var(--chakra-colors-fg-muted); font-size: 0.8125rem; }
+    .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem; }
+    .media-card {
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+      padding: 0.5rem;
+      border: 1px solid var(--chakra-colors-border-subtle);
+      border-radius: 8px;
+      background: var(--chakra-colors-bg-surface);
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+      min-width: 0;
+    }
+    .media-card:hover, .media-card:focus-visible { border-color: var(--chakra-colors-brand-solid); }
+    .media-thumb {
+      aspect-ratio: 1;
+      border-radius: 6px;
+      background: var(--chakra-colors-bg-muted, var(--chakra-colors-bg-subtle));
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      color: var(--chakra-colors-fg-muted);
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+    .media-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .media-name { font-size: 0.75rem; font-weight: 600; margin-top: 0.4rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .media-meta { font-size: 0.7rem; color: var(--chakra-colors-fg-muted); }
+    .media-preview {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 160px;
+      background: var(--chakra-colors-bg-subtle);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .media-preview img, .media-preview video { max-width: 100%; max-height: 60vh; }
+    .media-details { display: grid; grid-template-columns: auto 1fr; gap: 0.35rem 1rem; margin-top: 1rem; font-size: 0.8125rem; }
+    .media-details dt { color: var(--chakra-colors-fg-muted); }
+    .media-details dd { margin: 0; word-break: break-all; }
+
     /* Responsive Mobile Drawer */
     .mobile-hamburger-btn { display: none; }
     .mobile-only { display: none !important; }
@@ -673,7 +765,33 @@ export function createAdminUiHandler(
   options: AdminSpaOptions = {}
 ): (ctx: RequestContext) => HttpResponse {
   const html = renderAdminSpaHtml(options);
+  // Only this page's own inline scripts may run (by hash), it can't be framed (clickjacking),
+  // and it only talks to its own API: an injected script can't load code or send data elsewhere.
+  const scriptHashes = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(
+    ([, code]) => `'sha256-${createHash('sha256').update(code!).digest('base64')}'`
+  );
+  const api = /^https?:\/\//.test(options.apiBasePath ?? '')
+    ? new URL(options.apiBasePath!).origin
+    : '';
+  const headers = {
+    'content-security-policy': [
+      "default-src 'self'",
+      `script-src ${scriptHashes.join(' ')}`,
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com data:",
+      'img-src * data: blob:',
+      'media-src * data: blob:',
+      `connect-src 'self' ${api}`.trim(),
+      "object-src 'none'",
+      "base-uri 'none'",
+      "form-action 'self'",
+      "frame-ancestors 'none'",
+    ].join('; '),
+    'x-frame-options': 'DENY',
+    'x-content-type-options': 'nosniff',
+    'referrer-policy': 'same-origin',
+  };
   return (_ctx: RequestContext): HttpResponse => {
-    return HttpResponse.html(html);
+    return HttpResponse.html(html, { headers });
   };
 }

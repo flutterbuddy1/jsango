@@ -33,4 +33,12 @@ export interface ApplicationOptions {
   readonly isProduction?: boolean | undefined;
   readonly container?: Container | undefined;
   readonly router?: Router | undefined;
+  /**
+   * Behind a reverse proxy / load balancer (nginx, ALB, Heroku, Fly, Kubernetes ingress): `true`
+   * for one proxy, or the number of proxies. Client IP, https and host then come from the
+   * `X-Forwarded-*` headers. Leave off when clients connect directly: those headers are forgeable.
+   */
+  readonly trustProxy?: boolean | number | undefined;
+  /** Maximum request body size in bytes. Default 10 MB. */
+  readonly maxBodySize?: number | undefined;
 }

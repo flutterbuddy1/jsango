@@ -154,13 +154,23 @@ export class MigrationRunner {
     return Object.freeze(steps);
   }
 
+  private lockFor(conn: IDatabaseConnection, connectionName: string): MigrationLock {
+    const dialect = this.getDialect(connectionName);
+    return new MigrationLock(conn, {
+      // SQLite has one writer (and `:memory:` is a separate database per connection).
+      heartbeatConnection:
+        dialect === 'sqlite' ? undefined : () => this.databaseManager.connection(connectionName),
+      ...this.lockOptions,
+    });
+  }
+
   public async migrate(
     options?: MigrateOptions
   ): Promise<{ applied: readonly string[]; batch: number }> {
     const connectionName = this.resolveConnection(options?.connection);
 
     return this.withConnection(connectionName, async (conn) => {
-      const lock = new MigrationLock(conn, this.lockOptions);
+      const lock = this.lockFor(conn, connectionName);
 
       return lock.withLock(async () => {
         const pending = await this.pendingMigrationsOn(conn, connectionName, options?.target);
@@ -218,7 +228,7 @@ export class MigrationRunner {
     const connectionName = this.resolveConnection(options?.connection);
 
     return this.withConnection(connectionName, async (conn) => {
-      const lock = new MigrationLock(conn, this.lockOptions);
+      const lock = this.lockFor(conn, connectionName);
 
       return lock.withLock(async () => {
         const applied = await MigrationStorage.getAppliedMigrations(conn);
@@ -302,7 +312,7 @@ export class MigrationRunner {
     const connectionName = this.resolveConnection(options.connection);
 
     return this.withConnection(connectionName, async (conn) => {
-      const lock = new MigrationLock(conn, this.lockOptions);
+      const lock = this.lockFor(conn, connectionName);
 
       return lock.withLock(async () => {
         const applied = await MigrationStorage.getAppliedMigrations(conn);

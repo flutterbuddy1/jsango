@@ -46,6 +46,10 @@ export interface ToolDefinition<TInput = any, TOutput = any> {
   name: string;
   description: string;
   inputSchema?: any;
+  /** Validates the model's arguments before `execute` (a jsango `schema({...})`). */
+  inputValidator?:
+    | { validate(input: unknown): { success: boolean; data?: unknown; errors?: unknown } }
+    | undefined;
   execute(input: TInput, ctx: ToolContext): Promise<TOutput> | TOutput;
   requiresApproval?: boolean | undefined;
   permissions?: string[] | undefined;

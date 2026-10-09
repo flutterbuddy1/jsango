@@ -177,7 +177,10 @@ export class DatabaseConnection implements IDatabaseConnection {
       try {
         await this.activeTransaction.rollback();
       } catch {
-        // Ignore rollback failure during release
+        // The connection may still be inside the transaction: never hand it to the next request.
+        this.activeTransaction = null;
+        await this.pool.destroy(this.rawConnection);
+        return;
       }
       this.activeTransaction = null;
     }

@@ -55,6 +55,8 @@ Any ORM model or explicit `AdminResource` registered on the backend is automatic
 - **List View**: Paginated server-side data table with sortable columns, active filter chips, search input, and multi-row selection.
 - **Detail View**: Formatted card displaying all fields, raw JSON viewers, timestamps, and relational identifiers.
 - **Create & Edit Forms**: Generated dynamically from `createFields` and `editFields` with server validation error mapping.
+- **Relation Fields**: `belongsTo` foreign keys render as searchable dropdowns; **+ New** / **Edit** open the related record's form in a side drawer and select the saved record.
+- **Media Library** (`#media`): upload (multi-file, drag and drop), preview, search and delete files on every configured disk (local, S3, R2, MinIO, Spaces). `image` / `file` fields upload to the first disk or pick from the library.
 - **Row & Bulk Actions**: Custom business actions and bulk mutations with confirmation modals.
 - **Soft Delete Support**: Visual indicators and dedicated restore actions for soft-deleted entities.
 

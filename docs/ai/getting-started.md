@@ -59,8 +59,9 @@ export const ShopAssistant = agent({
 const app = createApp();
 
 // Automatically creates POST /api/chat, SSE streaming GET /api/chat, and WebSocket /ws/chat!
-app.agent('/api/chat', ShopAssistant);
-app.wsAgent('/ws/chat', ShopAssistant);
+// Public by default: add auth / rate limits with `middleware` (they cost you model tokens).
+app.agent('/api/chat', ShopAssistant, { middleware: [auth.required()], maxSteps: 5 });
+app.wsAgent('/ws/chat', ShopAssistant, { middleware: [auth.required()] });
 
 await app.listen(3000);
 ```

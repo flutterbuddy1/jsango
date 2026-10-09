@@ -153,4 +153,26 @@ describe('ConnectionPool', () => {
     await expect(queuedPromise).rejects.toThrow(DatabaseError);
     await expect(pool.acquire()).rejects.toThrow(DatabaseError);
   });
+
+  it('never opens more than max connections under a burst of concurrent acquires', async () => {
+    const driver = new MemoryDatabaseDriver();
+    let opened = 0;
+    const pool = new ConnectionPool(
+      async () => {
+        opened++;
+        await new Promise((r) => setTimeout(r, 10)); // slow connect, like a real database
+        return driver.connect();
+      },
+      { min: 0, max: 2, acquireTimeoutMs: 1000 }
+    );
+    const conns = Promise.all(Array.from({ length: 5 }, () => pool.acquire()));
+    await new Promise((r) => setTimeout(r, 30));
+    expect(opened).toBe(2);
+    expect(pool.size).toBe(2);
+    // The waiters are served as connections come back.
+    const first = await Promise.race([conns, new Promise((r) => setTimeout(r, 0, 'pending'))]);
+    expect(first).toBe('pending');
+    await pool.close();
+    await conns.catch(() => {});
+  });
 });

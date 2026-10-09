@@ -46,7 +46,7 @@ export class AdminResource {
     this.modelName = options.modelName ?? options.modelMetadata?.name ?? options.id ?? 'Unknown';
     this.id = options.id ?? this.modelName.toLowerCase();
     this.label = options.label ?? AdminField.formatLabel(this.modelName);
-    this.pluralLabel = options.pluralLabel ?? `${this.label}s`;
+    this.pluralLabel = options.pluralLabel ?? pluralize(this.label);
     this.navigationGroup = options.navigationGroup;
     this.navigationIcon = options.navigationIcon;
     this.navigationOrder = options.navigationOrder;
@@ -179,10 +179,26 @@ export function deriveFieldsFromModel(metadata: ModelMetadata): AdminFieldConfig
     });
   }
   for (const [name, rel] of metadata.relations) {
+    const relationTarget = relationTargetName(rel['targetResolver']);
+    // belongsTo: the foreign key column (e.g. `categoryId`) becomes the editable relation picker.
+    const fkIndex =
+      rel.type === 'belongsTo' ? fields.findIndex((f) => f.name === rel.foreignKey) : -1;
+    if (fkIndex >= 0) {
+      fields[fkIndex] = {
+        ...fields[fkIndex]!,
+        type: 'relation',
+        label: fields[fkIndex]!.label ?? AdminField.formatLabel(name),
+        relationTarget,
+        relationType: 'belongsTo',
+        searchable: false,
+        filterable: true,
+      };
+      continue;
+    }
     fields.push({
       name,
       type: 'relation',
-      relationTarget: typeof rel['targetResolver'] === 'string' ? rel['targetResolver'] : undefined,
+      relationTarget,
       relationType: rel.type,
       readonly: true,
       sortable: false,
@@ -191,6 +207,27 @@ export function deriveFieldsFromModel(metadata: ModelMetadata): AdminFieldConfig
     });
   }
   return fields;
+}
+
+function pluralize(word: string): string {
+  if (/[^aeiou]y$/i.test(word)) return `${word.slice(0, -1)}ies`;
+  if (/(s|x|z|ch|sh)$/i.test(word)) return `${word}es`;
+  return `${word}s`;
+}
+
+/** Model name of a relation target given as a name, a model class or a `() => Model` thunk. */
+function relationTargetName(target: unknown): string | undefined {
+  try {
+    const resolved =
+      typeof target === 'function' && !('metadata' in target)
+        ? (target as () => unknown)()
+        : target;
+    if (typeof resolved === 'string') return resolved;
+    const model = resolved as { metadata?: { name?: string }; name?: string } | undefined;
+    return model?.metadata?.name ?? model?.name;
+  } catch {
+    return undefined; // target not defined yet
+  }
 }
 
 function mapOrmTypeToAdminType(ormType: FieldType, name: string): AdminFieldType {

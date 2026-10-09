@@ -98,18 +98,21 @@ export const PageResource = new AdminResource({
 
 ## 3. Supported Field Types
 
-| Field Type   | Form Widget               | Supported Options                         |
-| ------------ | ------------------------- | ----------------------------------------- |
-| `'text'`     | Single-line Text Input    | `required`, `searchable`, `label`         |
-| `'textarea'` | Multi-line Textarea       | `required`, `label`, `description`        |
-| `'number'`   | Numeric Input (int/float) | `required`, `sortable`, `filterable`      |
-| `'email'`    | Email Input               | Validates email syntax                    |
-| `'boolean'`  | Checkbox / Switch         | Rendered with Yes/No badges in changelist |
-| `'enum'`     | Select Dropdown           | `enumChoices: [{ label, value }]`         |
-| `'datetime'` | Datetime Display / Picker | Formats timestamps gracefully             |
-| `'uuid'`     | Readonly identifier       | Automatically generated                   |
+| Field Type   | Form Widget               | Supported Options                                          |
+| ------------ | ------------------------- | ---------------------------------------------------------- |
+| `'text'`     | Single-line Text Input    | `required`, `searchable`, `label`                          |
+| `'textarea'` | Multi-line Textarea       | `required`, `label`, `description`                         |
+| `'number'`   | Numeric Input (int/float) | `required`, `sortable`, `filterable`                       |
+| `'email'`    | Email Input               | Validates email syntax                                     |
+| `'boolean'`  | Checkbox / Switch         | Rendered with Yes/No badges in changelist                  |
+| `'enum'`     | Select Dropdown           | `enumChoices: [{ label, value }]`                          |
+| `'datetime'` | Datetime Display / Picker | Formats timestamps gracefully                              |
+| `'uuid'`     | Readonly identifier       | Automatically generated                                    |
+| `'relation'` | Searchable dropdown       | `relationTarget` (model name), side-panel "+ New" / "Edit" |
+| `'image'`    | Upload + media library    | Stores the uploaded file's URL                             |
+| `'file'`     | Upload + media library    | Stores the uploaded file's URL                             |
 
-Other types: `'date'`, `'time'`, `'url'`, `'json'`, `'password'`, `'file'`, `'image'`, `'relation'` (with `relationTarget` / `relationType`), `'computed'` (with `computedGetter`) and `'readonly'`. Every field also accepts `readonly`, `hidden`, `sensitive`, `sortable`, `searchable`, `filterable` and `widget`.
+Other types: `'date'`, `'time'`, `'url'`, `'json'`, `'password'`, `'computed'` (with `computedGetter`) and `'readonly'`. Every field also accepts `readonly`, `hidden`, `sensitive`, `sortable`, `searchable`, `filterable` and `widget`.
 
 ---
 
@@ -123,6 +126,7 @@ import { AdminRegistry } from '@jsango/admin-core';
 import { AdminServer, type IAdminQueryAdapter } from '@jsango/admin-server';
 import { AdminPermissionChecker } from '@jsango/admin-auth';
 import { AdminAuditLogger, InMemoryAuditStore } from '@jsango/admin-audit';
+import { AdminMediaManager, LocalDiskMediaStorage } from '@jsango/admin-media';
 import { defaultModelRegistry } from '@jsango/orm';
 import { Router } from '@jsango/router';
 import { PageResource } from './pages-resource.js';
@@ -195,8 +199,15 @@ new AdminServer({
   permissions: new AdminPermissionChecker(),
   audit: new AdminAuditLogger({ store: new InMemoryAuditStore() }),
   prefix: '/admin/api/v1',
+  // Optional media library disks (Admin → Media, and uploads of `image` / `file` fields)
+  media: { local: new AdminMediaManager({ storage: new LocalDiskMediaStorage() }) },
 }).mount(router);
 ```
+
+With `app.admin()` this is all automatic: models' `belongsTo` foreign keys become `relation` fields,
+and `media` defaults to a local disk served at `/media`. `AdminServer` doesn't serve files: serve the
+`LocalDiskMediaStorage` folder yourself (or use `S3MediaStorage` with a public URL). See the
+[admin guide](./ADMIN-CUSTOMIZATION.md#relations) for relations and the media library.
 
 ---
 

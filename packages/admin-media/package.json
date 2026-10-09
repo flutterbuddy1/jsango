@@ -1,6 +1,6 @@
 {
   "name": "@jsango/admin-media",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "File and image upload handling for jsango Admin — storage drivers and media management",
   "type": "module",
   "main": "./dist/index.js",

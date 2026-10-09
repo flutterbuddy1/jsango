@@ -7,6 +7,115 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.0] - 2026-10-09
+
+### Upgrading from 1.5
+
+1.6 is a security and production-readiness release: every change below came out of a full audit of
+the framework. Most apps need only these steps:
+
+1. **Set `NODE_ENV=development` locally** (projects from `jsango new` have it in `.env`). Anything
+   else, including no `NODE_ENV`, now runs in production mode: generic error messages, secure
+   cookies, no default admin password.
+2. **`app.crud` writes are off until you allow them**: add `access: { write: auth.required(...) }`
+   (or `access: 'public'` to keep the old behavior). Privilege and sensitive fields are no longer
+   writable or returned; list fields yourself with `writable` / `hidden`.
+3. **Admin staff need permissions**: users with the `staff` role (or only `admin.access`) now see
+   nothing until you grant `admin.<resource>.view|add|change|delete|export`. Superusers and the
+   `admin` role are unchanged.
+4. **External IdP tokens need `audience`** in `createAuth({ external })`.
+5. **`app.agent` responses no longer include `messages`**: read `text` and `conversationId`.
+6. **`fields.time()` values are strings** (`'09:30:00'`).
+7. Behind a proxy or load balancer, use `createApp({ trustProxy: true })`; with several instances,
+   give the admin a shared store: `app.admin({ store: new DatabaseAuthStore({ connection: db }) })`.
+
+### Admin: relations and media library
+
+- `belongsTo` foreign keys are now relation dropdowns in admin forms, with **+ New** and **Edit** buttons that open the related form in a side panel. They load once (fixes the dropdown reloading in a loop) and show a search box for large tables.
+- New **Media** page: upload, preview and delete files on several disks. `app.admin({ media })` takes `LocalDiskMediaStorage` (default: `./uploads` served at `/media`) and `S3MediaStorage` (S3, Cloudflare R2, MinIO, DigitalOcean Spaces; no AWS SDK needed). `image` / `file` fields upload there and can pick from the library.
+- Create forms no longer show read-only fields; plural labels handle `-y` and `-s` words ("Categories").
+- `relations` is now exported from `jsango`.
+
+### WebSockets: simpler and secure by default
+
+- `app.ws(path, ...middleware, handlers)` works like an HTTP route: path params (`socket.params`), and middleware such as `auth.required()` runs on the connection request (`socket.user` is the signed-in user).
+- Event-style messages: the client sends `{ "event": "typing", "data": ... }` and `socket.on('typing', handler)` receives `data`; `socket.emit(event, data)` sends one. `socket.to(room)` now excludes the sender.
+- Rooms are shared by all routes, and `app.to(room).send/emit(...)` pushes from HTTP routes, jobs or events. Signed-in sockets join `user:<id>` automatically.
+- Secure defaults: same-origin only (`origins` to allow others), 64 KB messages (`maxPayload`), 30s heartbeat, slow clients disconnected, unknown paths answered with 404.
+- Fixes: a malformed `Host` header on an upgrade request, or an error thrown in an async handler, no longer crashes the process. `server.close()` closes open sockets. Connection ids are UUIDs.
+- `app.wsAgent(path, agent, ...middleware)` accepts middleware, runs one agent run at a time per connection, passes the signed-in user, stops when the client disconnects and hides error details in production.
+- `@jsango/websocket`: standalone (`port`) mode now authenticates every connection, and messages are capped by `limits.maxMessageSizeBytes` (default 1 MB) before being buffered.
+
+### `app.crud` is safe by default
+
+- **Breaking:** writes (`POST`, `PUT`/`PATCH`, `DELETE`) answer `403` until `access` allows them. Reads stay public. To keep the old behavior, pass `access: 'public'`; usually you want `access: { write: auth.required({ roles: ['admin'] }) }`.
+- **Breaking:** request bodies can no longer set the primary key, timestamps, the soft-delete column or sensitive fields (names with password, secret, token, apiKey or hash), and those sensitive fields are no longer returned. Choose them yourself with `writable` and `hidden`.
+- New options: `access` (per route, or `read` / `write`), `only`, `writable`, `hidden`, `schema` (validates creates, and updates with the changes applied), `scope` (row-level filter, e.g. the signed-in user's rows) and `hooks` (`before`/`after` `Create`/`Update`/`Delete`, run in one transaction with the write). Guide: README "CRUD resources with `app.crud`".
+
+### New: `cors()`, `securityHeaders()`, `rateLimit()`
+
+- Built-in middleware: `app.use(securityHeaders())` (nosniff, no framing, referrer policy, HSTS on https), `app.use(cors({ origin: [...], credentials }))` (answers preflight, only listed origins), `rateLimit({ max, windowSeconds, key, store })` (429 + `Retry-After`; global or per route; shared counters through any store with `increment()`, e.g. `DatabaseAuthStore`).
+
+### Security and production hardening
+
+- **Breaking:** production mode is now the default. Only `NODE_ENV=development` or `test` turns it off (before: only `NODE_ENV=production` turned it on). Servers started without `NODE_ENV` no longer leak error details, and the built-in admin account needs a `JSANGO_ADMIN_PASSWORD` of 12+ characters there. Projects from `jsango new` get `NODE_ENV=development` in `.env`.
+- Server errors (5xx) are logged with their stack by default (JSON in production, text in development); before, `createApp()` logged nothing.
+- The `Host` header can no longer change the routed path (`Host: x/admin?`), and malformed hosts get a 400 instead of hanging. A response stream that fails midway closes the connection instead of hanging; streams respect backpressure and stop when the client disconnects.
+- New `createApp({ trustProxy })`: client IP, `https` and host come from `X-Forwarded-*` only when set. The admin no longer trusts a client-sent `X-Forwarded-For` (it bypassed login rate limits and forged audit IPs).
+- New `createApp({ maxBodySize })`. Keep-alive timeout is 65s (longer than load balancer idle timeouts).
+- `?__proto__=...` in query strings and form bodies is ignored.
+
+### Admin security
+
+- **Breaking:** limited staff (role `staff` or permission `admin.access`) can now do only what their permissions grant (`admin.<resource>.view|add|change|delete|export|...`, `admin.media.*`, `admin.audit.view`). Before, they could do everything, including making themselves superuser. Superusers and the `admin` role still have full access. New `app.admin({ permissions: { requireSuperuser, authorizationManager } })`.
+- Admin sessions, login lockouts, export links and the built-in account's 2FA and changed password now live in a store (`app.admin({ store })`, default: the `createAuth` store, else memory), so they work across instances and survive restarts. Before, a restart silently turned off built-in 2FA.
+- App users' admin sessions re-check roles, `isActive` and `auth.logoutAll()` every minute; sessions end after an hour of inactivity.
+- Login: logins over 254 characters are refused (memory exhaustion), lockouts count per login + IP so a stranger can't lock the real admin out, and a 2FA code works only once.
+- The audit log (and the default activity dashboard) needs `admin.audit.view` for limited staff. CSV export now checks `admin.<resource>.export`.
+- The admin page sends a CSP (only its own scripts), `X-Frame-Options: DENY` and `nosniff`.
+- Media: permissions per action, the file type comes from the extension (not the browser), S3 stays inside its `root` folder (default `uploads`) and serves non-media files as downloads, uploads over the body limit get 413.
+- `MemoryAuthStore` and `DatabaseAuthStore` delete expired entries periodically. New `auth.currentIdentity(userId, signedInAt)`.
+
+### `app.crud` and `app.agent` hardening
+
+- `app.crud`: privilege fields (`isAdmin`, `isSuperuser`, `isStaff`, `role(s)`, `permissions`, `emailVerified`) aren't writable by default; `hidden` now adds to the sensitive defaults instead of replacing them; with a `scope`, writes that would move a record outside it are refused (403) and rolled back; `?page=abc` no longer causes a 500; non-numeric number filters answer 400; `search` is capped at 200 characters.
+- **Breaking:** `app.agent(path, agent, options)` responses no longer include `messages` (the full history with the system prompt) or tool inputs/outputs: they return `{ runId, conversationId, status, text, output, toolCalls: [{ name, durationMs }], usage, durationMs }`.
+- `app.agent` / `app.wsAgent` take `{ middleware, maxSteps, maxInputLength }` (default input limit 10,000 characters), pass the signed-in user to the agent, and stop the run when the client disconnects. Anonymous visitors get a server-issued `conversationId` instead of sharing one conversation.
+- Agents: with memory, the system prompt is rebuilt every turn instead of growing; anonymous runs without a `conversationId` use no memory; `InMemoryMemoryStore` keeps at most 1,000 conversations and trims history at a user turn (a leading tool message broke the next request).
+
+### Auth
+
+- **Breaking:** external identity provider tokens (`createAuth({ external })` / `JwksVerifier`) require `audience`. Without it, tokens the same provider issued for other apps were accepted. Pass `audience: false` to opt out explicitly. JWKS fetches time out after 5 seconds and failed fetches are rate-limited.
+- Refresh token rotation is atomic: of two concurrent refreshes with the same token only one succeeds. Reusing a token within a minute of its rotation (two tabs, a retry) is refused without revoking; later reuse still revokes the whole login. `revokeRefreshToken()` needs the token itself, not just its family id.
+- API keys of inactive users (`users.isActive`) are refused. A TOTP code can't be replayed by adding spaces. A user signing in right after `logoutAll()` is no longer sometimes signed out too. An OAuth profile without a user id is refused (it became the id `"undefined"`). The timing-equalising dummy hash uses your configured hasher.
+
+### Database and ORM correctness
+
+- A `transaction()` inside another one now runs in a savepoint: a failed (and caught) inner transaction undoes only its own changes. Before, Postgres silently rolled back the whole transaction while the app reported success. A `COMMIT` that Postgres turns into a rollback now throws. MongoDB (no savepoints) rolls back the outer transaction.
+- The connection pool no longer opens more than `max` connections under a burst of concurrent requests (MySQL requests could hang), keeps `maxLifetimeMs` across releases, and drops a connection whose rollback failed instead of reusing it.
+- **Breaking:** `fields.time()` values are strings (`'09:30:00'`; before they became Invalid Dates and every read failed). `toJSON()` sends `bigint` as a string (before `JSON.stringify` threw), `date` fields as `'YYYY-MM-DD'` (no timezone shift), and decimals a JS number can't hold exactly stay strings.
+- MongoDB: an object value in `where(field, value)` (e.g. `{"$ne": null}` from a JSON body) is compared as a value instead of running as an operator, `$`-prefixed field names are refused, and `count(column)` keeps conditions on the same field.
+- New `whereContains(column, text)` / `orWhereContains`: search with user input where `%` and `_` match literally (`app.crud` and the admin use it). Runs of `%` no longer cause slow regexes on MongoDB.
+- New `queryTimeoutMs` connection option / `DATABASE_QUERY_TIMEOUT`, and `{ timeoutMs }` per query is honoured on PostgreSQL and MySQL.
+- Migrations keep their lock alive while running, so a migration longer than 15 minutes can't be run again by a concurrent deploy.
+- Without a configured database, models throw in production instead of silently using an in-memory database.
+
+### Queue, cache, AI and tooling
+
+- Queue (database driver): jobs are claimed atomically, so two workers can no longer run the same job; filtering, ordering and `LIMIT` run in SQL instead of loading the whole table. A job is stopped at its lease (`min(timeoutMs, leaseTimeoutMs)`), and a handler that ignores its abort signal is still timed out. A failure while recording a job's result is logged instead of crashing the worker.
+- Cache: `store.clear()` / `namespace(...).clear()` only delete their own keys. The Redis driver uses `SCAN` + `DEL` and refuses to clear without a prefix (before, it ran `FLUSHDB`, wiping sessions, rate limits and other apps' keys).
+- AI: tool arguments are validated before `execute` (schema validation, unknown keys dropped); `McpServer` refuses approval-gated and permissioned tools; OpenAI / Anthropic / Gemini calls time out (2 minutes, streams 10 minutes) instead of hanging; the Gemini API key is sent in a header instead of the URL.
+- OpenAPI: `app.openapi({ middleware, docsPath })` to protect the spec and Swagger UI; admin routes are never listed wherever the admin is mounted; the title is HTML-escaped; Swagger UI is pinned to an exact version.
+- `jsango new` template: `GET /users` hides emails, `/health/database` returns only a status, shutdown closes the HTTP server before the database pool.
+- `report_issue` (MCP) also redacts Anthropic and Google API keys and every `.env*` file.
+- Warnings (`process.emitWarning`) when the in-memory queue, admin audit log or admin session store run in production.
+
+### Fixes
+
+- **UUID primary keys:** `fields.uuid({ primaryKey: true })` now generates a random UUID for each new row, like `fields.objectId({ primaryKey: true })` does. Before, rows were inserted with a `NULL` id, so `create()` returned `id: null` and the record couldn't be found, edited or deleted (ORM, `app.crud` and admin).
+
+---
+
 ## [1.5.0] - 2026-10-08
 
 ### MCP server for AI coding agents

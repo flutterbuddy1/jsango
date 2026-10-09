@@ -110,7 +110,10 @@ export class AdminCrudService {
     identity: Identity | undefined,
     context?: AdminRequestContext | undefined
   ): Promise<AsyncIterable<string>> {
-    if (!(await this.permissions.canViewResource(identity, resource))) {
+    if (
+      !(await this.permissions.canViewResource(identity, resource)) ||
+      !(await this.permissions.canExport(identity, resource))
+    ) {
       throw new AdminAuthorizationError({ resource: resource.id, action: 'export' });
     }
     if (!this.adapter.stream) {

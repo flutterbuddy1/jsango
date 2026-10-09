@@ -18,6 +18,8 @@ export interface IRedisClient {
   mget(...keys: string[]): Promise<(string | null)[]>;
   mset(entries: Record<string, string>): Promise<unknown>;
   flushdb(): Promise<unknown>;
+  /** ioredis-style SCAN, used to clear one namespace: `scan(cursor, 'MATCH', pattern, 'COUNT', n)`. */
+  scan?(cursor: string, ...args: (string | number)[]): Promise<[string, string[]]>;
   quit(): Promise<unknown>;
 }
 
@@ -105,12 +107,30 @@ export class RedisCacheDriver implements ICacheDriver {
     }
   }
 
-  public async clear(): Promise<void> {
+  /**
+   * Deletes the keys under `prefix` (SCAN + DEL in batches). Without a prefix it would wipe the
+   * whole Redis database (other apps, sessions, rate limits), so that is refused.
+   */
+  public async clear(prefix?: string): Promise<void> {
+    if (!prefix) {
+      throw new CacheConnectionError(
+        'Refusing to clear Redis without a key prefix: set `prefix` / `application` in the cache config.'
+      );
+    }
+    if (!this.client.scan) {
+      throw new CacheConnectionError('Clearing a Redis namespace needs a client with scan().');
+    }
+    const pattern = `${prefix.replace(/[*?[\]\\]/g, '\\$&')}*`;
     try {
-      await this.client.flushdb();
+      let cursor = '0';
+      do {
+        const [next, keys] = await this.client.scan(cursor, 'MATCH', pattern, 'COUNT', 500);
+        if (keys.length > 0) await this.client.del(...keys);
+        cursor = next;
+      } while (cursor !== '0');
     } catch (err) {
       throw new CacheConnectionError(
-        `Redis FLUSHDB failed: ${err instanceof Error ? err.message : String(err)}`,
+        `Redis clear failed: ${err instanceof Error ? err.message : String(err)}`,
         err
       );
     }

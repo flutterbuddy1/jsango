@@ -30,19 +30,20 @@ Import everything from `'jsango'`.
 | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | HTTP server, routes                        | `createApp()`, `app.get/post/put/patch/delete(path, ...middleware, handler)`, `app.listen(port)`                                                          |
 | Request data                               | `ctx.params.id`, `ctx.query.page`, `ctx.body` (the body validated by `validate()`), `await ctx.request.json()` (raw body), `ctx.request.headers.get(...)` |
-| REST resource for a model                  | `app.crud('/posts', Post, { searchFields, filterFields })`                                                                                                |
+| REST resource for a model                  | `app.crud('/posts', Post, { access: { write: auth.required() }, schema, scope, hooks })` (see below)                                                      |
 | Request validation                         | `validate({ body: schema({ ... }) })` with `string()`, `email()`, `number()`, `boolean()`, `object()`                                                     |
 | Errors                                     | `throw notFound('...')`, `badRequest(...)`, `unauthorized(...)`, `forbidden(...)`                                                                         |
+| CORS / headers / rate limits               | `app.use(securityHeaders())`, `app.use(cors({ origin: [...] }))`, `rateLimit({ max, windowSeconds })` (global or per route)                               |
 | Models / ORM                               | `defineModel(name, { ...fields }, { table, timestamps, softDelete, relations })`, `fields.*`                                                              |
 | Queries                                    | `Model.find(id)`, `Model.where(...).first()`, `.query().where().orderBy().paginate({ page, pageSize })`, `create`, `update`, `delete`                     |
 | Migrations                                 | `npx jsango makemigrations`, `npx jsango migrate`, `migrate:status`, `migrate:rollback`                                                                   |
 | Database connection                        | `src/database.ts` (`DATABASE_URL` in `.env`: postgres, mysql, sqlite, mongodb)                                                                            |
 | Auth (JWT, sessions, API keys, OAuth, 2FA) | `createAuth({ secret, users })`, `auth.login`, `auth.required({ roles, permissions })`                                                                    |
-| Admin panel                                | `app.admin({ auth, resources: [Model], dashboard: [...] })`                                                                                               |
+| Admin panel                                | `app.admin({ auth, resources: [Model], dashboard: [...], media: { local: new LocalDiskMediaStorage() } })`                                                |
 | Background jobs / events / cache           | `jobs.register` + `jobs.dispatch`, `events.on` + `events.emit`, `cache.remember`                                                                          |
-| WebSockets                                 | `app.ws(path, (socket) => ...)`                                                                                                                           |
+| WebSockets                                 | `app.ws('/chat/:room', auth.required(), { open, message, close })`, `socket.join/to/emit`, `app.to('user:<id>').emit(...)`                                |
 | API docs                                   | `app.openapi({ path: '/openapi.json' })`                                                                                                                  |
-| AI agents and tools                        | `agent({ ... })`, `tool({ ... })`, `app.agent(path, agent)`                                                                                               |
+| AI agents and tools                        | `agent({ ... })`, `tool({ ... })`, `app.agent(path, agent, { middleware: [auth.required()] })`                                                            |
 
 ## Project layout
 
@@ -87,6 +88,7 @@ app.get('/posts/:id', async ({ params }) => {
 app.post('/posts', validate({ body: schema({ title: string().min(3) }) }), async ({ body }) => {
   return Post.create({ ...body, authorId: 1 });
 });
+// The routes above are what app.crud('/posts', Post, { ... }) generates; see "REST resources" below.
 ```
 
 ```ts
@@ -118,6 +120,33 @@ app.delete('/posts/:id', auth.required(), async (ctx) => {
 });
 app.admin({ auth, resources: [User, Post] }); // admin panel at /admin
 ```
+
+### REST resources: `app.crud`
+
+Use `app.crud` for any model that needs list / detail / create / update / delete endpoints instead of
+writing the five routes by hand. Reads are public and writes answer 403 until `access` allows them;
+the primary key, timestamps and sensitive fields are never written from the body nor returned.
+
+```ts
+import { schema, string, events } from 'jsango';
+
+app.crud('/posts', Post, {
+  access: { read: 'public', write: auth.required() }, // or per route: list, detail, create, update, delete
+  searchFields: ['title'],
+  filterFields: ['published'],
+  schema: schema({ title: string().min(3) }), // validates create, and update with changes applied
+  scope: (q, ctx) => q.where('authorId', auth.identity(ctx).id), // users only see/change their rows
+  hooks: {
+    // run in one transaction with the write; throw badRequest()/forbidden() to cancel
+    beforeCreate: (data, ctx) => ({ ...data, authorId: auth.identity(ctx).id }),
+    afterCreate: (post) => events.emit('post.created', { id: post.get('id') }),
+  },
+});
+```
+
+Write a custom route instead only when a write is a whole business process (placing an order:
+stock, coupons, tax, payment). Keep the reads on `app.crud` with `only: ['list', 'detail']` and add
+`app.post('/orders', auth.required(), validate(...), handler)` next to it.
 
 Auth notes:
 

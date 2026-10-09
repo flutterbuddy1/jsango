@@ -10,7 +10,7 @@ Key design principles:
 - **Named Queues**: Multiple named queues can coexist (`default`, `emails`, `reports`), each with independent configurations.
 - **Job Registry**: Strongly-typed job definitions registered centrally and resolved at execution time.
 - **AT-LEAST-ONCE Delivery**: Jobs are guaranteed to execute at least once; handlers must be idempotent.
-- **Visibility Leases**: Workers claim jobs with time-bounded leases to prevent duplicate processing in multi-worker environments.
+- **Visibility Leases**: Workers claim jobs with time-bounded leases to prevent duplicate processing in multi-worker environments. The database driver claims atomically (a conditional `UPDATE`), and a job is stopped at its lease (`min(timeoutMs, leaseTimeoutMs)`) so it can never be picked up by a second worker while still running: give long jobs a longer `leaseTimeoutMs`.
 - **Graceful Shutdown**: Workers honor `AbortSignal` for clean termination of in-flight work.
 - **Zero Mandatory External Dependencies**: Ships with `MemoryQueueDriver` and `DatabaseQueueDriver` (using the existing `@jsango/database` layer).
 

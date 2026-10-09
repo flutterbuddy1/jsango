@@ -101,3 +101,23 @@ export abstract class BaseLlmProvider implements ILlmProvider {
     return list;
   }
 }
+
+/**
+ * The caller's signal plus a timeout: a provider that stops answering must not hold the request
+ * (and its connection) forever.
+ */
+export function withTimeout(signal: AbortSignal | undefined, ms: number): AbortSignal {
+  const timeout = AbortSignal.timeout(ms);
+  if (!signal) return timeout;
+  const any = (AbortSignal as { any?: (signals: AbortSignal[]) => AbortSignal }).any;
+  if (any) return any([signal, timeout]);
+  const controller = new AbortController();
+  for (const s of [signal, timeout]) {
+    s.addEventListener('abort', () => controller.abort(s.reason), { once: true });
+  }
+  return controller.signal;
+}
+
+/** Default limits for a whole model call: plain responses and streams. */
+export const GENERATE_TIMEOUT_MS = 120_000;
+export const STREAM_TIMEOUT_MS = 600_000;

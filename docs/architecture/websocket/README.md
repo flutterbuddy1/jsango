@@ -1,5 +1,9 @@
 # @jsango/websocket Architecture Overview
 
+> **Building an app?** Use `app.ws()` from `jsango` (see the README): it shares your HTTP routes'
+> middleware and auth, rooms, `app.to(room)` server push and secure defaults. This package is the
+> lower-level engine for custom servers.
+
 ## 1. Core Mission & Philosophy
 
 `@jsango/websocket` delivers a production-grade real-time communication subsystem for the JSango (`jsango`) framework. It provides runtime-independent WebSocket abstractions, room management, broadcasting, connection limits, heartbeat monitoring, backpressure enforcement, and HTTP upgrade authentication.

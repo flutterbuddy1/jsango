@@ -72,6 +72,7 @@ export class HttpQuery {
   public toRecord(): Record<string, string | readonly string[]> {
     const record: Record<string, string | readonly string[]> = {};
     for (const [key, values] of this.params.entries()) {
+      if (key === '__proto__') continue; // would replace the record's prototype
       if (values.length === 1) {
         record[key] = values[0]!;
       } else {

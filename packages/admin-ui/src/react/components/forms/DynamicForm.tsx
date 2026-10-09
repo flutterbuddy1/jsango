@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAdmin, AdminResource, AdminResourceField, AdminCustomAction } from '../../context/AdminContext.js';
 import {
   Save,
@@ -10,67 +10,53 @@ import {
   Plus,
   Play,
   X,
-  ExternalLink,
+  FolderOpen,
 } from 'lucide-react';
+import { RelationSelect } from './RelationSelect.js';
+import { Drawer } from '../layout/Drawer.js';
+import { MediaLibrary, uploadMedia, isImageUrl } from '../../views/MediaLibraryView.js';
 
 export interface DynamicFormProps {
   resource: AdminResource;
   recordId?: string | null;
+  /** Rendered inside a drawer (e.g. "add related record"): no routing, breadcrumbs or delete. */
+  embedded?: boolean;
+  /** Called with the saved record instead of navigating (embedded mode). */
+  onSaved?: (item: Record<string, any>) => void;
+  onCancel?: () => void;
 }
 
-export const DynamicForm: React.FC<DynamicFormProps> = ({ resource, recordId }) => {
+/** Virtual hasOne / hasMany / manyToMany fields have no column to edit. */
+const isVirtualRelation = (f: AdminResourceField) =>
+  f.type === 'relation' && Boolean(f.relationType) && f.relationType !== 'belongsTo';
+
+export const DynamicForm: React.FC<DynamicFormProps> = ({
+  resource,
+  recordId,
+  embedded = false,
+  onSaved,
+  onCancel,
+}) => {
   const { fetchApi, showToast, setRoute, setBreadcrumbs } = useAdmin();
 
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [inlineData, setInlineData] = useState<Record<string, any[]>>({});
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(Boolean(recordId));
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Relation Options Cache: { [relatedResource]: Array<{ id, label }> }
-  const [relationOptions, setRelationOptions] = useState<Record<string, Array<{ id: string; label: string }>>>({});
-  const [relationLoading, setRelationLoading] = useState<Record<string, boolean>>({});
+  const [mediaPicker, setMediaPicker] = useState<AdminResourceField | null>(null);
+  const [uploadingField, setUploadingField] = useState<string | null>(null);
 
   const isEditMode = Boolean(recordId);
 
   useEffect(() => {
+    if (embedded) return;
     setBreadcrumbs([
       { label: resource.pluralLabel, href: `#changelist/${resource.id}` },
       { label: isEditMode ? `Edit ${resource.label} #${recordId}` : `Add ${resource.label}` },
     ]);
-  }, [resource, recordId, isEditMode, setBreadcrumbs]);
-
-  // Load Relation Options for foreign keys
-  const loadRelationOptions = useCallback(
-    async (relatedResId: string) => {
-      if (relationOptions[relatedResId] || relationLoading[relatedResId]) return;
-      setRelationLoading((prev) => ({ ...prev, [relatedResId]: true }));
-      try {
-        const res = await fetchApi<any>(`/resources/${relatedResId}?pageSize=50`);
-        const dataObj = res?.data || res || {};
-        const items = dataObj.items || dataObj.records || (Array.isArray(dataObj) ? dataObj : []);
-        const mapped = items.map((it: any) => ({
-          id: String(it.id ?? it._id ?? it.uuid),
-          label: String(it.name || it.title || it.label || it.email || it.username || it.id),
-        }));
-        setRelationOptions((prev) => ({ ...prev, [relatedResId]: mapped }));
-      } catch {
-        // Fallback silently if related resource not mounted
-      } finally {
-        setRelationLoading((prev) => ({ ...prev, [relatedResId]: false }));
-      }
-    },
-    [fetchApi, relationOptions, relationLoading]
-  );
-
-  // Trigger relation loaders for all relation fields
-  useEffect(() => {
-    for (const f of resource.fields) {
-      if (f.type === 'relation' && f.relatedResource) {
-        loadRelationOptions(f.relatedResource);
-      }
-    }
-  }, [resource.fields, loadRelationOptions]);
+  }, [resource, recordId, isEditMode, embedded, setBreadcrumbs]);
 
   // Load existing record if in Edit mode
   useEffect(() => {
@@ -78,7 +64,9 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({ resource, recordId }) 
       // Set initial defaults
       const defaults: Record<string, any> = {};
       for (const f of resource.fields) {
+        if (f.readOnly || isVirtualRelation(f)) continue;
         if (f.type === 'boolean') defaults[f.name] = false;
+        else if (f.type === 'relation') defaults[f.name] = null;
         else if (f.type === 'number') defaults[f.name] = 0;
         else defaults[f.name] = '';
       }
@@ -124,10 +112,28 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({ resource, recordId }) 
     }
   };
 
-  // Handle File / Image Upload
-  const handleFileUpload = (fieldName: string, e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle File / Image Upload: stored on the first media disk, inlined as a data URI without one.
+  const handleFileUpload = async (fieldName: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    setUploadingField(fieldName);
+    try {
+      const stored = await uploadMedia(fetchApi, file).catch((err) => {
+        if (/HTTP 404/.test(err.message)) return undefined; // no media API
+        throw err;
+      });
+      if (stored) {
+        handleChange(fieldName, stored.url);
+        showToast(`File "${file.name}" uploaded`);
+        return;
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Upload failed', 'error');
+      return;
+    } finally {
+      setUploadingField(null);
+    }
 
     const reader = new FileReader();
     reader.onload = (evt) => {
@@ -170,6 +176,8 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({ resource, recordId }) 
 
   const handleSubmit = async (e: React.FormEvent, continueEditing = false) => {
     e.preventDefault();
+    // A form in a drawer is portaled but React still bubbles its events to the parent form.
+    e.stopPropagation();
     setSaving(true);
     setErrors({});
 
@@ -179,7 +187,10 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({ resource, recordId }) 
       for (const [k, v] of Object.entries(formData)) {
         if (!isEditMode && (k === 'id' && !v)) continue;
         const fieldDef = resource.fields.find((f) => f.name === k);
-        if (fieldDef?.type === 'number' && v !== '' && v !== null && v !== undefined) {
+        if (fieldDef && isVirtualRelation(fieldDef)) continue;
+        if (fieldDef?.type === 'relation') {
+          payload[k] = v === '' || v === undefined ? null : v;
+        } else if (fieldDef?.type === 'number' && v !== '' && v !== null && v !== undefined) {
           payload[k] = Number(v);
         } else if (fieldDef?.type === 'boolean') {
           payload[k] = Boolean(v);
@@ -194,11 +205,15 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({ resource, recordId }) 
       }
 
       if (isEditMode) {
-        await fetchApi(`/resources/${resource.id}/${recordId}`, {
+        const res = await fetchApi<any>(`/resources/${resource.id}/${recordId}`, {
           method: 'PATCH',
           body: JSON.stringify(payload),
         });
         showToast(`${resource.label} updated successfully`);
+        if (onSaved) {
+          onSaved(res?.item ?? { ...formData, ...payload });
+          return;
+        }
       } else {
         const res = await fetchApi<any>(`/resources/${resource.id}`, {
           method: 'POST',
@@ -206,6 +221,10 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({ resource, recordId }) 
         });
         showToast(`${resource.label} created successfully`);
         const createdItem = res?.data?.item || res?.item || res?.data || res;
+        if (onSaved) {
+          onSaved(createdItem);
+          return;
+        }
         const newId = createdItem?.id ?? createdItem?._id;
         if (continueEditing && newId) {
           setRoute(`#changeform/${resource.id}/${newId}`);
@@ -267,45 +286,16 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({ resource, recordId }) 
       );
     }
 
-    // Relation Field (Searchable Picker)
+    // Relation Field (Searchable Picker with add / edit drawer)
     if (field.type === 'relation') {
-      const relatedRes = field.relatedResource || 'users';
-      const options = relationOptions[relatedRes] || [];
-      const isLoadingRel = relationLoading[relatedRes];
-
       return (
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <select
-            id={`field-${field.name}`}
-            className="chakra-input"
-            value={String(val ?? '')}
-            required={field.required}
-            onChange={(e) => handleChange(field.name, e.target.value)}
-          >
-            <option value="">{isLoadingRel ? 'Loading relations...' : `Select ${field.label}...`}</option>
-            {options.map((opt) => (
-              <option key={opt.id} value={opt.id}>
-                {opt.label} ({opt.id})
-              </option>
-            ))}
-          </select>
-          <a
-            href={`#changelist/${relatedRes}`}
-            target="_blank"
-            rel="noreferrer"
-            className="chakra-button subtle"
-            style={{ padding: '0.45rem 0.6rem' }}
-            title={`Open ${relatedRes} directory`}
-          >
-            <ExternalLink style={{ width: 14, height: 14 }} />
-          </a>
-        </div>
+        <RelationSelect field={field} value={val} onChange={(v) => handleChange(field.name, v)} />
       );
     }
 
     // File / Image Upload Field
     if (field.type === 'file' || field.type === 'image') {
-      const isImage = field.type === 'image' || String(val).startsWith('data:image/');
+      const isImage = field.type === 'image' || isImageUrl(val);
       return (
         <div>
           {val ? (
@@ -332,8 +322,8 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({ resource, recordId }) 
               )}
               <div style={{ flex: 1, fontSize: '0.8125rem' }}>
                 <div style={{ fontWeight: 600 }}>Attached File</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--chakra-colors-fg-muted)' }}>
-                  {isImage ? 'Image preview active' : 'File uploaded'}
+                <div style={{ fontSize: '0.75rem', color: 'var(--chakra-colors-fg-muted)', wordBreak: 'break-all' }}>
+                  {String(val).startsWith('data:') ? 'Embedded file' : String(val)}
                 </div>
               </div>
               <button
@@ -347,8 +337,10 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({ resource, recordId }) 
               </button>
             </div>
           ) : (
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <label
               style={{
+                flex: '1 1 200px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -372,9 +364,20 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({ resource, recordId }) 
                 <Upload style={{ width: 18, height: 18, color: 'var(--chakra-colors-brand-fg)' }} />
               )}
               <span style={{ fontSize: '0.8125rem', fontWeight: 600 }}>
-                Upload {field.type === 'image' ? 'Image' : 'File'}
+                {uploadingField === field.name
+                  ? 'Uploading...'
+                  : `Upload ${field.type === 'image' ? 'Image' : 'File'}`}
               </span>
             </label>
+            <button
+              type="button"
+              className="chakra-button subtle"
+              onClick={() => setMediaPicker(field)}
+              title="Choose from the media library"
+            >
+              <FolderOpen style={{ width: 15, height: 15 }} /> Library
+            </button>
+            </div>
           )}
         </div>
       );
@@ -484,8 +487,9 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({ resource, recordId }) 
   }
 
   return (
-    <div style={{ maxWidth: 880 }}>
+    <div style={{ maxWidth: embedded ? undefined : 880 }}>
       {/* Top Header Navigation */}
+      {!embedded && (
       <div
         style={{
           display: 'flex',
@@ -538,6 +542,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({ resource, recordId }) 
           )}
         </div>
       </div>
+      )}
 
       {/* Main Form */}
       <form onSubmit={(e) => handleSubmit(e, false)}>
@@ -559,7 +564,9 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({ resource, recordId }) 
                     readOnly: k === 'id' || k === 'createdAt' || k === 'updatedAt',
                   })
                 )
-            ).map((field) => (
+            )
+              .filter((field) => !isVirtualRelation(field) && !(field.readOnly && !isEditMode))
+              .map((field) => (
               <div key={field.name} className="chakra-field">
                 <label htmlFor={`field-${field.name}`}>
                   {field.label}
@@ -687,26 +694,40 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({ resource, recordId }) 
           <button
             type="button"
             className="chakra-button subtle"
-            onClick={() => setRoute(`#changelist/${resource.id}`)}
+            onClick={() => (onCancel ? onCancel() : setRoute(`#changelist/${resource.id}`))}
           >
             Cancel
           </button>
 
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button
-              type="button"
-              className="chakra-button subtle"
-              disabled={saving}
-              onClick={(e) => handleSubmit(e, true)}
-            >
-              Save and continue editing
-            </button>
+            {!embedded && (
+              <button
+                type="button"
+                className="chakra-button subtle"
+                disabled={saving}
+                onClick={(e) => handleSubmit(e, true)}
+              >
+                Save and continue editing
+              </button>
+            )}
             <button type="submit" className="chakra-button solid" disabled={saving}>
               <Save style={{ width: 14, height: 14 }} /> {saving ? 'Saving...' : 'Save'}
             </button>
           </div>
         </div>
       </form>
+
+      {mediaPicker && (
+        <Drawer title={`Choose ${mediaPicker.label}`} onClose={() => setMediaPicker(null)} width={760}>
+          <MediaLibrary
+            accept={mediaPicker.type === 'image' ? 'image/' : undefined}
+            onSelect={(file) => {
+              handleChange(mediaPicker.name, file.url);
+              setMediaPicker(null);
+            }}
+          />
+        </Drawer>
+      )}
     </div>
   );
 };

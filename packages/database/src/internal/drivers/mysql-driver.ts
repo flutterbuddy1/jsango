@@ -53,7 +53,7 @@ export class MysqlDriverConnection implements IDriverConnection {
   public async query<T = Record<string, unknown>>(
     sql: string,
     params: readonly unknown[] = [],
-    _options?: QueryOptions
+    options?: QueryOptions
   ): Promise<DatabaseResult<T>> {
     if (this._isClosed) {
       throw new QueryError('Cannot execute query on closed MySQL connection.', sql);
@@ -65,8 +65,9 @@ export class MysqlDriverConnection implements IDriverConnection {
     try {
       // query() (client-side parameter binding) supports every statement type, including DDL
       // and transaction control that the prepared-statement protocol (execute) rejects.
+      const timeout = options?.timeoutMs ?? (this.config as ConnectionConfig).queryTimeoutMs;
       const [result, fields] = await this.connection.query(
-        sql,
+        timeout ? { sql, timeout } : sql,
         params.map((p) => toSqlParam(p, 'mysql'))
       );
 

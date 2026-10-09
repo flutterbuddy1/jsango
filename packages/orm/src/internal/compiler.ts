@@ -441,7 +441,10 @@ export class SqlCompiler {
         sql += `${prefix}${col} ${op} ${this.createPlaceholder(paramCounter++)} AND ${this.createPlaceholder(paramCounter++)}`;
         params.push(low, high);
       } else {
-        sql += `${prefix}${col} ${this.normalizeOperator(cond.operator)} ${this.createPlaceholder(paramCounter++)}`;
+        const op = this.normalizeOperator(cond.operator);
+        // Backslash escapes `%` / `_` (see escapeLike); PostgreSQL and MySQL use it by default.
+        const escape = this.dialect === 'sqlite' && op.endsWith('LIKE') ? " ESCAPE '\\'" : '';
+        sql += `${prefix}${col} ${op} ${this.createPlaceholder(paramCounter++)}${escape}`;
         params.push(cond.value);
       }
     }

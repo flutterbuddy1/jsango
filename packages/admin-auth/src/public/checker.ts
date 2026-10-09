@@ -57,208 +57,107 @@ export class AdminPermissionChecker {
   }
 
   /**
-   * Checks if an identity can view list and details of a resource.
+   * Superusers and the `staffRole` role (default `admin`) can do everything. Everyone else let in
+   * through the `staff` role or the `admin.access` permission needs explicit permissions
+   * (`admin.<resource>.<action>`, `admin.<resource>.*`, `admin.*`) or an authorization policy.
    */
-  public async canViewResource(
-    identity: Identity | undefined,
-    resource: AdminResource
-  ): Promise<boolean> {
-    if (!this.canAccessAdmin(identity)) return false;
-    if (identity?.isSuperuser) return true;
-
-    const perm = `admin.${resource.id}.view`;
-    if (
-      identity?.hasPermission(perm) ||
-      identity?.hasPermission(`admin.${resource.id}.*`) ||
-      identity?.hasPermission('admin.*')
-    ) {
-      return true;
-    }
-
-    if (this.authz) {
-      return this.authz.can(identity!, 'view', resource.modelName);
-    }
-
-    return true; // Default allow for authenticated staff if no explicit policy
+  public hasFullAccess(identity: Identity | undefined): boolean {
+    return Boolean(
+      identity &&
+      this.canAccessAdmin(identity) &&
+      (identity.isSuperuser || identity.hasRole(this.staffRole) || identity.hasRole('superuser'))
+    );
   }
 
   /**
-   * Checks if an identity can create new records in a resource.
+   * One rule for every action. Default deny: without a matching permission or policy, limited
+   * staff can do nothing (before, they could do everything, e.g. make themselves superuser).
    */
-  public async canCreate(
+  private async allowed(
     identity: Identity | undefined,
-    resource: AdminResource
+    resource: AdminResource,
+    action: string,
+    target?: Record<string, unknown>,
+    policyAction = action
   ): Promise<boolean> {
-    if (!this.canAccessAdmin(identity)) return false;
-    if (identity?.isSuperuser) return true;
-
-    const perm = `admin.${resource.id}.add`;
-    if (
-      identity?.hasPermission(perm) ||
-      identity?.hasPermission(`admin.${resource.id}.*`) ||
-      identity?.hasPermission('admin.*')
-    ) {
-      return true;
-    }
-
-    if (this.authz) {
-      return this.authz.can(identity!, 'add', resource.modelName);
-    }
-
-    return true;
+    if (!identity || !this.canAccessAdmin(identity)) return false;
+    if (this.hasFullAccess(identity)) return true;
+    const granted =
+      identity.hasPermission(`admin.${resource.id}.${action}`) ||
+      identity.hasPermission(`admin.${resource.id}.*`) ||
+      identity.hasPermission('admin.*');
+    if (granted && (!target || !this.authz)) return true;
+    // Object-level policies still apply on top of a granted permission.
+    if (this.authz) return this.authz.can(identity, policyAction, target ?? resource.modelName);
+    return false;
   }
 
-  /**
-   * Checks if an identity can update a record (with optional object-level check).
-   */
-  public async canUpdate(
+  /** Checks if an identity can view list and details of a resource. */
+  public canViewResource(identity: Identity | undefined, resource: AdminResource) {
+    return this.allowed(identity, resource, 'view');
+  }
+
+  /** Checks if an identity can create new records in a resource. */
+  public canCreate(identity: Identity | undefined, resource: AdminResource) {
+    return this.allowed(identity, resource, 'add');
+  }
+
+  /** Checks if an identity can update a record (with optional object-level check). */
+  public canUpdate(
     identity: Identity | undefined,
     resource: AdminResource,
     item?: Record<string, unknown>
-  ): Promise<boolean> {
-    if (!this.canAccessAdmin(identity)) return false;
-    if (identity?.isSuperuser) return true;
-
-    const perm = `admin.${resource.id}.change`;
-    if (
-      identity?.hasPermission(perm) ||
-      identity?.hasPermission(`admin.${resource.id}.*`) ||
-      identity?.hasPermission('admin.*')
-    ) {
-      if (item && this.authz) {
-        return this.authz.can(identity!, 'change', item);
-      }
-      return true;
-    }
-
-    if (this.authz) {
-      return this.authz.can(identity!, 'change', item ?? resource.modelName);
-    }
-
-    return true;
+  ) {
+    return this.allowed(identity, resource, 'change', item);
   }
 
-  /**
-   * Checks if an identity can delete a record.
-   */
-  public async canDelete(
+  /** Checks if an identity can delete a record. */
+  public canDelete(
     identity: Identity | undefined,
     resource: AdminResource,
     item?: Record<string, unknown>
-  ): Promise<boolean> {
-    if (!this.canAccessAdmin(identity)) return false;
-    if (identity?.isSuperuser) return true;
-
-    const perm = `admin.${resource.id}.delete`;
-    if (
-      identity?.hasPermission(perm) ||
-      identity?.hasPermission(`admin.${resource.id}.*`) ||
-      identity?.hasPermission('admin.*')
-    ) {
-      if (item && this.authz) {
-        return this.authz.can(identity!, 'delete', item);
-      }
-      return true;
-    }
-
-    if (this.authz) {
-      return this.authz.can(identity!, 'delete', item ?? resource.modelName);
-    }
-
-    return true;
+  ) {
+    return this.allowed(identity, resource, 'delete', item);
   }
 
-  /**
-   * Checks if an identity can restore a soft-deleted record.
-   */
-  public async canRestore(
+  /** Checks if an identity can restore a soft-deleted record. */
+  public canRestore(
     identity: Identity | undefined,
     resource: AdminResource,
     item?: Record<string, unknown>
-  ): Promise<boolean> {
-    if (!this.canAccessAdmin(identity)) return false;
-    if (identity?.isSuperuser) return true;
-
-    const perm = `admin.${resource.id}.restore`;
-    if (
-      identity?.hasPermission(perm) ||
-      identity?.hasPermission(`admin.${resource.id}.*`) ||
-      identity?.hasPermission('admin.*')
-    ) {
-      return true;
-    }
-
-    if (this.authz) {
-      return this.authz.can(identity!, 'restore', item ?? resource.modelName);
-    }
-
-    return true;
+  ) {
+    return this.allowed(identity, resource, 'restore', item);
   }
 
-  /**
-   * Checks if an identity can execute a custom row action.
-   */
+  /** Checks if an identity can execute a custom row action (`admin.<resource>.action.<id>`). */
   public async canExecuteAction(
     identity: Identity | undefined,
     resource: AdminResource,
     actionId: string,
     item?: Record<string, unknown>
   ): Promise<boolean> {
-    if (!this.canAccessAdmin(identity)) return false;
-    if (identity?.isSuperuser) return true;
-
     const action = resource.actions.get(actionId);
     if (!action) return false;
-
-    if (action.permission) {
-      if (!identity?.hasPermission(action.permission) && !identity?.hasPermission('admin.*')) {
+    if (action.permission && !this.hasFullAccess(identity)) {
+      if (!identity?.hasPermission(action.permission) && !identity?.hasPermission('admin.*'))
         return false;
-      }
     }
-
-    const perm = `admin.${resource.id}.action.${actionId}`;
-    if (
-      identity?.hasPermission(perm) ||
-      identity?.hasPermission(`admin.${resource.id}.*`) ||
-      identity?.hasPermission('admin.*')
-    ) {
-      return true;
-    }
-
-    if (this.authz) {
-      return this.authz.can(identity!, actionId, item ?? resource.modelName);
-    }
-
-    return true;
+    return this.allowed(identity, resource, `action.${actionId}`, item, actionId);
   }
 
-  /**
-   * Checks if an identity can execute a bulk action.
-   */
+  /** Checks if an identity can execute a bulk action (`admin.<resource>.bulk.<id>`). */
   public async canExecuteBulkAction(
     identity: Identity | undefined,
     resource: AdminResource,
     actionId: string
   ): Promise<boolean> {
-    if (!this.canAccessAdmin(identity)) return false;
-    if (identity?.isSuperuser) return true;
-
     const bulkAction = resource.bulkActions.get(actionId);
     if (!bulkAction) return false;
-
-    if (bulkAction.permission) {
-      if (!identity?.hasPermission(bulkAction.permission) && !identity?.hasPermission('admin.*')) {
+    if (bulkAction.permission && !this.hasFullAccess(identity)) {
+      if (!identity?.hasPermission(bulkAction.permission) && !identity?.hasPermission('admin.*'))
         return false;
-      }
     }
-
-    const perm = `admin.${resource.id}.bulk.${actionId}`;
-    return (
-      identity?.hasPermission(perm) ||
-      identity?.hasPermission(`admin.${resource.id}.*`) ||
-      identity?.hasPermission('admin.*') ||
-      true
-    );
+    return this.allowed(identity, resource, `bulk.${actionId}`, undefined, actionId);
   }
 
   /**
@@ -310,33 +209,13 @@ export class AdminPermissionChecker {
     return true;
   }
 
-  /**
-   * Checks export permission.
-   */
-  public canExport(identity: Identity | undefined, resource: AdminResource): boolean {
-    if (!this.canAccessAdmin(identity)) return false;
-    if (identity?.isSuperuser) return true;
-
-    const perm = `admin.${resource.id}.export`;
-    return Boolean(
-      identity?.hasPermission(perm) ||
-      identity?.hasPermission(`admin.${resource.id}.*`) ||
-      identity?.hasPermission('admin.*')
-    );
+  /** Checks export permission (`admin.<resource>.export`). */
+  public canExport(identity: Identity | undefined, resource: AdminResource) {
+    return this.allowed(identity, resource, 'export');
   }
 
-  /**
-   * Checks import permission.
-   */
-  public canImport(identity: Identity | undefined, resource: AdminResource): boolean {
-    if (!this.canAccessAdmin(identity)) return false;
-    if (identity?.isSuperuser) return true;
-
-    const perm = `admin.${resource.id}.import`;
-    return Boolean(
-      identity?.hasPermission(perm) ||
-      identity?.hasPermission(`admin.${resource.id}.*`) ||
-      identity?.hasPermission('admin.*')
-    );
+  /** Checks import permission (`admin.<resource>.import`). */
+  public canImport(identity: Identity | undefined, resource: AdminResource) {
+    return this.allowed(identity, resource, 'import');
   }
 }

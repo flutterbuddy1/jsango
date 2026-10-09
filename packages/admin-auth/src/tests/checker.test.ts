@@ -52,4 +52,28 @@ describe('AdminPermissionChecker', () => {
     // Sensitive field masked without explicit sensitive field permission
     expect(checker.canViewField(staff, resource, 'apiKey')).toBe(false);
   });
+
+  it('denies limited staff by default and grants exactly what is permitted', async () => {
+    const checker = new AdminPermissionChecker();
+    const staff = new UserIdentity({ id: '2', username: 'staff', roles: ['staff'] });
+    const viewer = new UserIdentity({
+      id: '3',
+      username: 'viewer',
+      roles: ['staff'],
+      permissions: ['admin.orders.view'],
+    });
+    const admin = new UserIdentity({ id: '4', username: 'boss', roles: ['admin'] });
+
+    expect(checker.canAccessAdmin(staff)).toBe(true);
+    expect(await checker.canViewResource(staff, resource)).toBe(false);
+    expect(await checker.canUpdate(staff, resource)).toBe(false);
+    expect(await checker.canExecuteBulkAction(staff, resource, 'bulkCancel')).toBe(false);
+
+    expect(await checker.canViewResource(viewer, resource)).toBe(true);
+    expect(await checker.canUpdate(viewer, resource)).toBe(false);
+    expect(await checker.canExport(viewer, resource)).toBe(false);
+
+    expect(await checker.canUpdate(admin, resource)).toBe(true);
+    expect(await checker.canExecuteAction(admin, resource, 'refund')).toBe(true);
+  });
 });

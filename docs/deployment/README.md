@@ -2,6 +2,19 @@
 
 This guide covers best practices for deploying `jsango` applications to production environments.
 
+## Production mode
+
+jsango runs in **production mode unless `NODE_ENV` is `development` or `test`**. A server started
+without `NODE_ENV` (common with Docker, PM2 or a plain `node dist/index.js`) is safe by default:
+
+- 500 responses say "An internal error occurred." (no SQL, stack traces or provider errors);
+- auth cookies are `Secure`;
+- the built-in admin account refuses to sign in without a `JSANGO_ADMIN_PASSWORD` of 12+ characters.
+
+Set `NODE_ENV=development` on your machine (projects from `jsango new` have it in `.env`). Server
+errors (5xx) are logged with their stack: JSON lines in production, readable text in development.
+Pass `createApp({ logger })` to use your own logger.
+
 ---
 
 ## 1. Production Dockerfile
@@ -74,6 +87,36 @@ server {
 }
 ```
 
+### Trusting the proxy
+
+Behind a proxy or load balancer (Nginx, Caddy, AWS ALB, Heroku, Fly.io, Kubernetes ingress), tell
+jsango how many proxies sit in front of it:
+
+```typescript
+import { createApp } from 'jsango';
+
+const app = createApp({ trustProxy: true }); // one proxy; use a number for a chain (e.g. CDN + LB)
+```
+
+Then `ctx.request.ip`, `ctx.request.protocol` (`https`) and the host come from `X-Forwarded-For`,
+`X-Forwarded-Proto` and `X-Forwarded-Host`. This is what makes login rate limits count real client
+IPs and cookie sessions accept `https://` origins. Without `trustProxy` these headers are ignored,
+because anyone can send them; never enable it when clients can reach the app directly.
+
+The keep-alive timeout defaults to 65 seconds, longer than common load balancer idle timeouts (60s),
+which avoids sporadic 502s.
+
+### Security headers and rate limits
+
+```typescript
+import { createApp, securityHeaders, rateLimit, DatabaseAuthStore } from 'jsango';
+
+const app = createApp({ trustProxy: true });
+app.use(securityHeaders());
+// Several instances: share the counters through the database (or any store with increment()).
+app.use(rateLimit({ max: 300, store: new DatabaseAuthStore({ connection: db }) }));
+```
+
 ---
 
 ## 3. Graceful Shutdown & Process Management
@@ -87,7 +130,7 @@ const app = createApp();
 const server = await app.listen(3000);
 
 const shutdown = async () => {
-  await server.close(10_000); // stop accepting connections, wait for in-flight requests
+  await server.close(10_000); // stop accepting connections, wait for in-flight requests, close WebSockets
   await getDatabaseManager().close(); // drain database connection pools
   process.exit(0);
 };
