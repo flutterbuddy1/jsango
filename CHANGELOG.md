@@ -109,6 +109,7 @@ the framework. Most apps need only these steps:
 - `jsango new` template: `GET /users` hides emails, `/health/database` returns only a status, shutdown closes the HTTP server before the database pool.
 - `report_issue` (MCP) also redacts Anthropic and Google API keys and every `.env*` file.
 - Warnings (`process.emitWarning`) when the in-memory queue, admin audit log or admin session store run in production.
+- The published `jsango`, `@jsango/orm` and `@jsango/migrations` packages no longer include compiled test files.
 
 ### Fixes
 

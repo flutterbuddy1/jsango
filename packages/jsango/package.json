@@ -53,7 +53,8 @@
     "@types/ws": "^8.5.14"
   },
   "files": [
-    "dist"
+    "dist",
+    "!dist/**/*.test.*"
   ],
   "license": "MIT",
   "repository": {

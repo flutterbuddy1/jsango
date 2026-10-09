@@ -23,7 +23,8 @@
     "@jsango/orm": "workspace:^"
   },
   "files": [
-    "dist"
+    "dist",
+    "!dist/tests"
   ],
   "license": "MIT",
   "repository": {
