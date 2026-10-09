@@ -11,9 +11,9 @@ describe('HttpQuery', () => {
   });
 
   it('should handle repeated parameters without dropping values', () => {
-    const query = new HttpQuery('tag=typescript&tag=django&tag=web');
+    const query = new HttpQuery('tag=typescript&tag=node&tag=web');
     expect(query.get('tag')).toBe('typescript');
-    expect(query.getAll('tag')).toEqual(['typescript', 'django', 'web']);
+    expect(query.getAll('tag')).toEqual(['typescript', 'node', 'web']);
   });
 
   it('should handle URL-encoded characters properly', () => {

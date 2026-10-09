@@ -1,0 +1,111 @@
+{
+  "date": "2026-10-09",
+  "node": "v22.14.0",
+  "cpu": "Apple M2",
+  "cores": 8,
+  "connections": 100,
+  "durationSeconds": 10,
+  "versions": {
+    "express": "5.2.1",
+    "fastify": "5.12.5",
+    "jsango": "1.6.0"
+  },
+  "results": [
+    {
+      "framework": "node",
+      "scenario": "JSON hello world",
+      "requestsPerSec": 88399,
+      "latencyP50Ms": 1,
+      "latencyP99Ms": 2,
+      "errors": 0
+    },
+    {
+      "framework": "node",
+      "scenario": "Route params",
+      "requestsPerSec": 84669,
+      "latencyP50Ms": 1,
+      "latencyP99Ms": 2,
+      "errors": 0
+    },
+    {
+      "framework": "node",
+      "scenario": "POST + body validation",
+      "requestsPerSec": 72288,
+      "latencyP50Ms": 1,
+      "latencyP99Ms": 2,
+      "errors": 0
+    },
+    {
+      "framework": "express",
+      "scenario": "JSON hello world",
+      "requestsPerSec": 15996,
+      "latencyP50Ms": 5,
+      "latencyP99Ms": 8,
+      "errors": 0
+    },
+    {
+      "framework": "express",
+      "scenario": "Route params",
+      "requestsPerSec": 15700,
+      "latencyP50Ms": 6,
+      "latencyP99Ms": 9,
+      "errors": 0
+    },
+    {
+      "framework": "express",
+      "scenario": "POST + body validation",
+      "requestsPerSec": 13915,
+      "latencyP50Ms": 6,
+      "latencyP99Ms": 10,
+      "errors": 0
+    },
+    {
+      "framework": "fastify",
+      "scenario": "JSON hello world",
+      "requestsPerSec": 60074,
+      "latencyP50Ms": 1,
+      "latencyP99Ms": 3,
+      "errors": 0
+    },
+    {
+      "framework": "fastify",
+      "scenario": "Route params",
+      "requestsPerSec": 62013,
+      "latencyP50Ms": 1,
+      "latencyP99Ms": 2,
+      "errors": 0
+    },
+    {
+      "framework": "fastify",
+      "scenario": "POST + body validation",
+      "requestsPerSec": 50585,
+      "latencyP50Ms": 1,
+      "latencyP99Ms": 3,
+      "errors": 0
+    },
+    {
+      "framework": "jsango",
+      "scenario": "JSON hello world",
+      "requestsPerSec": 57814,
+      "latencyP50Ms": 1,
+      "latencyP99Ms": 3,
+      "errors": 0
+    },
+    {
+      "framework": "jsango",
+      "scenario": "Route params",
+      "requestsPerSec": 52889,
+      "latencyP50Ms": 1,
+      "latencyP99Ms": 3,
+      "errors": 0
+    },
+    {
+      "framework": "jsango",
+      "scenario": "POST + body validation",
+      "requestsPerSec": 41479,
+      "latencyP50Ms": 2,
+      "latencyP99Ms": 4,
+      "errors": 0
+    }
+  ]
+}

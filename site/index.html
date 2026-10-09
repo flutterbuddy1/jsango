@@ -6,9 +6,9 @@
   <title>JSango - Production-Grade TypeScript Backend Framework</title>
   
   <!-- SEO & Social Meta Tags -->
-  <meta name="description" content="JSango is a batteries-included, high-performance TypeScript backend framework inspired by Django's convention-over-configuration philosophy, featuring an ORM, SegRadix router (>7.7M ops/sec), auto-generated React admin console, 2FA auth, and background queues.">
-  <meta name="keywords" content="JSango, TypeScript framework, Django for TypeScript, backend framework, Node.js, ORM, Admin Panel, REST API, SegRadix Router">
-  <meta property="og:title" content="JSango - The Django for TypeScript">
+  <meta name="description" content="JSango is a batteries-included, high-performance TypeScript backend framework built on convention over configuration, featuring an ORM, SegRadix router (>7.7M ops/sec), auto-generated React admin console, 2FA auth, and background queues.">
+  <meta name="keywords" content="JSango, TypeScript framework, batteries-included TypeScript backend, backend framework, Node.js, ORM, Admin Panel, REST API, SegRadix Router">
+  <meta property="og:title" content="JSango - The Complete Backend Framework for TypeScript">
   <meta property="og:description" content="Production-grade, batteries-included TypeScript backend framework for modern JavaScript runtimes.">
   <meta property="og:image" content="images/logo.png">
   <meta property="og:type" content="website">
@@ -42,7 +42,7 @@
         <a href="index.html" class="logo-brand">
           <img src="images/logo.png" alt="JSango Logo" class="logo-img">
           <span class="brand-name">JSango</span>
-          <span class="brand-badge jsango-version-badge">v1.0.7</span>
+          <span class="brand-badge jsango-version-badge">v1.6.0</span>
         </a>
       </div>
 
@@ -51,6 +51,7 @@
           <li><a href="docs.html" class="nav-link nav-link-docs">Documentation</a></li>
           <li><a href="#features" class="nav-link">Features</a></li>
           <li><a href="#architecture" class="nav-link">Architecture</a></li>
+          <li><a href="#compare" class="nav-link">Compare</a></li>
           <li><a href="#benchmarks" class="nav-link">Benchmarks</a></li>
           <li><a href="#packages" class="nav-link">Packages</a></li>
           <li><a href="#showcase" class="nav-link">Showcase</a></li>
@@ -85,11 +86,11 @@
     <div class="container">
       <div class="hero-pill">
         <span class="pulse-dot"></span>
-        <span id="heroVersionText">JSango <span class="jsango-version-badge">v1.0.7</span> Production Release · Batteries-Included &amp; AI Platform</span>
+        <span id="heroVersionText">JSango <span class="jsango-version-badge">v1.6.0</span> Production Release · Batteries-Included &amp; AI Platform</span>
       </div>
 
       <h1 class="hero-title">
-        The Django for TypeScript.<br>
+        The Complete Backend Framework for TypeScript.<br>
         <span class="gradient-text">Fast. Typed. Batteries Included.</span>
       </h1>
 
@@ -440,8 +441,8 @@ events.<span class="hl-fn">on</span>(<span class="hl-str">'user.created'</span>,
       </div>
 
       <div class="arch-explorer">
-        <div class="arch-layers-list">
-          <div class="arch-layer-item active" data-layer="runtime">
+        <div class="arch-layers-list" aria-label="Architecture layers">
+          <div class="arch-layer-item active" data-layer="runtime" role="button" tabindex="0" aria-pressed="true">
             <div class="layer-info">
               <span class="layer-num">01</span>
               <span class="layer-name">Runtime Adapter</span>
@@ -449,7 +450,7 @@ events.<span class="hl-fn">on</span>(<span class="hl-str">'user.created'</span>,
             <span class="layer-package">@jsango/runtime</span>
           </div>
 
-          <div class="arch-layer-item" data-layer="core">
+          <div class="arch-layer-item" data-layer="core" role="button" tabindex="0" aria-pressed="false">
             <div class="layer-info">
               <span class="layer-num">02</span>
               <span class="layer-name">Core Lifecycle & DI</span>
@@ -457,7 +458,7 @@ events.<span class="hl-fn">on</span>(<span class="hl-str">'user.created'</span>,
             <span class="layer-package">@jsango/core</span>
           </div>
 
-          <div class="arch-layer-item" data-layer="http">
+          <div class="arch-layer-item" data-layer="http" role="button" tabindex="0" aria-pressed="false">
             <div class="layer-info">
               <span class="layer-num">03</span>
               <span class="layer-name">HTTP Abstraction</span>
@@ -465,7 +466,7 @@ events.<span class="hl-fn">on</span>(<span class="hl-str">'user.created'</span>,
             <span class="layer-package">@jsango/http</span>
           </div>
 
-          <div class="arch-layer-item" data-layer="router">
+          <div class="arch-layer-item" data-layer="router" role="button" tabindex="0" aria-pressed="false">
             <div class="layer-info">
               <span class="layer-num">04</span>
               <span class="layer-name">SegRadix Router</span>
@@ -473,7 +474,7 @@ events.<span class="hl-fn">on</span>(<span class="hl-str">'user.created'</span>,
             <span class="layer-package">@jsango/router</span>
           </div>
 
-          <div class="arch-layer-item" data-layer="middleware">
+          <div class="arch-layer-item" data-layer="middleware" role="button" tabindex="0" aria-pressed="false">
             <div class="layer-info">
               <span class="layer-num">05</span>
               <span class="layer-name">Middleware Pipeline</span>
@@ -481,7 +482,7 @@ events.<span class="hl-fn">on</span>(<span class="hl-str">'user.created'</span>,
             <span class="layer-package">@jsango/middleware</span>
           </div>
 
-          <div class="arch-layer-item" data-layer="orm">
+          <div class="arch-layer-item" data-layer="orm" role="button" tabindex="0" aria-pressed="false">
             <div class="layer-info">
               <span class="layer-num">06</span>
               <span class="layer-name">Declarative ORM</span>
@@ -489,7 +490,7 @@ events.<span class="hl-fn">on</span>(<span class="hl-str">'user.created'</span>,
             <span class="layer-package">@jsango/orm</span>
           </div>
 
-          <div class="arch-layer-item" data-layer="admin">
+          <div class="arch-layer-item" data-layer="admin" role="button" tabindex="0" aria-pressed="false">
             <div class="layer-info">
               <span class="layer-num">07</span>
               <span class="layer-name">Auto Admin Console</span>
@@ -497,7 +498,7 @@ events.<span class="hl-fn">on</span>(<span class="hl-str">'user.created'</span>,
             <span class="layer-package">@jsango/admin-ui</span>
           </div>
 
-          <div class="arch-layer-item" data-layer="ai">
+          <div class="arch-layer-item" data-layer="ai" role="button" tabindex="0" aria-pressed="false">
             <div class="layer-info">
               <span class="layer-num">08</span>
               <span class="layer-name">AI Platform &amp; Agents</span>
@@ -529,67 +530,246 @@ export const runtime = createRuntimeAdapter({
   </section>
 
   <!-- Performance & Benchmarks Section -->
+  <!-- Comparison Section -->
+  <section class="section" id="compare">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag">Why JSango</div>
+        <h2 class="section-title">One framework instead of fifteen libraries</h2>
+        <p class="section-desc">
+          Express and Fastify give you a router; NestJS gives you structure. You still pick, install and wire an ORM, auth, validation, an admin, jobs and docs yourself. JSango ships all of it, designed to work together.
+        </p>
+      </div>
+
+      <div class="cmp-table-wrap">
+        <table class="cmp-table">
+          <thead>
+            <tr><th></th><th>Express</th><th>Fastify</th><th>NestJS</th><th class="cmp-jsango">JSango</th></tr>
+          </thead>
+          <tbody>
+              <tr><td>Routing &amp; middleware</td><td><span class="cmp-yes" title="Built in">✓</span></td><td><span class="cmp-yes" title="Built in">✓</span></td><td><span class="cmp-yes" title="Built in">✓</span></td><td class="cmp-jsango"><span class="cmp-yes" title="Built in">✓</span></td></tr>
+              <tr><td>Request validation</td><td><span class="cmp-no" title="Bring your own library">—</span></td><td><span class="cmp-yes" title="Built in">✓</span></td><td><span class="cmp-plugin" title="Official plugin / module to install and wire up">◐</span></td><td class="cmp-jsango"><span class="cmp-yes" title="Built in">✓</span></td></tr>
+              <tr><td>ORM + migrations (Postgres, MySQL, SQLite, MongoDB)</td><td><span class="cmp-no" title="Bring your own library">—</span></td><td><span class="cmp-no" title="Bring your own library">—</span></td><td><span class="cmp-plugin" title="Official plugin / module to install and wire up">◐</span></td><td class="cmp-jsango"><span class="cmp-yes" title="Built in">✓</span></td></tr>
+              <tr><td>Auth: JWT, sessions, API keys, OAuth, 2FA</td><td><span class="cmp-no" title="Bring your own library">—</span></td><td><span class="cmp-plugin" title="Official plugin / module to install and wire up">◐</span></td><td><span class="cmp-plugin" title="Official plugin / module to install and wire up">◐</span></td><td class="cmp-jsango"><span class="cmp-yes" title="Built in">✓</span></td></tr>
+              <tr><td>Auto-generated admin panel</td><td><span class="cmp-no" title="Bring your own library">—</span></td><td><span class="cmp-no" title="Bring your own library">—</span></td><td><span class="cmp-no" title="Bring your own library">—</span></td><td class="cmp-jsango"><span class="cmp-yes" title="Built in">✓</span></td></tr>
+              <tr><td>One-line secure REST CRUD</td><td><span class="cmp-no" title="Bring your own library">—</span></td><td><span class="cmp-no" title="Bring your own library">—</span></td><td><span class="cmp-no" title="Bring your own library">—</span></td><td class="cmp-jsango"><span class="cmp-yes" title="Built in">✓</span></td></tr>
+              <tr><td>WebSockets with rooms &amp; server push</td><td><span class="cmp-no" title="Bring your own library">—</span></td><td><span class="cmp-plugin" title="Official plugin / module to install and wire up">◐</span></td><td><span class="cmp-plugin" title="Official plugin / module to install and wire up">◐</span></td><td class="cmp-jsango"><span class="cmp-yes" title="Built in">✓</span></td></tr>
+              <tr><td>Background jobs</td><td><span class="cmp-no" title="Bring your own library">—</span></td><td><span class="cmp-no" title="Bring your own library">—</span></td><td><span class="cmp-plugin" title="Official plugin / module to install and wire up">◐</span></td><td class="cmp-jsango"><span class="cmp-yes" title="Built in">✓</span></td></tr>
+              <tr><td>OpenAPI + Swagger UI</td><td><span class="cmp-no" title="Bring your own library">—</span></td><td><span class="cmp-plugin" title="Official plugin / module to install and wire up">◐</span></td><td><span class="cmp-plugin" title="Official plugin / module to install and wire up">◐</span></td><td class="cmp-jsango"><span class="cmp-yes" title="Built in">✓</span></td></tr>
+              <tr><td>CORS, security headers, rate limits</td><td><span class="cmp-no" title="Bring your own library">—</span></td><td><span class="cmp-plugin" title="Official plugin / module to install and wire up">◐</span></td><td><span class="cmp-plugin" title="Official plugin / module to install and wire up">◐</span></td><td class="cmp-jsango"><span class="cmp-yes" title="Built in">✓</span></td></tr>
+              <tr><td>AI agents, tools &amp; MCP</td><td><span class="cmp-no" title="Bring your own library">—</span></td><td><span class="cmp-no" title="Bring your own library">—</span></td><td><span class="cmp-no" title="Bring your own library">—</span></td><td class="cmp-jsango"><span class="cmp-yes" title="Built in">✓</span></td></tr>
+              <tr class="cmp-perf"><td>Requests/sec, JSON hello world <a href="#benchmarks">(measured)</a></td><td>16.0k</td><td>60.1k</td><td><span class="cmp-no">not measured</span></td><td class="cmp-jsango">57.8k</td></tr>
+          </tbody>
+        </table>
+        <p class="cmp-legend"><span class="cmp-yes" title="Built in">✓</span> built in &nbsp;·&nbsp; <span class="cmp-plugin" title="Official plugin / module to install and wire up">◐</span> official plugin / module to install and wire up &nbsp;·&nbsp; <span class="cmp-no" title="Bring your own library">—</span> bring your own library</p>
+      </div>
+
+      <h3 class="cmp-subtitle">The same secure products API</h3>
+      <p class="cmp-subdesc">Paginated list with search, detail, admin-only create / update / delete with validation, CORS, security headers and rate limiting.</p>
+      <div class="cmp-code-grid">
+        <div class="cmp-code-card">
+          <div class="cmp-code-head"><span>Express + 6 libraries</span><span class="cmp-count">62 lines</span></div>
+          <pre><code><span class="hl-kw">import</span> express <span class="hl-kw">from</span> <span class="hl-str">'express'</span>;
+<span class="hl-kw">import</span> cors <span class="hl-kw">from</span> <span class="hl-str">'cors'</span>;
+<span class="hl-kw">import</span> helmet <span class="hl-kw">from</span> <span class="hl-str">'helmet'</span>;
+<span class="hl-kw">import</span> rateLimit <span class="hl-kw">from</span> <span class="hl-str">'express-rate-limit'</span>;
+<span class="hl-kw">import</span> jwt <span class="hl-kw">from</span> <span class="hl-str">'jsonwebtoken'</span>;
+<span class="hl-kw">import</span> { z } <span class="hl-kw">from</span> <span class="hl-str">'zod'</span>;
+<span class="hl-kw">import</span> { PrismaClient } <span class="hl-kw">from</span> <span class="hl-str">'@prisma/client'</span>; <span class="hl-comm">// + schema.prisma + prisma generate</span>
+
+<span class="hl-kw">const</span> prisma = <span class="hl-kw">new</span> PrismaClient();
+<span class="hl-kw">const</span> app = express();
+app.use(express.json(), helmet(), rateLimit({ windowMs: 60_000, limit: 300 }));
+app.use(cors({ origin: [<span class="hl-str">'https://app.example.com'</span>], credentials: true }));
+
+<span class="hl-kw">const</span> requireAdmin: express.RequestHandler = (req, res, next) =&gt; {
+  <span class="hl-kw">const</span> token = req.headers.authorization?.replace(<span class="hl-str">'Bearer '</span>, <span class="hl-str">''</span>) ?? <span class="hl-str">''</span>;
+  <span class="hl-kw">try</span> {
+    <span class="hl-kw">const</span> user = jwt.verify(token, process.env.JWT_SECRET!) <span class="hl-kw">as</span> { role?: string };
+    <span class="hl-kw">if</span> (user.role !== <span class="hl-str">'admin'</span>) <span class="hl-kw">return</span> res.status(403).json({ error: <span class="hl-str">'Forbidden'</span> });
+    next();
+  } <span class="hl-kw">catch</span> {
+    res.status(401).json({ error: <span class="hl-str">'Unauthorized'</span> });
+  }
+};
+
+<span class="hl-kw">const</span> ProductInput = z.object({ name: z.string().min(2), price: z.number().min(0) });
+
+app.get(<span class="hl-str">'/products'</span>, <span class="hl-kw">async</span> (req, res) =&gt; {
+  <span class="hl-kw">const</span> page = Math.max(1, Number(req.query.page) || 1);
+  <span class="hl-kw">const</span> pageSize = Math.min(100, Math.max(1, Number(req.query.pageSize) || 20));
+  <span class="hl-kw">const</span> search = String(req.query.search ?? <span class="hl-str">''</span>);
+  <span class="hl-kw">const</span> where = search ? { name: { contains: search, mode: <span class="hl-str">'insensitive'</span> <span class="hl-kw">as</span> <span class="hl-kw">const</span> } } : {};
+  <span class="hl-kw">const</span> [items, total] = <span class="hl-kw">await</span> Promise.all([
+    prisma.product.findMany({ where, skip: (page - 1) * pageSize, take: pageSize }),
+    prisma.product.count({ where }),
+  ]);
+  res.json({ items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) });
+});
+
+app.get(<span class="hl-str">'/products/:id'</span>, <span class="hl-kw">async</span> (req, res) =&gt; {
+  <span class="hl-kw">const</span> item = <span class="hl-kw">await</span> prisma.product.findUnique({ where: { id: Number(req.params.id) } });
+  <span class="hl-kw">if</span> (!item) <span class="hl-kw">return</span> res.status(404).json({ error: <span class="hl-str">'Not found'</span> });
+  res.json(item);
+});
+
+app.post(<span class="hl-str">'/products'</span>, requireAdmin, <span class="hl-kw">async</span> (req, res) =&gt; {
+  <span class="hl-kw">const</span> parsed = ProductInput.safeParse(req.body);
+  <span class="hl-kw">if</span> (!parsed.success) <span class="hl-kw">return</span> res.status(400).json({ error: parsed.error.flatten() });
+  res.status(201).json(<span class="hl-kw">await</span> prisma.product.create({ data: parsed.data }));
+});
+
+app.patch(<span class="hl-str">'/products/:id'</span>, requireAdmin, <span class="hl-kw">async</span> (req, res) =&gt; {
+  <span class="hl-kw">const</span> parsed = ProductInput.partial().safeParse(req.body);
+  <span class="hl-kw">if</span> (!parsed.success) <span class="hl-kw">return</span> res.status(400).json({ error: parsed.error.flatten() });
+  <span class="hl-kw">try</span> {
+    <span class="hl-kw">const</span> id = Number(req.params.id);
+    res.json(<span class="hl-kw">await</span> prisma.product.update({ where: { id }, data: parsed.data }));
+  } <span class="hl-kw">catch</span> {
+    res.status(404).json({ error: <span class="hl-str">'Not found'</span> });
+  }
+});
+
+app.delete(<span class="hl-str">'/products/:id'</span>, requireAdmin, <span class="hl-kw">async</span> (req, res) =&gt; {
+  <span class="hl-kw">try</span> {
+    <span class="hl-kw">await</span> prisma.product.delete({ where: { id: Number(req.params.id) } });
+    res.status(204).end();
+  } <span class="hl-kw">catch</span> {
+    res.status(404).json({ error: <span class="hl-str">'Not found'</span> });
+  }
+});
+
+app.listen(3000);
+<span class="hl-comm">// Admin panel, migrations, WebSockets, jobs, OpenAPI: more libraries and code.</span></code></pre>
+        </div>
+        <div class="cmp-code-card cmp-code-jsango">
+          <div class="cmp-code-head"><span>JSango</span><span class="cmp-count">20 lines · + admin panel</span></div>
+          <pre><code><span class="hl-kw">import</span> {
+  createApp, createAuth, defineModel, fields,
+  cors, securityHeaders, rateLimit, schema, string, number,
+} <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
+
+<span class="hl-kw">const</span> Product = defineModel(<span class="hl-str">'Product'</span>, {
+  id: fields.id(),
+  name: fields.string(),
+  price: fields.decimal(),
+});
+
+<span class="hl-kw">const</span> auth = createAuth({ secret: process.env.AUTH_SECRET!, users: userStore });
+<span class="hl-kw">const</span> app = createApp();
+app.use(securityHeaders(), rateLimit({ max: 300 }));
+app.use(cors({ origin: [<span class="hl-str">'https://app.example.com'</span>], credentials: true }));
+
+<span class="hl-comm">// List (paginated + search), detail, create, update, delete: validated and secured</span>
+app.crud(<span class="hl-str">'/products'</span>, Product, {
+  access: { write: auth.required({ roles: [<span class="hl-str">'admin'</span>] }) },
+  searchFields: [<span class="hl-str">'name'</span>],
+  schema: schema({ name: string().min(2), price: number().min(0) }),
+});
+
+app.admin({ auth, resources: [Product] }); <span class="hl-comm">// bonus: full admin panel at /admin</span>
+
+<span class="hl-kw">await</span> app.listen(3000);
+<span class="hl-comm">// Migrations: npx jsango makemigrations &amp;&amp; npx jsango migrate</span></code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="section" id="benchmarks">
     <div class="container">
       <div class="section-header">
-        <div class="section-tag">Extreme Throughput</div>
-        <h2 class="section-title">Engineered for High-Concurrency Workloads</h2>
+        <div class="section-tag">Measured, not claimed</div>
+        <h2 class="section-title">Batteries included, still fast</h2>
         <p class="section-desc">
-          Zero reflection on hot paths, segment radix tree matching, and zero-allocation body streaming deliver outstanding real-world performance.
+          The same three endpoints in plain node:http, Express, Fastify and JSango, each in its own process, loaded by autocannon. JSango does it while shipping an ORM, auth, admin and jobs in the same package.
         </p>
       </div>
 
       <div class="benchmark-container">
         <div class="benchmark-stats-grid">
           <div class="stat-box">
-            <div class="stat-val">&gt;7.7M</div>
-            <div class="stat-label">Route Lookups / sec</div>
+            <div class="stat-val">3.0–3.6×</div>
+            <div class="stat-label">Faster than Express</div>
           </div>
           <div class="stat-box">
-            <div class="stat-val">0.02ms</div>
-            <div class="stat-label">P99 Router Latency</div>
+            <div class="stat-val">82–96%</div>
+            <div class="stat-label">Of Fastify&#x27;s throughput</div>
           </div>
           <div class="stat-box">
-            <div class="stat-val">0</div>
-            <div class="stat-label">Runtime Reflection Overhead</div>
+            <div class="stat-val">41.5k</div>
+            <div class="stat-label">Validated POSTs / sec</div>
           </div>
           <div class="stat-box">
-            <div class="stat-val">100%</div>
-            <div class="stat-label">Strict TypeScript Safety</div>
+            <div class="stat-val">4 ms</div>
+            <div class="stat-label">p99 latency at 100 connections</div>
           </div>
         </div>
 
         <div class="benchmark-bars">
-          <div class="bar-row">
-            <div class="bar-label-group">
-              <span class="jsango-tag">⚡ JSango SegRadix Router</span>
-              <span>7,720,000 ops/sec</span>
+          <div class="bench-group">
+            <h4 class="bench-group-title">JSON hello world</h4>
+            <div class="bar-row">
+              <div class="bar-label-group"><span class="jsango-tag">⚡ JSango</span><span>57,814 req/s · p99 3 ms</span></div>
+              <div class="bar-track"><div class="bar-fill jsango" style="width: 65%;">57.8k</div></div>
             </div>
-            <div class="bar-track">
-              <div class="bar-fill jsango" style="width: 100%;">100%</div>
+            <div class="bar-row">
+              <div class="bar-label-group"><span>Fastify</span><span>60,074 req/s · p99 3 ms</span></div>
+              <div class="bar-track"><div class="bar-fill fastify" style="width: 68%;">60.1k</div></div>
+            </div>
+            <div class="bar-row">
+              <div class="bar-label-group"><span>Express</span><span>15,996 req/s · p99 8 ms</span></div>
+              <div class="bar-track"><div class="bar-fill express" style="width: 18%;">16.0k</div></div>
+            </div>
+            <div class="bar-row">
+              <div class="bar-label-group"><span>node:http (no framework, baseline)</span><span>88,399 req/s · p99 2 ms</span></div>
+              <div class="bar-track"><div class="bar-fill baseline" style="width: 100%;">88.4k</div></div>
             </div>
           </div>
-
-          <div class="bar-row">
-            <div class="bar-label-group">
-              <span>Fastify Find-My-Way</span>
-              <span>5,410,000 ops/sec</span>
+          <div class="bench-group">
+            <h4 class="bench-group-title">Route params</h4>
+            <div class="bar-row">
+              <div class="bar-label-group"><span class="jsango-tag">⚡ JSango</span><span>52,889 req/s · p99 3 ms</span></div>
+              <div class="bar-track"><div class="bar-fill jsango" style="width: 62%;">52.9k</div></div>
             </div>
-            <div class="bar-track">
-              <div class="bar-fill fastify" style="width: 70%;">70%</div>
+            <div class="bar-row">
+              <div class="bar-label-group"><span>Fastify</span><span>62,013 req/s · p99 2 ms</span></div>
+              <div class="bar-track"><div class="bar-fill fastify" style="width: 73%;">62.0k</div></div>
+            </div>
+            <div class="bar-row">
+              <div class="bar-label-group"><span>Express</span><span>15,700 req/s · p99 9 ms</span></div>
+              <div class="bar-track"><div class="bar-fill express" style="width: 19%;">15.7k</div></div>
+            </div>
+            <div class="bar-row">
+              <div class="bar-label-group"><span>node:http (no framework, baseline)</span><span>84,669 req/s · p99 2 ms</span></div>
+              <div class="bar-track"><div class="bar-fill baseline" style="width: 100%;">84.7k</div></div>
             </div>
           </div>
-
-          <div class="bar-row">
-            <div class="bar-label-group">
-              <span>Express Path-To-Regexp</span>
-              <span>1,250,000 ops/sec</span>
+          <div class="bench-group">
+            <h4 class="bench-group-title">POST + body validation</h4>
+            <div class="bar-row">
+              <div class="bar-label-group"><span class="jsango-tag">⚡ JSango</span><span>41,479 req/s · p99 4 ms</span></div>
+              <div class="bar-track"><div class="bar-fill jsango" style="width: 57%;">41.5k</div></div>
             </div>
-            <div class="bar-track">
-              <div class="bar-fill express" style="width: 16%;">16%</div>
+            <div class="bar-row">
+              <div class="bar-label-group"><span>Fastify</span><span>50,585 req/s · p99 3 ms</span></div>
+              <div class="bar-track"><div class="bar-fill fastify" style="width: 70%;">50.6k</div></div>
+            </div>
+            <div class="bar-row">
+              <div class="bar-label-group"><span>Express</span><span>13,915 req/s · p99 10 ms</span></div>
+              <div class="bar-track"><div class="bar-fill express" style="width: 19%;">13.9k</div></div>
+            </div>
+            <div class="bar-row">
+              <div class="bar-label-group"><span>node:http (no framework, baseline)</span><span>72,288 req/s · p99 2 ms</span></div>
+              <div class="bar-track"><div class="bar-fill baseline" style="width: 100%;">72.3k</div></div>
             </div>
           </div>
         </div>
+
+        <p class="bench-method">
+          Apple M2 (8 cores), Node.js v22.14.0, 2026-10-09. Express 5.2.1, Fastify 5.12.5, JSango 1.6.0; <code>NODE_ENV=production</code>, no logging, 100 connections, 3 s warm-up then 10 s per scenario. Validation: a hand-written check in Express and plain Node, JSON Schema in Fastify, <code>validate(schema(...))</code> in JSango.
+          Run it yourself: <code>pnpm build &amp;&amp; pnpm bench:compare</code> (<a href="https://github.com/flutterbuddy1/jsango/tree/main/benchmarks/compare" target="_blank" rel="noopener noreferrer">benchmarks/compare</a>).
+        </p>
       </div>
     </div>
   </section>
@@ -766,8 +946,8 @@ export const runtime = createRuntimeAdapter({
         <div class="hero-actions" style="margin-bottom: 0;">
           <div class="quick-install">
             <span>$</span>
-            <code>npx @jsango/cli create my-app && cd my-app && pnpm dev</code>
-            <button class="copy-btn copy-trigger" data-copy="npx @jsango/cli create my-app && cd my-app && pnpm dev" title="Copy Setup Command">
+            <code>npx jsango new my-app &amp;&amp; cd my-app &amp;&amp; npm install &amp;&amp; npm run makemigrations &amp;&amp; npm run migrate &amp;&amp; npm run dev</code>
+            <button class="copy-btn copy-trigger" data-copy="npx jsango new my-app &amp;&amp; cd my-app &amp;&amp; npm install &amp;&amp; npm run makemigrations &amp;&amp; npm run migrate &amp;&amp; npm run dev" title="Copy Setup Command">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             </button>
           </div>

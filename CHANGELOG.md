@@ -29,6 +29,11 @@ the framework. Most apps need only these steps:
 7. Behind a proxy or load balancer, use `createApp({ trustProxy: true })`; with several instances,
    give the admin a shared store: `app.admin({ store: new DatabaseAuthStore({ connection: db }) })`.
 
+### Performance and benchmarks
+
+- Fixed: `ctx.signal` was aborted while every POST/PUT/PATCH handler was still running (Node fires the request's `'close'` as soon as its body is read), which could stop agent runs and streams early. Reading request bodies also skips an extra async layer: validated POSTs are about 45% faster, simple GETs about 10%.
+- New `pnpm bench:compare`: the same endpoints in `node:http`, Express, Fastify and JSango under autocannon ([benchmarks/compare](benchmarks/compare)). On an Apple M2, JSango serves 3.0–3.6× the requests of Express and 82–96% of Fastify's. The landing page shows these measured numbers (and a feature comparison) instead of the previous unsourced router figures.
+
 ### Admin: relations and media library
 
 - `belongsTo` foreign keys are now relation dropdowns in admin forms, with **+ New** and **Edit** buttons that open the related form in a side panel. They load once (fixes the dropdown reloading in a loop) and show a search box for large tables.
@@ -224,7 +229,7 @@ the framework. Most apps need only these steps:
 
 - **`npx jsango new` / `npx jsango` failed with "jsango is not recognized" in 1.1.0.** The 1.1.0 packages were published without their `dist/` build output because the CLI build failed on an unescaped template literal. Every package now builds in `prepack`, so an unbuilt package can no longer be published.
 - **The CLI never connected to your database.** `migrate`, `migrate:status`, `migrate:rollback`, `migrate:check` and `db:status` always reported "No database configured" because nothing loaded the project. The CLI now loads `jsango.config.ts` (or `DATABASE_URL`), `.env`, your models and your migration files.
-- **`migrate:generate` generated `DROP TABLE` instead of `CREATE TABLE`.** The schema diff arguments were swapped. It now diffs your models against the schema reconstructed from existing migrations, like Django's `makemigrations`, and needs no database connection.
+- **`migrate:generate` generated `DROP TABLE` instead of `CREATE TABLE`.** The schema diff arguments were swapped. It now diffs your models against the schema reconstructed from existing migrations and needs no database connection.
 - **Migrations always compiled SQL for the in-memory dialect.** The dialect is now detected from the connection (PostgreSQL / MySQL / SQLite).
 - **`CREATE TABLE` ignored unique constraints, indexes and foreign keys.** They are now emitted, and tables are created in foreign-key dependency order.
 - **MySQL:** identifiers were quoted with `"` (a string literal in MySQL), so every query failed. Backticks are now used everywhere. MySQL-specific types (`DATETIME(3)`, `TINYINT(1)`, `JSON`, `AUTO_INCREMENT`), `START TRANSACTION`, `DROP INDEX … ON`, `DROP FOREIGN KEY` and UTC date handling were added.

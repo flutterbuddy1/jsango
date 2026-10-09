@@ -6,8 +6,8 @@ Enterprise-grade, Chakra UI v3-styled frontend Admin UI foundation for the `jsan
 
 - **Chakra UI v3 Design System**: Semantic color tokens (`bg.canvas`, `bg.panel`, `bg.subtle`, `border.subtle`, `brand.solid`), glassmorphism cards, and Lucide vector icons.
 - **100% Mobile-Friendly & Responsive**: Responsive topbar, collapsible slide-over hamburger drawer, touch-optimized horizontal scroll tables, and mobile bottom sheet filters.
-- **Metadata-Driven Django Architecture**: Consumes `@jsango/admin-core` & `@jsango/admin-server` schemas without hardcoding model views.
-- **Full Django Admin Capabilities**:
+- **Metadata-Driven Architecture**: Consumes `@jsango/admin-core` & `@jsango/admin-server` schemas without hardcoding model views.
+- **Full Admin Capabilities**:
   - **App Index & Dashboard**: Grouped model categories with "+ Add" & "Change" links, live stat cards, and recent actions timeline.
   - **Changelist**: Search bar, facet filter drawer (`list_filter`), column sorting (`ordering`), pagination, bulk actions, and CSV export.
   - **Changeform**: Typed inputs (text, number, email, textarea, enums, booleans), field validation, and sticky bottom actions bar (`Save`, `Save and continue editing`, `Save and add another`, `Delete`).

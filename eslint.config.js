@@ -18,7 +18,7 @@ export default tsPlugin.config(
   js.configs.recommended,
   ...tsPlugin.configs.recommended,
   {
-    files: ['scripts/**/*.{js,mjs}', 'packages/**/scripts/**/*.{js,mjs}'],
+    files: ['scripts/**/*.{js,mjs}', 'packages/**/scripts/**/*.{js,mjs}', 'benchmarks/**/*.mjs'],
     languageOptions: {
       globals: {
         console: 'readonly',

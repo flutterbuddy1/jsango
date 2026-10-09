@@ -213,18 +213,31 @@ app.wsAgent('/ws/support', supportAgent);`,
   fetchLiveVersion();
 
   archLayers.forEach((layer) => {
-    layer.addEventListener('click', () => {
+    const select = () => {
       const key = layer.getAttribute('data-layer');
       const data = layerData[key];
       if (!data) return;
 
-      archLayers.forEach((l) => l.classList.remove('active'));
+      archLayers.forEach((l) => {
+        l.classList.remove('active');
+        l.setAttribute('aria-pressed', 'false');
+      });
       layer.classList.add('active');
+      layer.setAttribute('aria-pressed', 'true');
+      // On phones the layers are a horizontal row: keep the chosen one visible.
+      layer.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
 
       if (layerTitle) layerTitle.textContent = data.title;
       if (layerDesc) layerDesc.textContent = data.desc;
       if (layerPkg) layerPkg.textContent = data.pkg;
       if (layerSnippet) layerSnippet.textContent = data.snippet;
+    };
+    layer.addEventListener('click', select);
+    layer.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        select();
+      }
     });
   });
 

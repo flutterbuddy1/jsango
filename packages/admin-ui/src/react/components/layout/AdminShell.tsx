@@ -26,7 +26,7 @@ export const AdminShell: React.FC<{ children: React.ReactNode }> = ({ children }
       {/* Top Header */}
       <Topbar />
 
-      {/* Django-style Breadcrumbs Bar */}
+      {/* Breadcrumbs Bar */}
       <Breadcrumbs />
 
       {/* Main Body */}

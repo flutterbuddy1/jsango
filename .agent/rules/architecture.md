@@ -10,12 +10,12 @@ JSango is a production-grade, batteries-included TypeScript backend framework.
 
 The framework is inspired by:
 
-- Django's convention-over-configuration philosophy
+- Convention-over-configuration philosophy
 - Laravel's developer experience
 - Modern TypeScript
 - High-performance JavaScript runtimes
 
-JSango is NOT a copy of Django, Laravel, Express, NestJS, or any existing framework.
+JSango is NOT a copy of Laravel, Express, NestJS, or any existing framework.
 
 The implementation must use its own architecture and APIs.
 

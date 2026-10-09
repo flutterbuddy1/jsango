@@ -24,7 +24,7 @@
 
 ## Why JSango?
 
-JSango combines the convention-over-configuration philosophy, developer ergonomics, and built-in batteries of Django with modern TypeScript type safety, modular package architecture, and the high-throughput performance of contemporary JavaScript runtimes.
+JSango combines convention over configuration, developer ergonomics and built-in batteries with modern TypeScript type safety, a modular package architecture, and the high-throughput performance of contemporary JavaScript runtimes.
 
 - **One Single Dependency**: Install `jsango` and get HTTP routing, WebSockets, ORM, Validation, Auth, Admin UI, OpenAPI, Queue, and Events out of the box.
 - **Zero Boilerplate**: Write handlers that directly return objects, strings, streams, or promises. Automatic JSON serialization.
@@ -32,6 +32,7 @@ JSango combines the convention-over-configuration philosophy, developer ergonomi
 - **Intuitive ORM**: Expressive declarative models with static query helpers (`User.where('active', true).get()`, `User.find(id)`).
 - **Built-in WebSockets**: Broadcast to rooms and manage real-time sockets with simple, ergonomic APIs.
 - **Auto Admin & OpenAPI**: Instant OpenAPI documentation (`app.openapi()`) and metadata-driven Admin UI (`app.admin()`).
+- **Fast, measured**: 3.0–3.6× the throughput of Express and 82–96% of Fastify's on the same endpoints ([benchmarks/compare](benchmarks/compare), `pnpm bench:compare`).
 
 ---
 
@@ -40,11 +41,12 @@ JSango combines the convention-over-configuration philosophy, developer ergonomi
 ### 1. Scaffold a New Project
 
 ```bash
-# Using npx
 npx jsango new my-app
 cd my-app
-pnpm install
-pnpm dev
+npm install
+npm run makemigrations   # create the first migration from src/models
+npm run migrate          # apply it (SQLite by default, no database server needed)
+npm run dev              # http://127.0.0.1:3000
 ```
 
 ### 2. Hello World in 6 Lines
@@ -308,7 +310,7 @@ files on every configured disk (local, S3, Cloudflare R2, MinIO, DigitalOcean Sp
 
 ### 5. Database, Models & Migrations (PostgreSQL, MySQL, SQLite, MongoDB)
 
-Connect with one environment variable, describe tables as models, and let jsango write the migrations. The workflow is the same as Django's `makemigrations` / `migrate`:
+Connect with one environment variable, describe tables as models, and let jsango write the migrations. Change a model, generate a migration, review it, apply it:
 
 ```bash
 # .env

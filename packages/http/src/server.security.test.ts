@@ -93,4 +93,21 @@ describe('NodeHttpServer hardening', () => {
       await close();
     }
   });
+
+  it('keeps ctx.signal alive while a POST handler runs', async () => {
+    const { port, close } = await serve(async (ctx) => {
+      await (ctx.request as { json(): Promise<unknown> }).json();
+      await new Promise((r) => setTimeout(r, 20));
+      return HttpResponse.json({ aborted: ctx.signal?.aborted ?? null });
+    });
+    try {
+      const res = await raw(
+        port,
+        'POST / HTTP/1.1\r\nHost: a\r\nContent-Type: application/json\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}'
+      );
+      expect(res).toContain('"aborted":false');
+    } finally {
+      await close();
+    }
+  });
 });

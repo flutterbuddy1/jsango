@@ -49,7 +49,7 @@ export function buildLlms() {
   const llms = [
     '# jsango',
     '',
-    '> jsango is a batteries-included TypeScript backend framework (Django-style): routing, validation, ORM with',
+    '> jsango is a batteries-included TypeScript backend framework: routing, validation, ORM with',
     '> migrations (PostgreSQL, MySQL, SQLite, MongoDB), authentication, an admin panel, background jobs, events,',
     '> cache, WebSockets, OpenAPI and AI agents, all imported from the single `jsango` package.',
     '',

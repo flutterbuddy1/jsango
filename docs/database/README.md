@@ -39,7 +39,7 @@ migrations. The same models, queries and migration commands work on all of them.
 | **Migration files**          | Versioned, reviewable steps that change the real database to match the models.            |
 | **`jsango.config.ts`**       | Tells the CLI where the database, models and migrations are.                              |
 
-The workflow is the same as Django's: **change a model → `makemigrations` → review the file →
+The workflow: **change a model → `makemigrations` → review the file →
 `migrate` → commit both.**
 
 ---

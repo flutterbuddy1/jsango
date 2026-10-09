@@ -1,6 +1,6 @@
 # Admin Panel Guide
 
-`app.admin()` gives your app a Django-style admin: CRUD screens generated from your models,
+`app.admin()` gives your app a ready-made admin panel: CRUD screens generated from your models,
 dashboards and custom pages built from widgets, CSV export, an audit trail and a system page.
 It is built for large tables (millions of rows) and is safe to expose in production.
 

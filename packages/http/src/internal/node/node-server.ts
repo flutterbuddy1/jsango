@@ -158,10 +158,10 @@ export class NodeHttpServer implements IHttpServer {
     const abortController = new AbortController();
     this.activeControllers.add(abortController);
 
-    req.on('close', () => {
-      if (!res.writableEnded) {
-        abortController.abort();
-      }
+    // The client went away before the response finished. (Not `req` 'close': since Node 16 that
+    // fires as soon as the request body is read, which aborted every POST mid-handler.)
+    res.on('close', () => {
+      if (!res.writableFinished) abortController.abort();
     });
 
     try {
@@ -239,24 +239,12 @@ export class NodeHttpServer implements IHttpServer {
       }
     }
 
-    // Convert IncomingMessage readable stream to AsyncIterable<Uint8Array>
-    async function* toAsyncIterable(stream: IncomingMessage): AsyncIterable<Uint8Array> {
-      for await (const chunk of stream) {
-        if (typeof chunk === 'string') {
-          yield new TextEncoder().encode(chunk);
-        } else if (Buffer.isBuffer(chunk)) {
-          yield new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.byteLength);
-        } else if (chunk instanceof Uint8Array) {
-          yield chunk;
-        }
-      }
-    }
-
     return new HttpRequest({
       method: (req.method ?? 'GET').toUpperCase() as HttpMethod,
       url: fullUrl,
       headers: headersRecord,
-      body: toAsyncIterable(req),
+      // IncomingMessage is already an AsyncIterable of Buffers (Uint8Arrays): no wrapper needed.
+      body: req as AsyncIterable<Uint8Array>,
       maxBodySize: this.options.maxBodySize,
       ip: forwarded('x-forwarded-for') ?? req.socket.remoteAddress,
       protocol,

@@ -6,12 +6,12 @@
 
 The framework is inspired by:
 
-- **Django's** convention-over-configuration philosophy and batteries-included developer experience
+- **Convention over configuration** and a batteries-included developer experience
 - **Laravel's** expressive ergonomics and routing simplicity
 - **Modern TypeScript** type safety and developer tooling
 - **High-performance JavaScript runtimes** with zero unnecessary allocations and non-blocking I/O
 
-jsango is NOT a clone of Django, Express, Fastify, or NestJS. It establishes its own cohesive architecture, explicit interfaces, and lightweight runtime design.
+jsango is NOT a clone of Express, Fastify, or NestJS. It establishes its own cohesive architecture, explicit interfaces, and lightweight runtime design.
 
 ---
 

@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 /**
  * Chakra UI v3 Admin Single-Page App (SPA) Engine
- * React-Powered, 100% Mobile-Friendly, Enterprise-Grade Django Admin equivalent.
+ * React-Powered, 100% Mobile-Friendly, Enterprise-Grade auto-generated admin panel.
  * @package @jsango/admin-ui
  */
 

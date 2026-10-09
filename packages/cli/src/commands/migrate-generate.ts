@@ -55,8 +55,7 @@ function suggestName(ops: readonly MigrationOperation[]): string {
 
 export class MigrateGenerateCommand extends BaseCommand {
   public readonly name = 'migrate:generate';
-  public readonly description =
-    'Create a migration from changes to your ORM models (like Django makemigrations)';
+  public readonly description = 'Create a migration from changes to your ORM models';
   public readonly usage = 'jsango migrate:generate [name] [options]';
   public readonly aliases = ['makemigrations', 'make:migration'];
   public readonly arguments = [

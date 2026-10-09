@@ -14,13 +14,18 @@
     "format": "prettier --write \"**/*.{ts,js,json,md,yaml,yml}\"",
     "format:check": "prettier --check \"**/*.{ts,js,json,md,yaml,yml}\"",
     "check:branding": "node scripts/check-branding.mjs",
-    "clean": "turbo run clean"
+    "clean": "turbo run clean",
+    "bench:compare": "node benchmarks/compare/run.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
+    "@types/express": "^5.0.6",
     "@types/node": "^26.6.2",
+    "autocannon": "8.0.0",
     "better-sqlite3": "^13.0.3",
     "eslint": "^9.21.0",
+    "express": "5.2.1",
+    "fastify": "5.12.5",
     "jsango": "workspace:*",
     "mongodb": "^7.7.0",
     "mongodb-memory-server": "^11.3.0",

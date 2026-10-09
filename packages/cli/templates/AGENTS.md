@@ -2,7 +2,7 @@
 
 # Working on this project (instructions for AI coding agents)
 
-This is a **jsango** backend: a batteries-included TypeScript framework (Django-style) with routing,
+This is a **jsango** backend: a batteries-included TypeScript framework with routing,
 validation, ORM + migrations, auth, an admin panel, jobs, events, cache, WebSockets, OpenAPI and AI agents.
 Import everything from `'jsango'`.
 
