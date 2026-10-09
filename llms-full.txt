@@ -36,19 +36,20 @@ Import everything from `'jsango'`.
 | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | HTTP server, routes                        | `createApp()`, `app.get/post/put/patch/delete(path, ...middleware, handler)`, `app.listen(port)`                                                          |
 | Request data                               | `ctx.params.id`, `ctx.query.page`, `ctx.body` (the body validated by `validate()`), `await ctx.request.json()` (raw body), `ctx.request.headers.get(...)` |
-| REST resource for a model                  | `app.crud('/posts', Post, { searchFields, filterFields })`                                                                                                |
+| REST resource for a model                  | `app.crud('/posts', Post, { access: { write: auth.required() }, schema, scope, hooks })` (see below)                                                      |
 | Request validation                         | `validate({ body: schema({ ... }) })` with `string()`, `email()`, `number()`, `boolean()`, `object()`                                                     |
 | Errors                                     | `throw notFound('...')`, `badRequest(...)`, `unauthorized(...)`, `forbidden(...)`                                                                         |
+| CORS / headers / rate limits               | `app.use(securityHeaders())`, `app.use(cors({ origin: [...] }))`, `rateLimit({ max, windowSeconds })` (global or per route)                               |
 | Models / ORM                               | `defineModel(name, { ...fields }, { table, timestamps, softDelete, relations })`, `fields.*`                                                              |
 | Queries                                    | `Model.find(id)`, `Model.where(...).first()`, `.query().where().orderBy().paginate({ page, pageSize })`, `create`, `update`, `delete`                     |
 | Migrations                                 | `npx jsango makemigrations`, `npx jsango migrate`, `migrate:status`, `migrate:rollback`                                                                   |
 | Database connection                        | `src/database.ts` (`DATABASE_URL` in `.env`: postgres, mysql, sqlite, mongodb)                                                                            |
 | Auth (JWT, sessions, API keys, OAuth, 2FA) | `createAuth({ secret, users })`, `auth.login`, `auth.required({ roles, permissions })`                                                                    |
-| Admin panel                                | `app.admin({ auth, resources: [Model], dashboard: [...] })`                                                                                               |
+| Admin panel                                | `app.admin({ auth, resources: [Model], dashboard: [...], media: { local: new LocalDiskMediaStorage() } })`                                                |
 | Background jobs / events / cache           | `jobs.register` + `jobs.dispatch`, `events.on` + `events.emit`, `cache.remember`                                                                          |
-| WebSockets                                 | `app.ws(path, (socket) => ...)`                                                                                                                           |
+| WebSockets                                 | `app.ws('/chat/:room', auth.required(), { open, message, close })`, `socket.join/to/emit`, `app.to('user:<id>').emit(...)`                                |
 | API docs                                   | `app.openapi({ path: '/openapi.json' })`                                                                                                                  |
-| AI agents and tools                        | `agent({ ... })`, `tool({ ... })`, `app.agent(path, agent)`                                                                                               |
+| AI agents and tools                        | `agent({ ... })`, `tool({ ... })`, `app.agent(path, agent, { middleware: [auth.required()] })`                                                            |
 
 ## Project layout
 
@@ -93,6 +94,7 @@ app.get('/posts/:id', async ({ params }) => {
 app.post('/posts', validate({ body: schema({ title: string().min(3) }) }), async ({ body }) => {
   return Post.create({ ...body, authorId: 1 });
 });
+// The routes above are what app.crud('/posts', Post, { ... }) generates; see "REST resources" below.
 ```
 
 ```ts
@@ -124,6 +126,33 @@ app.delete('/posts/:id', auth.required(), async (ctx) => {
 });
 app.admin({ auth, resources: [User, Post] }); // admin panel at /admin
 ```
+
+### REST resources: `app.crud`
+
+Use `app.crud` for any model that needs list / detail / create / update / delete endpoints instead of
+writing the five routes by hand. Reads are public and writes answer 403 until `access` allows them;
+the primary key, timestamps and sensitive fields are never written from the body nor returned.
+
+```ts
+import { schema, string, events } from 'jsango';
+
+app.crud('/posts', Post, {
+  access: { read: 'public', write: auth.required() }, // or per route: list, detail, create, update, delete
+  searchFields: ['title'],
+  filterFields: ['published'],
+  schema: schema({ title: string().min(3) }), // validates create, and update with changes applied
+  scope: (q, ctx) => q.where('authorId', auth.identity(ctx).id), // users only see/change their rows
+  hooks: {
+    // run in one transaction with the write; throw badRequest()/forbidden() to cancel
+    beforeCreate: (data, ctx) => ({ ...data, authorId: auth.identity(ctx).id }),
+    afterCreate: (post) => events.emit('post.created', { id: post.get('id') }),
+  },
+});
+```
+
+Write a custom route instead only when a write is a whole business process (placing an order:
+stock, coupons, tax, payment). Keep the reads on `app.crud` with `only: ['list', 'detail']` and add
+`app.post('/orders', auth.required(), validate(...), handler)` next to it.
 
 Auth notes:
 
@@ -203,7 +232,7 @@ Then show the draft to the user. Without the MCP server:
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.5.0-green.svg" alt="Version: 1.5.0" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.6.0-green.svg" alt="Version: 1.6.0" /></a>
   <a href="tsconfig.base.json"><img src="https://img.shields.io/badge/TypeScript-Strict%205.8-blue.svg" alt="TypeScript: Strict" /></a>
   <a href="https://flutterbuddy1.github.io/jsango/"><img src="https://img.shields.io/badge/Docs-Landing%20Page-6366f1.svg" alt="Documentation Site" /></a>
 </p>
@@ -302,34 +331,135 @@ app.post(
   }
 );
 
-// Or generate a full CRUD resource in one line:
+// Or generate a REST resource in one line (reads public, writes locked: see below)
 app.crud('/api/users', User);
 
 await app.listen(3000);
 ```
 
-### 2. Real-Time WebSockets & Rooms
+#### CRUD resources with `app.crud`
+
+`app.crud(path, Model, options)` adds `GET /path` (paginated, `?search=`, filters), `GET /path/:id`,
+`POST /path`, `PUT|PATCH /path/:id` and `DELETE /path/:id`. It is safe by default:
+
+- **Reads are public, writes answer 403** until `access` allows them.
+- **Only real columns are written**: the primary key, timestamps, sensitive fields and privilege
+  fields (`isAdmin`, `isSuperuser`, `isStaff`, `role(s)`, `permissions`, `emailVerified`) are ignored
+  in the body, so no `{"isAdmin": true}` mass assignment. List fields yourself with `writable`.
+- **Sensitive fields are never returned**: names with password, secret, token, apiKey or hash;
+  `hidden` adds more.
 
 ```typescript
-import { createApp } from 'jsango';
+import { schema, string, number, badRequest } from 'jsango';
+
+app.crud('/api/products', Product, {
+  // 'public' or middleware, for every route or per `read` / `write` / list|detail|create|update|delete
+  access: { read: 'public', write: auth.required({ roles: ['admin'] }) },
+  searchFields: ['name'], // ?search=phone
+  filterFields: ['categoryId'], // ?categoryId=3
+  writable: ['name', 'price', 'stock', 'categoryId'], // default: every column but id/timestamps/sensitive
+  schema: schema({ name: string().min(2), price: number().min(0) }), // 400 with field errors
+});
+
+// Each user only sees and changes their own rows; business logic runs in hooks.
+app.crud('/api/addresses', Address, {
+  access: auth.required(),
+  scope: (query, ctx) => query.where('userId', auth.identity(ctx).id),
+  hooks: {
+    beforeCreate: (data, ctx) => ({ ...data, userId: auth.identity(ctx).id }),
+    beforeDelete: async (address) => {
+      if (await Order.where('addressId', address.get('id')).first())
+        throw badRequest('Address is in use');
+    },
+  },
+});
+```
+
+Hooks (`beforeCreate`, `afterCreate`, `beforeUpdate`, `afterUpdate`, `beforeDelete`, `afterDelete`)
+run in one database transaction with the write: throwing in any of them rolls it back. `before*`
+hooks may return changed data. With a `scope`, a create or update that would put the record outside
+it (e.g. `ownerId` changed to someone else) is refused with 403 and rolled back.
+
+**When not to use `app.crud`:** a write that is a whole business process (placing an order: check
+stock, apply a coupon, add tax, charge, send email) belongs in its own route or service. Keep the
+reads from `app.crud` and leave out the write it replaces:
+
+```typescript
+app.crud('/api/orders', Order, {
+  access: auth.required(),
+  only: ['list', 'detail'],
+  scope: (query, ctx) => query.where('userId', auth.identity(ctx).id),
+});
+app.post('/api/orders', auth.required(), validate({ body: PlaceOrder }), (ctx) =>
+  placeOrder(auth.identity(ctx), ctx.body)
+);
+```
+
+#### CORS, security headers and rate limits
+
+```typescript
+import { createApp, cors, securityHeaders, rateLimit } from 'jsango';
+
+const app = createApp({ trustProxy: true }); // behind nginx / a load balancer: real client IPs
+
+app.use(securityHeaders()); // nosniff, no framing, referrer policy, HSTS on https
+app.use(cors({ origin: ['https://app.example.com'], credentials: true })); // browser apps elsewhere
+app.use(rateLimit({ max: 300, windowSeconds: 60 })); // per client IP
+
+// Stricter limit on one route (e.g. login); pass `store` to share counts between instances
+app.post('/login', rateLimit({ max: 10, windowSeconds: 60 }), loginHandler);
+```
+
+### 2. Real-Time WebSockets & Rooms
+
+`app.ws` works like an HTTP route: same paths and params, same middleware (`auth.required()` runs
+on the connection request).
+
+```typescript
+import { createApp, createAuth } from 'jsango';
 
 const app = createApp();
+const auth = createAuth({ secret: process.env.AUTH_SECRET!, users: userLookup });
 
-app.ws('/chat', (socket) => {
-  // Join a room
-  socket.on('join', (room) => {
-    socket.join(room);
-    socket.to(room).send({ type: 'notification', text: `User ${socket.id} joined.` });
-  });
+app.ws('/chat/:room', auth.required(), {
+  open(socket) {
+    socket.join(socket.params.room); // socket.user is the signed-in user
+  },
+  message(socket, data) {
+    // every message; JSON is parsed for you
+  },
+  close(socket) {},
+});
 
-  // Broadcast to room
-  socket.on('message', ({ room, text }) => {
-    socket.to(room).send({ type: 'message', from: socket.id, text });
-  });
+// Event style: the client sends { "event": "typing", "data": { ... } }
+app.ws('/live', (socket) => {
+  socket.on('typing', (data) => socket.to('lobby').emit('typing', data)); // everyone else in the room
+});
+
+// Push from anywhere (HTTP routes, jobs, events). Signed-in sockets are in `user:<id>`.
+app.post('/orders', auth.required(), async (ctx) => {
+  const order = await Order.create({ userId: auth.identity(ctx).id });
+  await app.to(`user:${auth.identity(ctx).id}`).emit('order.created', order);
+  return order;
 });
 
 await app.listen(3000);
 ```
+
+| On the socket                                 | Does                                                          |
+| --------------------------------------------- | ------------------------------------------------------------- |
+| `send(data)` / `emit(event, data)`            | Send JSON / send `{ event, data }`                            |
+| `join(room)`, `leave(room)`, `rooms`          | Rooms are shared by all routes                                |
+| `to(room).send/emit(...)`                     | Everyone in the room except this socket                       |
+| `broadcast(data)`                             | Everyone else on the same route                               |
+| `on('message' \| 'close' \| 'error' \| name)` | Listen; a custom name receives client `{ event: name, data }` |
+| `user`, `params`, `request`, `ctx`, `id`      | Signed-in user, route params, the connection request          |
+
+Secure by default: only pages from your own host may connect (`origins: ['https://app.com']` or
+`'*'` to change; apps without an `Origin` header are allowed), messages are limited to 64 KB
+(`maxPayload`), dead connections are dropped by a 30s ping, slow clients are disconnected instead
+of filling memory, and an error in a handler goes to `error` / the log instead of crashing the
+server. `server.close()` closes open sockets.
 
 ### 3. Background Jobs, Events & Cache
 
@@ -357,7 +487,7 @@ const stats = await cache.remember('dashboard.stats', 60, async () => {
 ### 4. Automatic Admin UI & OpenAPI Documentation
 
 ```typescript
-import { createApp } from 'jsango';
+import { createApp, LocalDiskMediaStorage, S3MediaStorage } from 'jsango';
 import { User } from './models/user.js';
 
 const app = createApp();
@@ -372,11 +502,26 @@ app.openapi({
 // Mount Instant Admin Dashboard with Model Introspection
 app.admin({
   path: '/admin',
-  resources: [User],
+  resources: [User, Product, Category],
+  // Optional: media library disks (default: ./uploads served at /media)
+  media: {
+    local: new LocalDiskMediaStorage(),
+    s3: new S3MediaStorage({
+      bucket: 'assets',
+      region: 'ap-south-1',
+      accessKeyId: process.env.S3_KEY!,
+      secretAccessKey: process.env.S3_SECRET!,
+    }),
+  },
 });
 
 await app.listen(3000);
 ```
+
+In the admin, `belongsTo` relations become searchable dropdowns with **+ New** and **Edit** buttons
+that open the related record's form in a side panel. **Media** (sidebar) uploads, previews and deletes
+files on every configured disk (local, S3, Cloudflare R2, MinIO, DigitalOcean Spaces), and `image` /
+`file` fields upload there or pick from the library.
 
 ### 5. Database, Models & Migrations (PostgreSQL, MySQL, SQLite, MongoDB)
 
@@ -451,15 +596,20 @@ const supportAgent = agent({
   tools: { lookupOrder, refundOrder },
 });
 
-// 3. Expose Agent over HTTP & SSE Streaming in 1 line
+// 3. Expose Agent over HTTP & SSE Streaming in 1 line (auth + rate limits via middleware)
 const app = createApp();
-app.agent('/api/support', supportAgent);
+app.agent('/api/support', supportAgent, { middleware: [auth.required()] });
 
 // 4. Or expose Agent over real-time WebSockets
-app.wsAgent('/ws/support', supportAgent);
+app.wsAgent('/ws/support', supportAgent, { middleware: [auth.required()] });
 
 await app.listen(3000);
 ```
+
+`POST /api/support` with `{ input, conversationId? }` answers `{ text, conversationId, toolCalls,
+usage, status }`; send the `conversationId` back to continue the conversation. The history and the
+system prompt are never returned, anonymous visitors get their own server-issued conversation, input
+is capped at 10,000 characters (`maxInputLength`), and a run stops when the client disconnects.
 
 ---
 
@@ -609,6 +759,7 @@ DATABASE_USER=app
 DATABASE_PASSWORD=secret
 DATABASE_SSL=            # true / require, no-verify (self-signed), false
 DATABASE_POOL_MAX=10
+DATABASE_QUERY_TIMEOUT=30000 # cancel queries after 30s (PostgreSQL / MySQL); also applies to migrations
 DATABASE_FILE=./db.sqlite3   # SQLite only
 ```
 
@@ -771,25 +922,27 @@ Fields are **NOT NULL by default**. Use `nullable: true` for optional columns.
 
 ### Field types
 
-| Field                                  | PostgreSQL                 | MySQL                            | SQLite                              | JS value                                  |
-| -------------------------------------- | -------------------------- | -------------------------------- | ----------------------------------- | ----------------------------------------- |
-| `fields.id()`                          | `SERIAL PRIMARY KEY`       | `INT AUTO_INCREMENT PRIMARY KEY` | `INTEGER PRIMARY KEY AUTOINCREMENT` | `number`                                  |
-| `fields.string({ maxLength })`         | `VARCHAR(n)` (255)         | `VARCHAR(n)`                     | `VARCHAR(n)`                        | `string`                                  |
-| `fields.text()`                        | `TEXT`                     | `LONGTEXT`                       | `TEXT`                              | `string`                                  |
-| `fields.integer()`                     | `INTEGER`                  | `INT`                            | `INTEGER`                           | `number`                                  |
-| `fields.bigint()`                      | `BIGINT`                   | `BIGINT`                         | `BIGINT`                            | `bigint`                                  |
-| `fields.float()` / `number()`          | `DOUBLE PRECISION`         | `DOUBLE`                         | `REAL`                              | `number`                                  |
-| `fields.decimal({ precision, scale })` | `NUMERIC(p,s)`             | `DECIMAL(p,s)`                   | `NUMERIC(p,s)`                      | `number`                                  |
-| `fields.boolean()`                     | `BOOLEAN`                  | `TINYINT(1)`                     | `INTEGER` (0/1)                     | `boolean`                                 |
-| `fields.dateTime()`                    | `TIMESTAMP WITH TIME ZONE` | `DATETIME(3)` (UTC)              | `DATETIME` (ISO text)               | `Date`                                    |
-| `fields.date()` / `time()`             | `DATE` / `TIME`            | `DATE` / `TIME`                  | `DATE` / `TIME`                     | `Date`                                    |
-| `fields.json()`                        | `JSONB`                    | `JSON`                           | `TEXT`                              | object / array                            |
-| `fields.uuid()`                        | `UUID`                     | `CHAR(36)`                       | `VARCHAR(36)`                       | `string`                                  |
-| `fields.binary()`                      | `BYTEA`                    | `LONGBLOB`                       | `BLOB`                              | `Uint8Array`                              |
-| `fields.objectId()`                    | `VARCHAR(24)`              | `VARCHAR(24)`                    | `VARCHAR(24)`                       | `string` (a native `ObjectId` on MongoDB) |
+| Field                                  | PostgreSQL                 | MySQL                            | SQLite                              | JS value                                              |
+| -------------------------------------- | -------------------------- | -------------------------------- | ----------------------------------- | ----------------------------------------------------- |
+| `fields.id()`                          | `SERIAL PRIMARY KEY`       | `INT AUTO_INCREMENT PRIMARY KEY` | `INTEGER PRIMARY KEY AUTOINCREMENT` | `number`                                              |
+| `fields.string({ maxLength })`         | `VARCHAR(n)` (255)         | `VARCHAR(n)`                     | `VARCHAR(n)`                        | `string`                                              |
+| `fields.text()`                        | `TEXT`                     | `LONGTEXT`                       | `TEXT`                              | `string`                                              |
+| `fields.integer()`                     | `INTEGER`                  | `INT`                            | `INTEGER`                           | `number`                                              |
+| `fields.bigint()`                      | `BIGINT`                   | `BIGINT`                         | `BIGINT`                            | `bigint` (a string in JSON)                           |
+| `fields.float()` / `number()`          | `DOUBLE PRECISION`         | `DOUBLE`                         | `REAL`                              | `number`                                              |
+| `fields.decimal({ precision, scale })` | `NUMERIC(p,s)`             | `DECIMAL(p,s)`                   | `NUMERIC(p,s)`                      | `number` (`string` if a number can't hold it exactly) |
+| `fields.boolean()`                     | `BOOLEAN`                  | `TINYINT(1)`                     | `INTEGER` (0/1)                     | `boolean`                                             |
+| `fields.dateTime()`                    | `TIMESTAMP WITH TIME ZONE` | `DATETIME(3)` (UTC)              | `DATETIME` (ISO text)               | `Date`                                                |
+| `fields.date()`                        | `DATE`                     | `DATE`                           | `DATE`                              | `Date` at UTC midnight (`'2026-10-09'` in JSON)       |
+| `fields.time()`                        | `TIME`                     | `TIME`                           | `TIME`                              | `string` (`'09:30:00'`)                               |
+| `fields.json()`                        | `JSONB`                    | `JSON`                           | `TEXT`                              | object / array                                        |
+| `fields.uuid()`                        | `UUID`                     | `CHAR(36)`                       | `VARCHAR(36)`                       | `string`                                              |
+| `fields.binary()`                      | `BYTEA`                    | `LONGBLOB`                       | `BLOB`                              | `Uint8Array`                                          |
+| `fields.objectId()`                    | `VARCHAR(24)`              | `VARCHAR(24)`                    | `VARCHAR(24)`                       | `string` (a native `ObjectId` on MongoDB)             |
 
 Values are converted both ways: booleans come back as `true`/`false` on every database, dates as
-`Date`, JSON as parsed objects.
+`Date`, JSON as parsed objects. Decimals that a JavaScript number can't represent exactly (e.g.
+`NUMERIC(20,8)` amounts) stay strings, so reading and saving a record never changes them.
 
 ### Field options
 
@@ -802,7 +955,7 @@ Values are converted both ways: booleans come back as `true`/`false` on every da
 | `maxLength: n`                | `VARCHAR(n)`                                                                                                          |
 | `precision`, `scale`          | For `decimal`                                                                                                         |
 | `columnName: 'x'`             | Column name when it differs from the property name                                                                    |
-| `primaryKey`, `autoIncrement` | For custom keys, e.g. `fields.uuid({ primaryKey: true, defaultValue: () => crypto.randomUUID() })`                    |
+| `primaryKey`, `autoIncrement` | For custom keys. `fields.uuid({ primaryKey: true })` generates a random UUID for every new row                        |
 
 Model options: `table`, `connection` (named connection), `primaryKey`, `timestamps`
 (`true` or `{ createdAt: 'created_at', updatedAt: 'updated_at' }`), `softDelete`
@@ -915,6 +1068,7 @@ await Book.whereNot((q) => q.where('genre', 'kids').orWhere('price', 0)).get();
 await Book.whereBetween('price', [10, 25]).get(); // also whereNotBetween / orWhereBetween
 await Book.whereLike('title', '%guide%').get(); // case-insensitive everywhere
 await Book.whereLike('code', 'AB_%', { caseSensitive: true }).get(); // exact case on PostgreSQL / MongoDB
+await Book.whereContains('title', req.query.search).get(); // user input: % and _ match literally
 await Book.where('price', 'BETWEEN', [10, 25]).get(); // operator form
 await Book.orWhereIn('genre', ['a', 'b']).orWhereNull('pages').get();
 
@@ -1011,7 +1165,11 @@ await transaction(
 ```
 
 Every model call inside the callback, including nested async functions, uses the transaction.
-You don't need to pass it around. To use an explicit transaction or connection instead:
+You don't need to pass it around.
+
+A `transaction()` inside another one runs in a **savepoint**: if it throws, only its own changes are
+undone and the outer transaction can continue (catch the error to do so). MongoDB has no savepoints,
+so there a failed inner transaction rolls back the whole outer one. To use an explicit transaction or connection instead:
 `User.query().using(tx)`, `User.create(data, { connection: tx })`, `user.save({ connection: tx })`.
 
 ---
@@ -1315,7 +1473,11 @@ CLI, so TypeScript migrations run without a build step.
       databases.
 - [ ] Size the pool (`DATABASE_POOL_MAX`) so that `instances × pool size` stays below the
       server's `max_connections`.
-- [ ] Call `await db.verify()` before `listen()` so a bad configuration fails at startup.
+- [ ] Call `await db.verify()` before `listen()` so a bad configuration fails at startup. (Without
+      any database configured, models throw in production instead of using a throwaway in-memory
+      database.)
+- [ ] Set `DATABASE_QUERY_TIMEOUT=30000` (or `queryTimeoutMs` in code) so a hung query can't hold
+      a pooled connection forever; long reports can pass `{ timeoutMs }` per query.
 - [ ] Call `await db.close()` on `SIGTERM`.
 - [ ] Run `npx jsango migrate` in the release pipeline, and `migrate:check` in CI.
 - [ ] Back up the database before any migration marked `[destructive]`.
@@ -1748,9 +1910,11 @@ createAuth({
 | Firebase    | `https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com` | `https://securetoken.google.com/PROJECT_ID`        |
 | Keycloak    | `https://HOST/realms/REALM/protocol/openid-connect/certs`                                   | `https://HOST/realms/REALM`                        |
 
-Keys are cached for 10 minutes and refetched when the provider rotates them. Expiry,
-`iss` and `aud` are always checked. Your own tokens and the provider's can be accepted side
-by side.
+Keys are cached for 10 minutes and refetched when the provider rotates them (fetches time out after
+5 seconds). Expiry, `iss` and `aud` are always checked. **`audience` is required**: without it, a
+token the same provider issued for any other app (e.g. any "Sign in with Google" site) would be
+accepted. Pass `audience: false` only if your provider issues none. Your own tokens and the
+provider's can be accepted side by side.
 
 ---
 
@@ -1821,22 +1985,23 @@ seconds of clock drift, work only once, and are brute-force limited.
 
 ## 11. What jsango protects you from
 
-| Threat                               | Protection                                                                                                                      |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| Password database leak               | scrypt (memory-hard) with per-password salt; automatic rehash on login                                                          |
-| Online password guessing             | 5 failures per account per 15 minutes (20 per IP) → `429`                                                                       |
-| Account enumeration                  | One generic error message; unknown users cost the same hashing time                                                             |
-| Stolen access token                  | 15-minute lifetime; `logout()` revokes it immediately                                                                           |
-| Stolen refresh token                 | Rotation on every use; reuse revokes the whole login                                                                            |
-| JWT forgery / algorithm confusion    | HMAC key derived from your secret, `alg` pinned to HS256; external tokens accept asymmetric algorithms only; `none` is rejected |
-| Tokens that never expire             | Every token has `exp`; tokens without one are rejected                                                                          |
-| Session fixation / cookie tampering  | New random id per login; HMAC-signed cookie; HttpOnly + SameSite                                                                |
-| CSRF on cookie sessions              | Trusted `Origin` / `Referer` required for state-changing requests                                                               |
-| OAuth login CSRF / code interception | Signed one-time `state` + PKCE (S256)                                                                                           |
-| TOTP brute force / replay            | Attempt limit + each code accepted once                                                                                         |
-| Disabled user keeps access           | `isActive` checked on login, refresh and every session request                                                                  |
-| Leaking the user record              | Token results never serialize `user`                                                                                            |
-| API key database leak                | Only SHA-256 hashes are stored and compared                                                                                     |
+| Threat                                | Protection                                                                                                                        |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Password database leak                | scrypt (memory-hard) with per-password salt; automatic rehash on login                                                            |
+| Online password guessing              | 5 failures per account per 15 minutes (20 per IP) → `429`                                                                         |
+| Account enumeration                   | One generic error message; unknown users cost the same hashing time                                                               |
+| Stolen access token                   | 15-minute lifetime; `logout()` revokes it immediately                                                                             |
+| Stolen refresh token                  | Rotation on every use (atomic: of two concurrent refreshes only one wins); reuse more than a minute later revokes the whole login |
+| JWT forgery / algorithm confusion     | HMAC key derived from your secret, `alg` pinned to HS256; external tokens accept asymmetric algorithms only; `none` is rejected   |
+| Tokens that never expire              | Every token has `exp`; tokens without one are rejected                                                                            |
+| Session fixation / cookie tampering   | New random id per login; HMAC-signed cookie; HttpOnly + SameSite                                                                  |
+| CSRF on cookie sessions               | Trusted `Origin` / `Referer` required for state-changing requests                                                                 |
+| OAuth login CSRF / code interception  | Signed one-time `state` + PKCE (S256)                                                                                             |
+| TOTP brute force / replay             | Attempt limit + each code accepted once (also with spaces added)                                                                  |
+| Disabled user keeps access            | `isActive` checked on login, refresh, API keys and every session request                                                          |
+| Tokens from other apps (external IdP) | `audience` is required for external tokens                                                                                        |
+| Leaking the user record               | Token results never serialize `user`                                                                                              |
+| API key database leak                 | Only SHA-256 hashes are stored and compared                                                                                       |
 
 **Lower-level building blocks** are still available when you need full control: `JwtService`,
 `ScryptPasswordHasher`, `TotpService`, the `authenticate()` / `authorize()` middleware with
@@ -1917,12 +2082,27 @@ app.admin({
 ```
 
 You can also set `JSANGO_ADMIN_EMAIL` and `JSANGO_ADMIN_PASSWORD`. Without a password, the
-development default `admin123` works locally, and **login is refused when
-`NODE_ENV=production`**.
+development default `admin123` works only with `NODE_ENV=development` or `test`; everywhere else
+(including a server started without `NODE_ENV`) **login is refused until you set a password of 12+
+characters**.
 
-Admin logins last 8 hours (`sessionTtlSeconds`). The **Profile & Security** page lists the account's
-real sessions and can sign out other devices. For the built-in account it also changes the password
-(the current password is required, 12+ characters) and turns two-factor authentication on or off.
+Admin logins last 8 hours (`sessionTtlSeconds`) and end after an hour without activity. App users'
+roles, bans (`isActive`) and `auth.logoutAll()` are re-checked every minute, so removing someone's
+admin role signs them out of the admin too. The **Profile & Security** page lists the account's real
+sessions and can sign out other devices. For the built-in account it also changes the password (the
+current password is required, 12+ characters) and turns two-factor authentication on or off.
+
+### Several instances / restarts
+
+Sessions, login lockouts, export links and the built-in account's 2FA and changed password live in
+a store. With `auth: createAuth(...)` it is your auth store; otherwise it is memory (one instance,
+reset on restart). To share them between instances behind a load balancer:
+
+```ts
+import { DatabaseAuthStore } from 'jsango';
+
+app.admin({ store: new DatabaseAuthStore({ connection: db }), resources: [Order] });
+```
 
 ---
 
@@ -1981,6 +2161,74 @@ app.admin({
 | `exactCount`, `exportBatchSize`                                              | Large-table tuning (see [Millions of rows](#7-millions-of-rows))                                                                                          |
 
 `new AdminResource({ modelName: 'Order', ... })` works too and also inherits the model's fields.
+
+### Relations
+
+A `belongsTo` relation turns its foreign key column into a dropdown of the related records (register
+both models in `resources`):
+
+```ts
+const Product = defineModel(
+  'Product',
+  { id: fields.id(), name: fields.string(), categoryId: fields.integer() },
+  {
+    relations: { category: relations.belongsTo(() => Category, { foreignKey: 'categoryId' }) },
+  }
+);
+app.admin({ resources: [Product, Category] });
+```
+
+The dropdown loads options once, shows a search box when there are more than 100, and has **+ New**
+and **Edit** buttons that open the related record's form in a side panel; a record saved there is
+selected straight away. `hasMany` / `manyToMany` relations are not editable in the form.
+
+### Files, images and the media library
+
+Mark a column as `image` or `file` to get an upload box and a **Library** picker. The file is
+stored on the first media disk and the column keeps its URL:
+
+```ts
+app.admin({ resources: [{ model: Product, fields: [{ name: 'image', type: 'image' }] }] });
+```
+
+**Media** in the sidebar lists, uploads (several at once, or drag and drop), previews and deletes
+files, with a tab per disk:
+
+```ts
+import { LocalDiskMediaStorage, S3MediaStorage, AdminMediaManager } from 'jsango';
+
+app.admin({
+  media: {
+    local: new LocalDiskMediaStorage({ root: './uploads', publicUrl: '/media' }), // served by the app
+    s3: new S3MediaStorage({
+      bucket: 'assets',
+      region: 'ap-south-1',
+      accessKeyId: process.env.S3_KEY!,
+      secretAccessKey: process.env.S3_SECRET!,
+    }),
+    r2: new S3MediaStorage({
+      bucket: 'assets',
+      region: 'auto',
+      endpoint: 'https://<account>.r2.cloudflarestorage.com', // also MinIO, Spaces, Backblaze B2
+      publicUrl: 'https://cdn.example.com', // optional; without it previews use signed URLs
+      accessKeyId: process.env.R2_KEY!,
+      secretAccessKey: process.env.R2_SECRET!,
+    }),
+    // upload rules
+    avatars: new AdminMediaManager({
+      storage: new LocalDiskMediaStorage({ root: './uploads/avatars', publicUrl: '/avatars' }),
+      validation: { maxSizeBytes: 2 * 1024 * 1024, allowedMimeTypes: ['image/*'] },
+    }),
+  },
+});
+```
+
+Without `media`, there is one `local` disk (`./uploads`, served at `/media`); `media: {}` turns the
+library off. Local files are served with `nosniff` and a sandboxing CSP, so an uploaded HTML or SVG
+file cannot run scripts on your site. The S3 driver signs requests itself (no AWS SDK), works only inside
+its `root` folder (default `uploads`, so a bucket shared with private files stays private), serves
+anything but images, video, audio and PDF as a download, and lists the first 1000 files. The file
+type always comes from the file extension, never from the browser.
 
 ---
 
@@ -2180,20 +2428,35 @@ The same keyset batching powers the ORM: `Model.query().chunk(1000, fn)` and `.c
 
 ## 8. Permissions
 
-Superusers can do everything. Other admin users need permissions per resource (the resource id is
-the lower-cased model name):
+Superusers and users with the `admin` role can do everything. Users let in by the `staff` role or
+the `admin.access` permission can do **nothing until you grant it** (the resource id is the
+lower-cased model name):
 
-| Permission                                                  | Allows                                     |
-| ----------------------------------------------------------- | ------------------------------------------ |
-| `admin.access` (or role `admin` / `staff`)                  | Entering the admin                         |
-| `admin.<resource>.view`                                     | List, detail, export                       |
-| `admin.<resource>.add` / `.change` / `.delete` / `.restore` | Create / edit / delete / restore           |
-| `admin.<resource>.*`, `admin.*`                             | Everything on one resource / all resources |
-| an action's `permission`                                    | Running that action                        |
-| a widget's or page's `permission`                           | Seeing it                                  |
+| Permission                                                   | Allows                                       |
+| ------------------------------------------------------------ | -------------------------------------------- |
+| `admin.access` (or role `admin` / `staff`)                   | Entering the admin                           |
+| `admin.<resource>.view`                                      | List and detail                              |
+| `admin.<resource>.export`                                    | CSV export (with `view`)                     |
+| `admin.<resource>.add` / `.change` / `.delete` / `.restore`  | Create / edit / delete / restore             |
+| `admin.<resource>.action.<id>` / `.bulk.<id>`                | Running a row / bulk action                  |
+| `admin.<resource>.*`, `admin.*`                              | Everything on one resource / all resources   |
+| `admin.media.view` / `.add` / `.delete` (or `admin.media.*`) | Media library                                |
+| `admin.audit.view`                                           | Audit trail (it shows every resource's data) |
+| an action's `permission`                                     | Running that action                          |
+| a widget's or page's `permission`                            | Seeing it                                    |
 
 Resources a user can't view are hidden from the sidebar. Fields marked `sensitive` are visible only
 to superusers.
+
+```ts
+app.admin({
+  resources: [Order],
+  permissions: {
+    requireSuperuser: true, // only superusers may enter
+    authorizationManager: policies, // your object-level policies (e.g. own tenant only)
+  },
+});
+```
 
 ---
 
@@ -2234,17 +2497,21 @@ app.admin({
 
 ## 10. Security
 
-| Threat                           | Protection                                                                                                 |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Default or guessable credentials | Login refused in production without a configured password; use `createAuth` users                          |
-| Password guessing                | 5 failures per account per 15 minutes (20 per IP) → `429` (auth-kit lockout when using `createAuth`)       |
-| Stolen session token             | 256-bit random tokens, stored hashed, 8-hour lifetime; sessions can be revoked                             |
-| Mass assignment                  | Only `createFields` / `editFields` are written                                                             |
-| Data leaks                       | Hidden and sensitive fields are stripped server-side; sorting, filtering and export only on visible fields |
-| SQL injection via sort/filter    | Sort and filter fields are allow-listed; values are bound parameters                                       |
-| CSV / formula injection          | Exported cells starting with `= + - @` are prefixed with `'`                                               |
-| Export links leaking             | One-time links valid for 60 seconds; the session token never appears in a URL                              |
-| 2FA secret leaks                 | The QR secret never leaves the page (no third-party QR service)                                            |
+| Threat                           | Protection                                                                                                                         |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Default or guessable credentials | Login refused in production without a configured password; use `createAuth` users                                                  |
+| Password guessing                | 5 failures per account per 15 minutes (20 per IP) → `429` (auth-kit lockout when using `createAuth`)                               |
+| Stolen session token             | 256-bit random tokens, stored hashed, 8-hour lifetime; sessions can be revoked                                                     |
+| Mass assignment                  | Only `createFields` / `editFields` are written                                                                                     |
+| Privilege escalation by staff    | Limited staff get only the permissions you grant (default deny)                                                                    |
+| Clickjacking / injected scripts  | The admin page sends `frame-ancestors 'none'`, `X-Frame-Options: DENY` and a CSP allowing only its own scripts                     |
+| Stale access after a ban         | App users' roles and `isActive` are re-checked every minute; idle sessions end after an hour                                       |
+| Malicious uploads                | The file type comes from the extension, not the browser; S3 serves non-media files as downloads and stays inside its `root` folder |
+| Data leaks                       | Hidden and sensitive fields are stripped server-side; sorting, filtering and export only on visible fields                         |
+| SQL injection via sort/filter    | Sort and filter fields are allow-listed; values are bound parameters                                                               |
+| CSV / formula injection          | Exported cells starting with `= + - @` are prefixed with `'`                                                                       |
+| Export links leaking             | One-time links valid for 60 seconds; the session token never appears in a URL                                                      |
+| 2FA secret leaks                 | The QR secret never leaves the page (no third-party QR service)                                                                    |
 
 ---
 
@@ -2264,6 +2531,8 @@ All routes are under `/admin/api/v1` (`apiPrefix`) and return `{ ok, data }` or 
 | `GET /dashboard` · `GET /dashboard/widgets/:id`                                                                    | Dashboard                                       |
 | `GET /pages` · `GET /pages/:id` · `GET /pages/:id/widgets/:widget`                                                 | Custom pages                                    |
 | `GET /audit` · `GET /system/health`                                                                                | Audit trail, health                             |
+| `GET /media` · `GET /media/:disk?prefix=`                                                                          | Media disks and their files                     |
+| `POST /media/:disk` (raw body, `x-file-name` header) · `DELETE /media/:disk?key=`                                  | Upload / delete a file                          |
 
 ---
 
@@ -2369,18 +2638,21 @@ export const PageResource = new AdminResource({
 
 ## 3. Supported Field Types
 
-| Field Type   | Form Widget               | Supported Options                         |
-| ------------ | ------------------------- | ----------------------------------------- |
-| `'text'`     | Single-line Text Input    | `required`, `searchable`, `label`         |
-| `'textarea'` | Multi-line Textarea       | `required`, `label`, `description`        |
-| `'number'`   | Numeric Input (int/float) | `required`, `sortable`, `filterable`      |
-| `'email'`    | Email Input               | Validates email syntax                    |
-| `'boolean'`  | Checkbox / Switch         | Rendered with Yes/No badges in changelist |
-| `'enum'`     | Select Dropdown           | `enumChoices: [{ label, value }]`         |
-| `'datetime'` | Datetime Display / Picker | Formats timestamps gracefully             |
-| `'uuid'`     | Readonly identifier       | Automatically generated                   |
+| Field Type   | Form Widget               | Supported Options                                          |
+| ------------ | ------------------------- | ---------------------------------------------------------- |
+| `'text'`     | Single-line Text Input    | `required`, `searchable`, `label`                          |
+| `'textarea'` | Multi-line Textarea       | `required`, `label`, `description`                         |
+| `'number'`   | Numeric Input (int/float) | `required`, `sortable`, `filterable`                       |
+| `'email'`    | Email Input               | Validates email syntax                                     |
+| `'boolean'`  | Checkbox / Switch         | Rendered with Yes/No badges in changelist                  |
+| `'enum'`     | Select Dropdown           | `enumChoices: [{ label, value }]`                          |
+| `'datetime'` | Datetime Display / Picker | Formats timestamps gracefully                              |
+| `'uuid'`     | Readonly identifier       | Automatically generated                                    |
+| `'relation'` | Searchable dropdown       | `relationTarget` (model name), side-panel "+ New" / "Edit" |
+| `'image'`    | Upload + media library    | Stores the uploaded file's URL                             |
+| `'file'`     | Upload + media library    | Stores the uploaded file's URL                             |
 
-Other types: `'date'`, `'time'`, `'url'`, `'json'`, `'password'`, `'file'`, `'image'`, `'relation'` (with `relationTarget` / `relationType`), `'computed'` (with `computedGetter`) and `'readonly'`. Every field also accepts `readonly`, `hidden`, `sensitive`, `sortable`, `searchable`, `filterable` and `widget`.
+Other types: `'date'`, `'time'`, `'url'`, `'json'`, `'password'`, `'computed'` (with `computedGetter`) and `'readonly'`. Every field also accepts `readonly`, `hidden`, `sensitive`, `sortable`, `searchable`, `filterable` and `widget`.
 
 ---
 
@@ -2394,6 +2666,7 @@ import { AdminRegistry } from '@jsango/admin-core';
 import { AdminServer, type IAdminQueryAdapter } from '@jsango/admin-server';
 import { AdminPermissionChecker } from '@jsango/admin-auth';
 import { AdminAuditLogger, InMemoryAuditStore } from '@jsango/admin-audit';
+import { AdminMediaManager, LocalDiskMediaStorage } from '@jsango/admin-media';
 import { defaultModelRegistry } from '@jsango/orm';
 import { Router } from '@jsango/router';
 import { PageResource } from './pages-resource.js';
@@ -2466,8 +2739,15 @@ new AdminServer({
   permissions: new AdminPermissionChecker(),
   audit: new AdminAuditLogger({ store: new InMemoryAuditStore() }),
   prefix: '/admin/api/v1',
+  // Optional media library disks (Admin → Media, and uploads of `image` / `file` fields)
+  media: { local: new AdminMediaManager({ storage: new LocalDiskMediaStorage() }) },
 }).mount(router);
 ```
+
+With `app.admin()` this is all automatic: models' `belongsTo` foreign keys become `relation` fields,
+and `media` defaults to a local disk served at `/media`. `AdminServer` doesn't serve files: serve the
+`LocalDiskMediaStorage` folder yourself (or use `S3MediaStorage` with a public URL). See the
+[admin guide](./ADMIN-CUSTOMIZATION.md#relations) for relations and the media library.
 
 ---
 
@@ -2509,7 +2789,7 @@ Key design principles:
 - **Named Queues**: Multiple named queues can coexist (`default`, `emails`, `reports`), each with independent configurations.
 - **Job Registry**: Strongly-typed job definitions registered centrally and resolved at execution time.
 - **AT-LEAST-ONCE Delivery**: Jobs are guaranteed to execute at least once; handlers must be idempotent.
-- **Visibility Leases**: Workers claim jobs with time-bounded leases to prevent duplicate processing in multi-worker environments.
+- **Visibility Leases**: Workers claim jobs with time-bounded leases to prevent duplicate processing in multi-worker environments. The database driver claims atomically (a conditional `UPDATE`), and a job is stopped at its lease (`min(timeoutMs, leaseTimeoutMs)`) so it can never be picked up by a second worker while still running: give long jobs a longer `leaseTimeoutMs`.
 - **Graceful Shutdown**: Workers honor `AbortSignal` for clean termination of in-flight work.
 - **Zero Mandatory External Dependencies**: Ships with `MemoryQueueDriver` and `DatabaseQueueDriver` (using the existing `@jsango/database` layer).
 
@@ -2817,7 +3097,7 @@ ICacheDriver (raw storage backend)
 
 Low-level driver contract implemented by all storage backends:
 
-- `get<T>`, `set<T>`, `has`, `delete`, `clear`
+- `get<T>`, `set<T>`, `has`, `delete`, `clear(prefix?)` (a store or namespace only clears its own keys; the Redis driver uses `SCAN` + `DEL` and refuses to clear without a prefix, so it never runs `FLUSHDB`)
 - `increment`, `decrement`
 - `expire`, `ttl`
 - `getMany<T>`, `setMany<T>`, `deleteMany` (batch operations)
@@ -2882,6 +3162,10 @@ Low-level driver contract implemented by all storage backends:
 <!-- source: docs/architecture/websocket/README.md (WebSockets) -->
 
 # @jsango/websocket Architecture Overview
+
+> **Building an app?** Use `app.ws()` from `jsango` (see the README): it shares your HTTP routes'
+> middleware and auth, rooms, `app.to(room)` server push and secure defaults. This package is the
+> lower-level engine for custom servers.
 
 ## 1. Core Mission & Philosophy
 
@@ -3021,6 +3305,13 @@ graph TD
 
 ---
 
+## `app.openapi()` options
+
+`app.openapi({ path, docsPath, title, middleware })` serves the spec (`/openapi.json`) and Swagger UI
+(`/docs`). Both are public unless you pass `middleware`, e.g. `[auth.required({ roles: ['admin'] })]`
+for an internal API. Admin routes (wherever the admin is mounted) and the docs routes themselves are
+never listed. Swagger UI is loaded from a pinned version of `swagger-ui-dist`.
+
 ## Key APIs
 
 ### `OpenApiGenerator`
@@ -3154,6 +3445,13 @@ await adminAgent.run({
 ```
 
 ---
+
+## Argument Validation
+
+Tool arguments come from the model, so a prompt injection can put anything in them. Before
+`execute` runs, jsango checks them: with a `schema` (`schema({ ... })`) the arguments are validated
+and coerced and unknown keys are dropped; with a plain JSON schema, required keys must be present
+and undeclared keys are dropped. Invalid arguments become a tool error the model sees, never a call.
 
 ## Human Approval for Sensitive Actions
 
@@ -3397,6 +3695,11 @@ const result = await server.handleJsonRpc({
 
 Protect the endpoint like any other route, e.g. with your auth middleware.
 
+Tools served over MCP go through the same checks as inside an agent: arguments are validated, a
+tool with `requiresApproval` is refused (MCP has no approval step), and a tool with `permissions`
+is refused because MCP callers have no identity. Put the MCP route behind `auth.required()` if it
+should not be public.
+
 ### Local servers (stdio)
 
 Desktop clients (Claude Code, Cursor, VS Code) start local MCP servers as a process and talk over
@@ -3607,6 +3910,19 @@ console.log(report.passed, report.score, report.errors);
 
 This guide covers best practices for deploying `jsango` applications to production environments.
 
+## Production mode
+
+jsango runs in **production mode unless `NODE_ENV` is `development` or `test`**. A server started
+without `NODE_ENV` (common with Docker, PM2 or a plain `node dist/index.js`) is safe by default:
+
+- 500 responses say "An internal error occurred." (no SQL, stack traces or provider errors);
+- auth cookies are `Secure`;
+- the built-in admin account refuses to sign in without a `JSANGO_ADMIN_PASSWORD` of 12+ characters.
+
+Set `NODE_ENV=development` on your machine (projects from `jsango new` have it in `.env`). Server
+errors (5xx) are logged with their stack: JSON lines in production, readable text in development.
+Pass `createApp({ logger })` to use your own logger.
+
 ---
 
 ## 1. Production Dockerfile
@@ -3679,6 +3995,36 @@ server {
 }
 ```
 
+### Trusting the proxy
+
+Behind a proxy or load balancer (Nginx, Caddy, AWS ALB, Heroku, Fly.io, Kubernetes ingress), tell
+jsango how many proxies sit in front of it:
+
+```typescript
+import { createApp } from 'jsango';
+
+const app = createApp({ trustProxy: true }); // one proxy; use a number for a chain (e.g. CDN + LB)
+```
+
+Then `ctx.request.ip`, `ctx.request.protocol` (`https`) and the host come from `X-Forwarded-For`,
+`X-Forwarded-Proto` and `X-Forwarded-Host`. This is what makes login rate limits count real client
+IPs and cookie sessions accept `https://` origins. Without `trustProxy` these headers are ignored,
+because anyone can send them; never enable it when clients can reach the app directly.
+
+The keep-alive timeout defaults to 65 seconds, longer than common load balancer idle timeouts (60s),
+which avoids sporadic 502s.
+
+### Security headers and rate limits
+
+```typescript
+import { createApp, securityHeaders, rateLimit, DatabaseAuthStore } from 'jsango';
+
+const app = createApp({ trustProxy: true });
+app.use(securityHeaders());
+// Several instances: share the counters through the database (or any store with increment()).
+app.use(rateLimit({ max: 300, store: new DatabaseAuthStore({ connection: db }) }));
+```
+
 ---
 
 ## 3. Graceful Shutdown & Process Management
@@ -3692,7 +4038,7 @@ const app = createApp();
 const server = await app.listen(3000);
 
 const shutdown = async () => {
-  await server.close(10_000); // stop accepting connections, wait for in-flight requests
+  await server.close(10_000); // stop accepting connections, wait for in-flight requests, close WebSockets
   await getDatabaseManager().close(); // drain database connection pools
   process.exit(0);
 };
@@ -3778,3 +4124,23 @@ This document provides a transparent, honest overview of the architectural limit
 ## 6. Observability
 
 - **High-Cardinality Metric Label Protection**: `MetricRegistry` enforces a maximum cardinality limit (default 1,000 label permutations per metric). High-entropy inputs (such as raw user IDs or UUIDs in label keys) will be rejected to prevent unbounded memory growth.
+
+---
+
+## 7. Known gaps (1.6)
+
+- **Admin row-level filtering**: object-level policies (`permissions.authorizationManager`) are
+  checked on update and delete, but list and CSV export only check the resource. Use resource
+  permissions or separate resources until a query scope hook lands.
+- **Access tokens after refresh-token theft**: when a reused refresh token revokes a login, access
+  tokens already issued for it stay valid until they expire (15 minutes by default).
+- **Big integers on SQLite**: values above 2^53 lose precision in the SQLite driver itself; use
+  PostgreSQL or MySQL for `bigint` columns that large.
+- **Query timeouts are opt-in** (`DATABASE_QUERY_TIMEOUT` / `queryTimeoutMs`) because they also
+  apply to migrations.
+- **Agent approvals**: a run paused by a tool with `requiresApproval` can't be resumed yet; start a
+  new run after approving.
+- **Swagger UI** is loaded from unpkg at a pinned version, without Subresource Integrity.
+- **In-memory defaults**: the queue driver, the admin audit log and (without `createAuth`) the admin
+  session store live in memory. They warn in production; configure persistent stores for
+  multi-instance deployments.
