@@ -6,7 +6,7 @@
   <title>JSango Documentation - Production-Grade TypeScript Backend Framework</title>
   
   <meta name="description" content="Official documentation for JSango: The batteries-included TypeScript backend framework featuring ORM, SegRadix Router, Auto Admin Console, 2FA Auth, Queues, and WebSockets.">
-  <meta name="keywords" content="JSango docs, TypeScript framework, Django TypeScript, ORM, Admin Panel, 2FA Auth, SegRadix Router">
+  <meta name="keywords" content="JSango docs, TypeScript framework, TypeScript backend, ORM, Admin Panel, 2FA Auth, SegRadix Router">
   <meta property="og:title" content="JSango Documentation">
   <meta property="og:description" content="Learn how to build production-grade, high-concurrency TypeScript applications with JSango.">
   <meta property="og:image" content="images/logo.png">
@@ -193,7 +193,7 @@
       <section id="intro" class="doc-section">
         <h1>Introduction to JSango</h1>
         <p class="lead-text">
-          <strong>JSango</strong> is a production-grade, batteries-included TypeScript backend framework inspired by Django’s convention-over-configuration philosophy, Laravel’s developer ergonomics, modern TypeScript type safety, and high-concurrency JavaScript runtimes (Node.js 20+ &amp; Bun).
+          <strong>JSango</strong> is a production-grade, batteries-included TypeScript backend framework built on convention over configuration, expressive developer ergonomics, modern TypeScript type safety, and high-concurrency JavaScript runtimes (Node.js 20+ &amp; Bun).
         </p>
 
         <div class="callout callout-tip">
@@ -1468,7 +1468,7 @@ await mongo.collection(&#x27;events&#x27;).aggregate([{ $match: { type: &#x27;si
 
       <section id="migrations-engine" class="doc-section">
         <h2>Migrations</h2>
-        <p>Migrations turn changes in your models into versioned, reviewable changes to the real database — the same workflow as Django:</p>
+        <p>Migrations turn changes in your models into versioned, reviewable changes to the real database:</p>
         <ol>
           <li><strong><code>npx jsango makemigrations</code></strong> replays your existing migration files to know what the database <em>should</em> look like (no database connection needed), compares it with your models and writes a new file with just the difference.</li>
           <li><strong><code>npx jsango migrate</code></strong> runs pending files in order and records each in the <code>jsango_migrations</code> table so it never runs twice.</li>
@@ -1660,7 +1660,7 @@ npm start</code></pre>
       <section id="admin-overview" class="doc-section">
         <h2>Admin Panel</h2>
         <p>
-          <code>app.admin()</code> gives your app a Django-style admin: CRUD screens generated from your models, dashboards and custom pages
+          <code>app.admin()</code> gives your app a ready-made admin panel: CRUD screens generated from your models, dashboards and custom pages
           built from widgets, CSV export, an audit trail and a system page. It is built for tables with millions of rows and is safe to expose in production.
         </p>
         <div class="code-box">

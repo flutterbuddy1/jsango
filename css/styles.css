@@ -704,7 +704,8 @@ pre {
    ========================================================================== */
 .arch-explorer {
   display: grid;
-  grid-template-columns: 1fr 1.2fr;
+  /* minmax(0, …): a long code line must not stretch the column past the screen */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
   gap: 32px;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
@@ -723,6 +724,7 @@ pre {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   padding: 14px 18px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-subtle);
@@ -734,6 +736,11 @@ pre {
 .arch-layer-item:hover {
   background: rgba(255, 255, 255, 0.07);
   border-color: rgba(255, 255, 255, 0.2);
+}
+
+.arch-layer-item:focus-visible {
+  outline: 2px solid var(--accent-indigo);
+  outline-offset: 2px;
 }
 
 .arch-layer-item.active {
@@ -763,6 +770,8 @@ pre {
 }
 
 .layer-package {
+  white-space: nowrap;
+  flex-shrink: 0;
   font-family: var(--font-mono);
   font-size: 0.78rem;
   color: #38bdf8;
@@ -772,6 +781,7 @@ pre {
 }
 
 .arch-layer-detail {
+  min-width: 0;
   background: var(--bg-code);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
@@ -1221,13 +1231,14 @@ pre {
   }
 
   .arch-explorer {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 18px;
+    padding: 24px;
   }
 
   .arch-layers-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 8px;
   }
 
@@ -1343,8 +1354,65 @@ pre {
     padding: 22px 18px;
   }
 
+  /* Phones: the layers become a swipeable row of chips, so the detail stays right below. */
+  .arch-explorer {
+    padding: 14px;
+    gap: 14px;
+    border-radius: var(--radius-lg);
+  }
+
   .arch-layers-list {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin: 0 -14px;
+    padding: 2px 14px 6px;
+  }
+
+  .arch-layers-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .arch-layer-item {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    padding: 9px 14px;
+    border-radius: var(--radius-full);
+  }
+
+  .arch-layer-item .layer-package {
+    display: none;
+  }
+
+  .layer-info {
+    gap: 8px;
+  }
+
+  .layer-name {
+    font-size: 0.86rem;
+    white-space: nowrap;
+  }
+
+  .arch-layer-detail {
+    padding: 18px 16px;
+  }
+
+  .detail-header h4 {
+    font-size: 1.12rem;
+  }
+
+  .detail-header p {
+    font-size: 0.86rem;
+    margin-bottom: 14px;
+  }
+
+  .detail-code {
+    padding: 12px;
+    font-size: 0.72rem;
   }
 
   .benchmark-stats-grid {
@@ -1447,4 +1515,231 @@ pre {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ==========================================================================
+   Comparison & measured benchmarks
+   ========================================================================== */
+.cmp-table-wrap {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 8px 8px 16px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cmp-table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.cmp-table th,
+.cmp-table td {
+  padding: 12px 14px;
+  text-align: center;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.cmp-table th {
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.cmp-table td:first-child,
+.cmp-table th:first-child {
+  text-align: left;
+  color: var(--text-primary);
+}
+
+.cmp-table .cmp-jsango {
+  background: rgba(16, 185, 129, 0.08);
+  color: #34d399;
+  font-weight: 700;
+}
+
+.cmp-table tr.cmp-perf td {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  border-bottom: none;
+}
+
+.cmp-table tr.cmp-perf td:first-child {
+  font-family: var(--font-sans);
+}
+
+.cmp-table a {
+  color: var(--text-highlight);
+}
+
+.cmp-yes {
+  color: #34d399;
+  font-weight: 800;
+}
+
+.cmp-plugin {
+  color: var(--accent-amber);
+}
+
+.cmp-no {
+  color: var(--text-muted);
+}
+
+.cmp-legend {
+  margin: 14px 14px 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.cmp-subtitle {
+  margin-top: 56px;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.cmp-subdesc {
+  text-align: center;
+  color: var(--text-secondary);
+  margin: 8px auto 24px;
+  max-width: 640px;
+}
+
+.cmp-code-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.cmp-code-card {
+  background: var(--bg-code);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.cmp-code-card.cmp-code-jsango {
+  border-color: var(--border-emerald);
+  box-shadow: 0 0 40px -12px var(--accent-emerald-glow);
+}
+
+.cmp-code-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+
+.cmp-count {
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.cmp-code-jsango .cmp-count {
+  color: #34d399;
+}
+
+.cmp-code-card pre {
+  margin: 0;
+  padding: 16px;
+  overflow-x: auto;
+  max-height: 560px;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.bench-group + .bench-group {
+  margin-top: 28px;
+}
+
+.bench-group-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.bench-group .bar-row + .bar-row {
+  margin-top: 12px;
+}
+
+.bar-fill.baseline {
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(148, 163, 184, 0.35) 0 8px,
+    rgba(148, 163, 184, 0.2) 8px 16px
+  );
+  color: var(--text-primary);
+}
+
+.bench-method {
+  margin-top: 28px;
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+.bench-method code {
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.bench-method a {
+  color: var(--text-highlight);
+}
+
+@media (max-width: 900px) {
+  .cmp-code-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .bar-label-group {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .cmp-table {
+    min-width: 0;
+    font-size: 0.74rem;
+  }
+
+  .cmp-table th,
+  .cmp-table td {
+    padding: 9px 4px;
+  }
+
+  .cmp-table td:first-child {
+    padding-left: 8px;
+  }
+
+  .cmp-table th {
+    font-size: 0.7rem;
+  }
+
+  .cmp-table tr.cmp-perf td {
+    font-size: 0.7rem;
+  }
+
+  .cmp-subtitle {
+    font-size: 1.25rem;
+  }
+}
+
+/* The decorative background blobs must not widen the page (horizontal scroll on phones). */
+html,
+body {
+  overflow-x: clip;
 }
