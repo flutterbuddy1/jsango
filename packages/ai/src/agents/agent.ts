@@ -6,12 +6,14 @@ import type {
   AgentRunResult,
   ILlmProvider,
   LlmMessage,
+  LlmResponse,
   LlmUsage,
   MemoryStore,
   ToolDefinition,
 } from '../types.js';
 import { GuardrailViolationError } from '../errors.js';
 import { ModelRouter } from '../providers/model-router.js';
+import { anySignal } from '../providers/base-provider.js';
 import { tool } from '../tools/tool.js';
 import { ToolExecutor, type ToolExecutionResult } from '../tools/tool-executor.js';
 import { InMemoryMemoryStore, compactHistory } from '../memory/memory.js';
@@ -248,14 +250,25 @@ export class Agent<TOutput = string> {
 
       emit({ type: 'message.started', data: { step: currentStep } });
 
-      const llmRes = await this.provider.generate({
+      const request = {
         model: this.config.model,
         messages,
         tools: toolsList.length > 0 ? toolsList : undefined,
         temperature: this.config.temperature,
         maxTokens: this.config.maxTokens,
         signal: options.signal,
-      });
+      };
+      // Someone is listening (stream(), voice, SSE): stream tokens as they arrive.
+      let llmRes: LlmResponse;
+      if (options.onEvent) {
+        const stream = await this.provider.stream(request);
+        for await (const chunk of stream) {
+          if (chunk.delta) emit({ type: 'message.delta', data: { text: chunk.delta } });
+        }
+        llmRes = await stream.toResponse();
+      } else {
+        llmRes = await this.provider.generate(request);
+      }
 
       usage.promptTokens += llmRes.usage.promptTokens;
       usage.completionTokens += llmRes.usage.completionTokens;
@@ -416,34 +429,47 @@ export class Agent<TOutput = string> {
     return res.text.trim() || previous;
   }
 
+  /**
+   * Runs the agent and yields its events as they happen, including `message.delta` tokens.
+   * Stopping early (`break`, or the client disconnecting) cancels the run.
+   */
   public async *stream(optionsOrInput: AgentRunOptions | string): AsyncIterable<AgentEvent> {
-    const events: AgentEvent[] = [];
     const options: AgentRunOptions =
       typeof optionsOrInput === 'string' ? { input: optionsOrInput } : optionsOrInput;
+    const stop = new AbortController();
+    const queue: AgentEvent[] = [];
+    let wake: (() => void) | undefined;
+    let done = false;
+    let failure: { error: unknown } | undefined;
 
-    const streamPromise = this.run({
+    const running = this.run({
       ...options,
-      onEvent: (evt) => {
-        events.push(evt);
-        if (options.onEvent) options.onEvent(evt);
+      signal: anySignal(options.signal, stop.signal),
+      onEvent: (event) => {
+        queue.push(event);
+        options.onEvent?.(event);
+        wake?.();
       },
-    });
+    })
+      .catch((error: unknown) => {
+        failure = { error };
+      })
+      .finally(() => {
+        done = true;
+        wake?.();
+      });
 
-    let index = 0;
-    while (true) {
-      while (index < events.length) {
-        yield events[index++]!;
+    try {
+      while (true) {
+        while (queue.length > 0) yield queue.shift()!;
+        if (done) break;
+        await new Promise<void>((resolve) => (wake = resolve));
+        wake = undefined;
       }
-      const isDone = await Promise.race([
-        streamPromise.then(() => true),
-        new Promise<boolean>((r) => setTimeout(() => r(false), 20)),
-      ]);
-      if (isDone) {
-        while (index < events.length) {
-          yield events[index++]!;
-        }
-        break;
-      }
+      if (failure) throw failure.error;
+    } finally {
+      stop.abort();
+      await running;
     }
   }
 }

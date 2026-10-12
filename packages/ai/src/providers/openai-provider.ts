@@ -131,6 +131,8 @@ export class OpenAiProvider extends BaseLlmProvider {
     const providerName = this.name;
     const customHeaders = this.customHeaders;
     const organization = this.organization;
+    const toolNames = (options.tools ?? []).map((t: any) => t.name).filter(Boolean);
+    const extractTextToolCalls = (text: string) => this.extractTextToolCalls(text, toolNames);
 
     const generator = async function* (): AsyncGenerator<LlmChunk, void, unknown> {
       const headers: Record<string, string> = {
@@ -164,8 +166,10 @@ export class OpenAiProvider extends BaseLlmProvider {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      let text = '';
+      let sawToolCall = false;
 
-      while (true) {
+      read: while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
@@ -177,21 +181,49 @@ export class OpenAiProvider extends BaseLlmProvider {
           const trimmed = line.trim();
           if (!trimmed || !trimmed.startsWith('data:')) continue;
           const dataStr = trimmed.slice(5).trim();
-          if (dataStr === '[DONE]') return;
+          if (dataStr === '[DONE]') break read;
 
+          let parsed: any;
           try {
-            const parsed = JSON.parse(dataStr);
-            const choice = parsed.choices?.[0];
-            const delta = choice?.delta;
-
-            yield {
-              delta: delta?.content ?? '',
-              finishReason: choice?.finish_reason,
-            };
+            parsed = JSON.parse(dataStr);
           } catch {
-            // ignore malformed SSE
+            continue; // ignore malformed SSE
+          }
+          const choice = parsed.choices?.[0];
+          const delta = choice?.delta;
+          if (delta?.content) {
+            text += delta.content;
+            yield { delta: delta.content };
+          }
+          for (const tc of delta?.tool_calls ?? []) {
+            sawToolCall = true;
+            yield {
+              toolCallDelta: {
+                index: tc.index ?? 0,
+                id: tc.id,
+                name: tc.function?.name,
+                argumentsDelta: tc.function?.arguments,
+              },
+            };
+          }
+          if (choice?.finish_reason) yield { finishReason: choice.finish_reason };
+          if (parsed.usage) {
+            const promptTokens = parsed.usage.prompt_tokens ?? 0;
+            const completionTokens = parsed.usage.completion_tokens ?? 0;
+            yield {
+              usage: {
+                promptTokens,
+                completionTokens,
+                totalTokens: parsed.usage.total_tokens ?? promptTokens + completionTokens,
+              },
+            };
           }
         }
+      }
+
+      // Small local models sometimes write the tool call as text (same fallback as generate()).
+      if (!sawToolCall && toolNames.length > 0 && text) {
+        for (const call of extractTextToolCalls(text)) yield { toolCallDelta: call };
       }
     };
 
@@ -352,6 +384,8 @@ export class OpenAiProvider extends BaseLlmProvider {
       }),
       stream: isStream,
     };
+    // Token usage in the last chunk of a stream (ignored by servers that don't support it).
+    if (isStream) payload.stream_options = { include_usage: true };
 
     if (options.temperature !== undefined) payload.temperature = options.temperature;
     if (options.maxTokens !== undefined) payload.max_tokens = options.maxTokens;

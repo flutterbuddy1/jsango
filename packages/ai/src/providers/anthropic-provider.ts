@@ -122,6 +122,7 @@ export class AnthropicProvider extends BaseLlmProvider {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      let promptTokens = 0;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -136,15 +137,41 @@ export class AnthropicProvider extends BaseLlmProvider {
           if (!trimmed || !trimmed.startsWith('data:')) continue;
           const jsonStr = trimmed.slice(5).trim();
 
+          let event: any;
           try {
-            const event = JSON.parse(jsonStr);
-            if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
-              yield { delta: event.delta.text };
-            } else if (event.type === 'message_delta') {
-              yield { finishReason: event.delta?.stop_reason };
-            }
+            event = JSON.parse(jsonStr);
           } catch {
-            // ignore parse error
+            continue; // ignore parse error
+          }
+          if (event.type === 'message_start') {
+            promptTokens = event.message?.usage?.input_tokens ?? 0;
+          } else if (
+            event.type === 'content_block_start' &&
+            event.content_block?.type === 'tool_use'
+          ) {
+            yield {
+              toolCallDelta: {
+                index: event.index,
+                id: event.content_block.id,
+                name: event.content_block.name,
+              },
+            };
+          } else if (event.type === 'content_block_delta') {
+            if (event.delta?.type === 'text_delta') yield { delta: event.delta.text };
+            else if (event.delta?.type === 'input_json_delta')
+              yield {
+                toolCallDelta: { index: event.index, argumentsDelta: event.delta.partial_json },
+              };
+          } else if (event.type === 'message_delta') {
+            const completionTokens = event.usage?.output_tokens ?? 0;
+            yield {
+              finishReason: event.delta?.stop_reason,
+              usage: {
+                promptTokens,
+                completionTokens,
+                totalTokens: promptTokens + completionTokens,
+              },
+            };
           }
         }
       }

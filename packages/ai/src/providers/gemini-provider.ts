@@ -129,15 +129,36 @@ export class GeminiProvider extends BaseLlmProvider {
           if (!trimmed || !trimmed.startsWith('data:')) continue;
           const jsonStr = trimmed.slice(5).trim();
 
+          let parsed: any;
           try {
-            const parsed = JSON.parse(jsonStr);
-            const candidate = parsed.candidates?.[0];
-            const part = candidate?.content?.parts?.[0];
-            if (part?.text) {
-              yield { delta: part.text };
-            }
+            parsed = JSON.parse(jsonStr);
           } catch {
-            // ignore
+            continue; // ignore
+          }
+          const candidate = parsed.candidates?.[0];
+          for (const part of candidate?.content?.parts ?? []) {
+            if (part.text) yield { delta: part.text };
+            else if (part.functionCall)
+              yield {
+                toolCallDelta: {
+                  id: `call_${Math.random().toString(36).substring(2, 9)}`,
+                  name: part.functionCall.name,
+                  arguments: part.functionCall.args ?? {},
+                },
+              };
+          }
+          if (candidate?.finishReason) yield { finishReason: candidate.finishReason };
+          if (parsed.usageMetadata) {
+            const promptTokens = parsed.usageMetadata.promptTokenCount ?? 0;
+            const completionTokens = parsed.usageMetadata.candidatesTokenCount ?? 0;
+            yield {
+              usage: {
+                promptTokens,
+                completionTokens,
+                totalTokens:
+                  parsed.usageMetadata.totalTokenCount ?? promptTokens + completionTokens,
+              },
+            };
           }
         }
       }

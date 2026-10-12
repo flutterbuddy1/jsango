@@ -18,67 +18,69 @@ export abstract class BaseLlmProvider implements ILlmProvider {
     throw new Error(`Embeddings are not implemented for provider '${this.name}'.`);
   }
 
+  /**
+   * Wraps a chunk generator. The provider request runs once: iterating and `toResponse()` share
+   * it, and `toResponse()` after a full iteration just returns what was collected.
+   */
   protected createStream(generator: () => AsyncGenerator<LlmChunk, void, unknown>): LlmStream {
-    const iterable = generator();
+    let text = '';
+    let finishReason: string | undefined;
+    let usage: LlmUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+    const calls = new Map<
+      string | number,
+      { id: string; name: string; json: string; args?: Record<string, unknown> }
+    >();
+    let started = false;
+
+    async function* chunks(): AsyncGenerator<LlmChunk, void, unknown> {
+      if (started) return;
+      started = true;
+      for await (const chunk of generator()) {
+        if (chunk.delta) text += chunk.delta;
+        if (chunk.finishReason) finishReason = chunk.finishReason;
+        if (chunk.usage) usage = chunk.usage;
+        const d = chunk.toolCallDelta;
+        if (d) {
+          const key = d.index ?? d.id ?? 0;
+          const call = calls.get(key) ?? { id: d.id ?? `call_${calls.size}`, name: '', json: '' };
+          if (d.id) call.id = d.id;
+          if (d.name) call.name = d.name;
+          if (d.argumentsDelta) call.json += d.argumentsDelta;
+          if (d.arguments) call.args = d.arguments;
+          calls.set(key, call);
+        }
+        yield chunk;
+      }
+    }
+
+    const response = (): LlmResponse => {
+      const toolCalls = [...calls.values()].map((c) => {
+        let args = c.args ?? {};
+        if (!c.args && c.json) {
+          try {
+            args = JSON.parse(c.json);
+          } catch {
+            // invalid JSON from the model: the tool's own validation reports it
+          }
+        }
+        return { id: c.id, name: c.name, arguments: args };
+      });
+      return {
+        text,
+        toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+        usage,
+        finishReason,
+      };
+    };
 
     return {
-      [Symbol.asyncIterator]() {
-        return iterable[Symbol.asyncIterator]();
+      [Symbol.asyncIterator]: () => chunks(),
+      async toResponse() {
+        for await (const _ of chunks()); // eslint-disable-line @typescript-eslint/no-unused-vars
+        return response();
       },
-      async toResponse(): Promise<LlmResponse> {
-        let text = '';
-        let finishReason: string | undefined;
-        let usage: LlmUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
-        const toolCallsMap = new Map<string, { id: string; name: string; argumentsStr: string }>();
-
-        for await (const chunk of generator()) {
-          if (chunk.delta) {
-            text += chunk.delta;
-          }
-          if (chunk.finishReason) {
-            finishReason = chunk.finishReason;
-          }
-          if (chunk.usage) {
-            usage = chunk.usage;
-          }
-          if (chunk.toolCallDelta) {
-            const id = chunk.toolCallDelta.id ?? 'call_0';
-            const existing = toolCallsMap.get(id) ?? {
-              id,
-              name: chunk.toolCallDelta.name ?? '',
-              argumentsStr: '',
-            };
-            if (chunk.toolCallDelta.name) existing.name = chunk.toolCallDelta.name;
-            if (chunk.toolCallDelta.arguments) {
-              existing.argumentsStr += JSON.stringify(chunk.toolCallDelta.arguments);
-            }
-            toolCallsMap.set(id, existing);
-          }
-        }
-
-        const toolCalls = Array.from(toolCallsMap.values()).map((tc) => {
-          let parsedArgs = {};
-          try {
-            parsedArgs = tc.argumentsStr ? JSON.parse(tc.argumentsStr) : {};
-          } catch {
-            parsedArgs = {};
-          }
-          return { id: tc.id, name: tc.name, arguments: parsedArgs };
-        });
-
-        return {
-          text,
-          toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
-          usage,
-          finishReason,
-        };
-      },
-      async *toTextStream(): AsyncIterable<string> {
-        for await (const chunk of generator()) {
-          if (chunk.delta) {
-            yield chunk.delta;
-          }
-        }
+      async *toTextStream() {
+        for await (const chunk of chunks()) if (chunk.delta) yield chunk.delta;
       },
     };
   }
@@ -107,13 +109,19 @@ export abstract class BaseLlmProvider implements ILlmProvider {
  * (and its connection) forever.
  */
 export function withTimeout(signal: AbortSignal | undefined, ms: number): AbortSignal {
-  const timeout = AbortSignal.timeout(ms);
-  if (!signal) return timeout;
+  return anySignal(signal, AbortSignal.timeout(ms));
+}
+
+/** Aborts when any of the signals aborts (AbortSignal.any, with a fallback for Node 20.0–20.2). */
+export function anySignal(...signals: Array<AbortSignal | undefined>): AbortSignal {
+  const list = signals.filter((s): s is AbortSignal => s !== undefined);
+  if (list.length === 1) return list[0]!;
   const any = (AbortSignal as { any?: (signals: AbortSignal[]) => AbortSignal }).any;
-  if (any) return any([signal, timeout]);
+  if (any) return any(list);
   const controller = new AbortController();
-  for (const s of [signal, timeout]) {
-    s.addEventListener('abort', () => controller.abort(s.reason), { once: true });
+  for (const s of list) {
+    if (s.aborted) controller.abort(s.reason);
+    else s.addEventListener('abort', () => controller.abort(s.reason), { once: true });
   }
   return controller.signal;
 }

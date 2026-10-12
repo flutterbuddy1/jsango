@@ -77,7 +77,7 @@ app.voiceAgent('/voice', support, {
 app.voiceAgent('/voice', support, { realtime: openaiRealtime() });
 
 // Phone calls: same agent, a different transport.
-app.voiceAgent('/calls/twilio', support, { stt, tts, transport: twilio() });
+app.voiceAgent('/calls/twilio', support, { stt: deepgram(), tts: cartesia(), transport: twilio() });
 await calls.dial('+91…', { agent: support, via: twilio({ from: '+1…' }) }); // outbound
 
 // Observability: one line.

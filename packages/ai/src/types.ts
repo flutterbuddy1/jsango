@@ -32,7 +32,13 @@ export interface LlmResponse<T = string> {
 
 export interface LlmChunk {
   delta?: string | undefined;
-  toolCallDelta?: Partial<LlmToolCall> | undefined;
+  /**
+   * A tool call, whole or in pieces. Pieces with the same `index` (or `id`) are joined:
+   * `argumentsDelta` fragments are concatenated and parsed as JSON at the end.
+   */
+  toolCallDelta?:
+    | (Partial<LlmToolCall> & { index?: number | undefined; argumentsDelta?: string | undefined })
+    | undefined;
   finishReason?: string | undefined;
   usage?: LlmUsage | undefined;
 }

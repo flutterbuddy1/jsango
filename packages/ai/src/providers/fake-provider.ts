@@ -57,12 +57,12 @@ export class FakeLlmProvider extends BaseLlmProvider {
     this.callHistory.push(options);
     const resolved = await this.resolveResponse(options);
 
-    const words = (resolved.text || 'Response').split(' ');
+    const words = resolved.text ? resolved.text.split(' ') : [];
     const toolCalls = resolved.toolCalls;
 
     const generator = async function* (): AsyncGenerator<LlmChunk, void, unknown> {
-      for (const word of words) {
-        yield { delta: `${word} ` };
+      for (let i = 0; i < words.length; i++) {
+        yield { delta: i < words.length - 1 ? `${words[i]} ` : words[i]! };
       }
       if (toolCalls) {
         for (const tc of toolCalls) {

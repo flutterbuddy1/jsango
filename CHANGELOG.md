@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `agent.stream()` now streams real tokens (`message.delta`), as the docs already showed; before,
+  it polled and never emitted deltas. Stopping the iteration cancels the run.
+- OpenAI, Anthropic and Gemini streams now return tool calls and token usage. `toResponse()` no
+  longer sends the request a second time.
+
 - `app.agent()` POST requests no longer end immediately with `status: "cancelled"` and `durationMs: 0`.
   The fix was in the 1.6.0 source but missed the published `@jsango/http@1.6.0`. A test now covers it
   over a real HTTP server.
