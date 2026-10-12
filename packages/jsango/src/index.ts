@@ -152,6 +152,7 @@ export {
   type WebSocketRouteHandlers,
   type RoomSender,
 } from './websocket-wrapper.js';
+export type { VoiceAgentOptions, VoiceEvent } from './voice.js';
 export {
   WebSocketManager,
   WebSocketConnection,

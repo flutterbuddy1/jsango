@@ -137,6 +137,7 @@
         <ul class="sidebar-links">
           <li><a href="#ai-agents" class="sidebar-link">AI Agents & Tool Calling</a></li>
           <li><a href="#ai-providers" class="sidebar-link">LLM Providers (OpenAI, Gemini, Anthropic, Ollama)</a></li>
+          <li><a href="#ai-voice" class="sidebar-link">Realtime Voice Agents</a></li>
           <li><a href="#ai-workflows" class="sidebar-link">Multi-Agent Workflows</a></li>
           <li><a href="#ai-rag" class="sidebar-link">RAG & Vector Search</a></li>
           <li><a href="#ai-mcp" class="sidebar-link">Model Context Protocol (MCP)</a></li>
@@ -2151,6 +2152,43 @@ const bot = agent({ name: 'Assistant', instructions: 'You are helpful' }, myProv
 <span class="hl-kw">const</span> bot = <span class="hl-fn">agent</span>({ name: <span class="hl-str">'Assistant'</span>, instructions: <span class="hl-str">'You are helpful'</span> }, myProvider);</code></pre>
         </div>
         <p><code>provider()</code> gets <code>messages</code> with <code>prompt</code> / <code>system</code> already folded in. For tools, return <code>{ toolCalls: [{ id, name, arguments }] }</code>; the result comes back as a <code>role: 'tool'</code> message. For RAG, pass <code>provider(fn, { embed })</code>. Streaming sends the reply as one chunk; for token-by-token streaming, extend <code>BaseLlmProvider</code>. Register it with <code>ai.registerProvider('mine', myProvider)</code> to use <code>model: 'mine:…'</code>.</p>
+
+        <h3 id="ai-voice">Realtime Voice Agents</h3>
+        <p>The same agent can talk. <code>app.voiceAgent()</code> relays audio between the browser and the OpenAI Realtime API through your server, so the API key stays on the server and tools run with the signed-in user's permissions.</p>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>One agent, text and voice</span>
+            <button class="copy-code-btn copy-trigger" data-copy="const support = agent({
+  instructions: 'You are a friendly support agent. Keep answers short.',
+  tools: {
+    lookupOrder: tool({
+      name: 'lookup_order',
+      description: 'Find an order by its id',
+      input: { orderId: 'A100' },
+      execute: async ({ orderId }) =&gt; ({ orderId, status: 'shipped' }),
+    }),
+  },
+});
+
+app.agent('/api/chat', support, { middleware: [auth.required()] });      // text
+app.voiceAgent('/voice', support, { middleware: [auth.required()] });   // voice (OPENAI_API_KEY)">Copy</button>
+          </div>
+          <pre><code><span class="hl-kw">const</span> support = <span class="hl-fn">agent</span>({
+  instructions: <span class="hl-str">'You are a friendly support agent. Keep answers short.'</span>,
+  tools: {
+    lookupOrder: <span class="hl-fn">tool</span>({
+      name: <span class="hl-str">'lookup_order'</span>,
+      description: <span class="hl-str">'Find an order by its id'</span>,
+      input: { orderId: <span class="hl-str">'A100'</span> },
+      execute: <span class="hl-kw">async</span> ({ orderId }) =&gt; ({ orderId, status: <span class="hl-str">'shipped'</span> }),
+    }),
+  },
+});
+
+app.<span class="hl-fn">agent</span>(<span class="hl-str">'/api/chat'</span>, support, { middleware: [auth.<span class="hl-fn">required</span>()] });      <span class="hl-comm">// text</span>
+app.<span class="hl-fn">voiceAgent</span>(<span class="hl-str">'/voice'</span>, support, { middleware: [auth.<span class="hl-fn">required</span>()] });   <span class="hl-comm">// voice (OPENAI_API_KEY)</span></code></pre>
+        </div>
+        <p>The browser sends PCM16 24&nbsp;kHz microphone audio as binary frames and plays the binary frames it gets back. When the user talks over the agent, the reply is cancelled, the model's memory is cut to what was actually heard, and tool calls from the cancelled reply never run. Events include transcripts, tool calls, token usage and time to first audio. Full protocol and limits are in <code>docs/ai/voice.md</code>; a runnable browser client is in <code>examples/voice-agent</code>.</p>
       </section>
 
       <hr class="doc-divider">
@@ -3249,6 +3287,7 @@ app.<span class="hl-fn">openapi</span>({
         <li><a href="#admin-dashboards" class="toc-link">Admin Dashboards</a></li>
         <li><a href="#ai-agents" class="toc-link">AI Agents &amp; Tools</a></li>
         <li><a href="#ai-providers" class="toc-link">LLM Providers</a></li>
+        <li><a href="#ai-voice" class="toc-link">Realtime Voice</a></li>
         <li><a href="#ai-workflows" class="toc-link">Multi-Agent Workflows</a></li>
         <li><a href="#ai-rag" class="toc-link">RAG &amp; Vector Search</a></li>
         <li><a href="#ai-mcp" class="toc-link">MCP Protocol</a></li>

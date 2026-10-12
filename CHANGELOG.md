@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `app.voiceAgent(path, agent)`: realtime voice for the same agent (instructions and tools) used for
+  text, through the OpenAI Realtime API. The API key stays on the server, tools run with the
+  user's permissions, interruption truncates the reply to what was heard, and audio or tool calls
+  from cancelled replies are dropped. Includes usage and first-audio latency. Browser example
+  in [examples/voice-agent](examples/voice-agent). See [Realtime Voice Agents](docs/ai/voice.md).
+- `agent.instructionsFor(context)` and `agent.callTool(name, args, context)` (used by voice;
+  `callTool` runs the same permission and approval checks as `run()`).
+
 - Token-efficient agent memory: old tool calls/results are no longer re-sent (only the latest
   turn keeps them), RAG context is no longer saved into history, and history has a token budget
   (`agent({ history: { maxTokens } })`, default 4000). `history: { summarize: true }` folds dropped

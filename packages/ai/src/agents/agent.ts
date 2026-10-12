@@ -13,7 +13,7 @@ import type {
 import { GuardrailViolationError } from '../errors.js';
 import { ModelRouter } from '../providers/model-router.js';
 import { tool } from '../tools/tool.js';
-import { ToolExecutor } from '../tools/tool-executor.js';
+import { ToolExecutor, type ToolExecutionResult } from '../tools/tool-executor.js';
 import { InMemoryMemoryStore, compactHistory } from '../memory/memory.js';
 
 let defaultRouter: ModelRouter | null = null;
@@ -66,6 +66,46 @@ export class Agent<TOutput = string> {
     return Array.from(this.tools.values());
   }
 
+  /** The system prompt for this context (static or computed per user). */
+  public async instructionsFor(context: AgentContext = {}): Promise<string> {
+    const { instructions } = this.config;
+    return (typeof instructions === 'function' ? await instructions(context) : instructions) ?? '';
+  }
+
+  /**
+   * Runs one tool call with the same permission and approval checks as `run()`. Never throws:
+   * an unknown tool or a denied permission comes back as `error`.
+   */
+  public async callTool(
+    name: string,
+    args: Record<string, unknown>,
+    context: AgentContext = {}
+  ): Promise<ToolExecutionResult> {
+    const target = this.tools.get(name);
+    if (!target)
+      return { toolName: name, input: args, error: `Tool '${name}' not found.`, durationMs: 0 };
+    try {
+      return await ToolExecutor.execute({
+        tool: target,
+        arguments: args,
+        context: {
+          user: context.user,
+          tenantId: context.tenantId,
+          conversationId: context.conversationId,
+          requestId: context.requestId,
+          signal: context.signal,
+        },
+      });
+    } catch (err) {
+      return {
+        toolName: name,
+        input: args,
+        error: err instanceof Error ? err.message : String(err),
+        durationMs: 0,
+      };
+    }
+  }
+
   public async run(optionsOrInput: AgentRunOptions | string): Promise<AgentRunResult<TOutput>> {
     const options: AgentRunOptions =
       typeof optionsOrInput === 'string' ? { input: optionsOrInput } : optionsOrInput;
@@ -102,12 +142,7 @@ export class Agent<TOutput = string> {
     }
 
     // 2. Resolve instructions
-    let instructions = '';
-    if (typeof this.config.instructions === 'function') {
-      instructions = await this.config.instructions(context);
-    } else if (this.config.instructions) {
-      instructions = this.config.instructions;
-    }
+    let instructions = await this.instructionsFor(context);
 
     // 3. Prepare messages & memory
     // History is isolated per tenant and user, so two users can never read each other's

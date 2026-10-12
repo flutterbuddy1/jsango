@@ -54,6 +54,7 @@ import {
   type RoomSender,
   type WebSocketRouteCallback,
 } from './websocket-wrapper.js';
+import { startVoiceSession, type VoiceAgentOptions } from './voice.js';
 
 export type CrudOperation = 'list' | 'detail' | 'create' | 'update' | 'delete';
 
@@ -1270,6 +1271,20 @@ export class JSangoApplication {
     });
 
     return this;
+  }
+
+  /**
+   * Mounts an agent as a realtime voice endpoint (OpenAI Realtime API, relayed through this server
+   * so the API key never reaches the browser). Same instructions and tools as `run()`; tools run
+   * here with the connected user's permissions. Send PCM16 24 kHz audio as binary frames after
+   * the `ready` event. See docs/ai/voice.md.
+   */
+  public voiceAgent(path: string, targetAgent: Agent, options: VoiceAgentOptions = {}): this {
+    return this.ws(path, ...(options.middleware ?? []), {
+      open: (socket: ISimpleWebSocket) =>
+        startVoiceSession(socket, targetAgent, options, this.isProduction),
+      maxPayload: 256 * 1024, // ~5 s of audio per frame
+    });
   }
 
   /**

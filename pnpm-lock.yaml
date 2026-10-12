@@ -230,6 +230,12 @@ importers:
         specifier: workspace:*
         version: link:../../packages/jsango
 
+  examples/voice-agent:
+    dependencies:
+      jsango:
+        specifier: workspace:*
+        version: link:../../packages/jsango
+
   packages/admin-audit:
     dependencies:
       '@jsango/admin-core':
