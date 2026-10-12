@@ -56,6 +56,15 @@ export interface RealtimeAdapter {
     history: LlmMessage[];
     signal: AbortSignal;
   }): Promise<RealtimeConnection>;
+  /**
+   * WebRTC (optional): turns the browser's SDP offer into the provider's SDP answer, and returns
+   * a server-side control connection to the same call (tools, transcripts, usage). Audio flows
+   * between the browser and the provider directly.
+   */
+  webrtc?(
+    offerSdp: string,
+    options: Parameters<RealtimeAdapter['connect']>[0]
+  ): Promise<{ answer: string; callId: string; connection: RealtimeConnection }>;
 }
 
 export interface RealtimeConnection {

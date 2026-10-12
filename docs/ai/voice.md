@@ -160,6 +160,43 @@ errors go to `onEvent`).
 A working browser client (microphone, playback, interruption) is in
 [examples/voice-agent/client.html](../../examples/voice-agent/client.html).
 
+## WebRTC (lowest latency, speech-to-speech)
+
+With `app.webrtcAgent()`, the browser streams audio over WebRTC (Opus, jitter buffering, echo
+cancellation) **directly to the provider**. Your server creates the call with its own API key and
+keeps a control connection to it, where the agent's tools run with the user's permissions and
+transcripts, usage and the time limit are handled. The key never reaches the browser.
+
+```typescript
+app.webrtcAgent('/voice/rtc', support, {
+  realtime: openaiRealtime({ voice: 'marin' }),
+  middleware: [auth.required()], // every offer starts a paid call
+});
+```
+
+Browser:
+
+```javascript
+const pc = new RTCPeerConnection();
+const player = new Audio();
+player.autoplay = true;
+pc.ontrack = (e) => (player.srcObject = e.streams[0]);
+const mic = await navigator.mediaDevices.getUserMedia({ audio: true });
+pc.addTrack(mic.getTracks()[0]);
+pc.createDataChannel('oai-events'); // provider events (transcripts) for the page, optional
+await pc.setLocalDescription(await pc.createOffer());
+const res = await fetch('/voice/rtc', {
+  method: 'POST',
+  body: pc.localDescription.sdp,
+  headers: { 'Content-Type': 'application/sdp' },
+});
+await pc.setRemoteDescription({ type: 'answer', sdp: await res.text() });
+```
+
+Interruptions are handled by the provider. When the session ends (time limit, or the user
+closing the page), the call is hung up. Supported by `openaiRealtime()`. The pipeline mode (any
+LLM, STT and TTS) uses WebSocket or phone transports.
+
 ## Using a Session Without HTTP
 
 `VoiceSession` is transport-independent. Feed it audio and send its output anywhere (phone
@@ -189,7 +226,8 @@ microphone.on('data', (pcm: Int16Array) => session.audio(pcm));
 
 ## Not Supported Yet
 
-- Phone calls and WebRTC transports (planned; see `docs/roadmap/ai-voice-platform.md`).
+- WebRTC for pipeline mode: server-side WebRTC (so any STT/TTS works over WebRTC) needs a media
+  stack (Opus, DTLS/SRTP) and is planned as an optional package.
 - Approval-required tools in voice: the agent says the action needs approval in the app.
 - Gemini Live has no cancel or truncate call. An interrupted reply is dropped on our side, but
   Gemini's own memory may keep the full reply.

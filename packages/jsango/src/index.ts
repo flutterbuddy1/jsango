@@ -152,7 +152,7 @@ export {
   type WebSocketRouteHandlers,
   type RoomSender,
 } from './websocket-wrapper.js';
-export type { VoiceAgentOptions, VoiceRouteEvent } from './voice.js';
+export type { VoiceAgentOptions, VoiceRouteEvent, WebRtcAgentOptions } from './voice.js';
 export { aiWidgets, aiAdminPage, recordTo, type AiWidgetOptions } from './ai-admin.js';
 export {
   twilio,

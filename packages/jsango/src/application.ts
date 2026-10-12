@@ -60,7 +60,12 @@ import {
   type RoomSender,
   type WebSocketRouteCallback,
 } from './websocket-wrapper.js';
-import { startVoiceSession, type VoiceAgentOptions } from './voice.js';
+import {
+  answerWebRtcOffer,
+  startVoiceSession,
+  type VoiceAgentOptions,
+  type WebRtcAgentOptions,
+} from './voice.js';
 import { phoneRoutes, type PhoneAgentOptions, type PhoneLine } from './phone.js';
 
 export type CrudOperation = 'list' | 'detail' | 'create' | 'update' | 'delete';
@@ -1279,6 +1284,20 @@ export class JSangoApplication {
     });
 
     return this;
+  }
+
+  /**
+   * Voice over WebRTC: the browser POSTs its SDP offer to `path` and gets the answer back; audio
+   * then flows between the browser and the provider directly (lowest latency), while this server
+   * runs the agent's tools, memory and insights on a control connection. The API key never
+   * reaches the browser. Needs an adapter with WebRTC support, e.g. `openaiRealtime()`.
+   */
+  public webrtcAgent(path: string, targetAgent: Agent, options: WebRtcAgentOptions): this {
+    if (!options.realtime?.webrtc)
+      throw new Error(`'${options.realtime?.name}' does not support WebRTC; use app.voiceAgent().`);
+    return this.post(path, ...(options.middleware ?? []), (ctx: RequestContext) =>
+      answerWebRtcOffer(ctx, targetAgent, options)
+    );
   }
 
   /**

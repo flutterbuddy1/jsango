@@ -22,6 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- WebRTC voice: `app.webrtcAgent(path, agent, { realtime: openaiRealtime() })` takes the
+  browser's SDP offer and creates the call with the server's key. Audio flows browser ↔ provider
+  directly; tools, memory, insights and the time limit (hang-up) run on a server-side control
+  connection.
+
 - AI in the admin: `aiWidgets(insights)` / `aiAdminPage(insights)` add usage, cost, latency,
   error, chart and recent-call widgets (with transcripts and a recording player), behind the
   `ai.insights.view` permission. Admin tables render `audioCell()`, `linkCell()` and

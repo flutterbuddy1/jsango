@@ -1,6 +1,6 @@
 # Plan: Vendor-Neutral Voice Agents, Calling, and AI Insights
 
-Status: proposal (2026-10-12). Branch `feat/ai-provider-memory-voice` has the first slice:
+Status (2026-10-12): phases 0–5 implemented; phase 6 partly implemented (WebRTC for speech-to-speech via `app.webrtcAgent()`; server-side WebRTC media for pipeline mode is still open). Branch `feat/ai-provider-memory-voice` has the first slice:
 `provider()`, token-efficient memory, and `app.voiceAgent()` on OpenAI Realtime.
 
 ## Goals

@@ -1,8 +1,12 @@
+import { randomUUID } from 'node:crypto';
+import { getIdentity } from '@jsango/auth';
+import { BadRequestError, HttpResponse, type RequestContext } from '@jsango/http';
 import {
   VoiceSession,
   pcmFromBytes,
   pcmToBytes,
   type Agent,
+  type RealtimeAdapter,
   type VoiceEvent,
   type VoiceOptions,
 } from '@jsango/ai';
@@ -102,4 +106,81 @@ export function startVoiceSession(
     mode: options.realtime ? 'realtime' : 'pipeline',
   });
   void session.start();
+}
+
+export interface WebRtcAgentOptions {
+  /** A speech-to-speech adapter that supports WebRTC, e.g. `openaiRealtime()`. */
+  readonly realtime: RealtimeAdapter;
+  /** Route middleware: use auth. Every accepted offer starts a paid call. */
+  readonly middleware?: readonly RouteArg[] | undefined;
+  readonly maxSteps?: number | undefined;
+  /** Hard limit on one call; the call is hung up. Default 10 minutes. */
+  readonly maxSessionMs?: number | undefined;
+  readonly onEvent?: ((event: VoiceRouteEvent) => void) | undefined;
+}
+
+/**
+ * Handles one browser SDP offer: the browser streams audio to the provider over WebRTC, and this
+ * server keeps a control connection to the same call for tools, memory and insights.
+ */
+export async function answerWebRtcOffer(
+  ctx: RequestContext,
+  agent: Agent,
+  options: WebRtcAgentOptions
+): Promise<HttpResponse> {
+  const offer = await ctx.request.text();
+  if (!offer.startsWith('v=0') || offer.length > 64_000)
+    throw new BadRequestError(
+      'Send the SDP offer as the request body (Content-Type: application/sdp).'
+    );
+  const identity = getIdentity(ctx);
+  const user = identity.isAuthenticated ? identity : undefined;
+  const id = randomUUID();
+  const startedAt = Date.now();
+  let answer: string | undefined;
+  const adapter = options.realtime;
+
+  const session = new VoiceSession(
+    agent,
+    {
+      maxSteps: options.maxSteps,
+      maxSessionMs: options.maxSessionMs,
+      // The call is created with the browser's offer; the session runs on its control connection.
+      realtime: {
+        ...adapter,
+        connect: async (o) => {
+          const call = await adapter.webrtc!(offer, o);
+          answer = call.answer;
+          return call.connection;
+        },
+      },
+    },
+    {
+      context: {
+        user,
+        tenantId: user?.tenantId,
+        conversationId: user ? 'webrtc' : id,
+        requestId: ctx.requestId,
+      },
+      inputRate: 24000,
+      outputRate: 24000,
+      output: {
+        audio: () => undefined, // audio goes browser <-> provider directly
+        event: (event) => options.onEvent?.(event),
+        clear: () => undefined,
+        close: (reason) =>
+          options.onEvent?.({
+            type: 'session.closed',
+            sessionId: id,
+            reason,
+            durationMs: Date.now() - startedAt,
+          }),
+      },
+    }
+  );
+  options.onEvent?.({ type: 'session.started', sessionId: id, mode: 'realtime' });
+  await session.start();
+  if (answer === undefined)
+    return HttpResponse.json({ error: 'Could not start the call.' }, { status: 502 });
+  return new HttpResponse(answer, { headers: { 'content-type': 'application/sdp' } });
 }
