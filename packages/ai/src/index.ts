@@ -145,3 +145,15 @@ export {
   type CartesiaOptions,
   type DeepgramOptions,
 } from './voice/providers.js';
+
+// Insights: usage, cost, latency, calls.
+export { observeAi, type AiRecord } from './insights/events.js';
+export {
+  Insights,
+  createInsights,
+  type InsightsOptions,
+  type InsightsSummary,
+  type Prices,
+  type TimeRange,
+} from './insights/insights.js';
+export { MemoryInsightsStore, SqlInsightsStore, type InsightsStore } from './insights/store.js';

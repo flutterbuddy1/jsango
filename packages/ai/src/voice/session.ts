@@ -1,4 +1,6 @@
+import { randomUUID } from 'node:crypto';
 import type { Agent } from '../agents/agent.js';
+import { reportAi, userIdOf } from '../insights/events.js';
 import type { AgentContext, LlmMessage } from '../types.js';
 import { durationMs, resample } from './audio.js';
 import { sentences } from './chunker.js';
@@ -66,7 +68,17 @@ interface Turn {
  * Either way the agent's instructions, tools, permissions and memory are the ones `run()` uses.
  */
 export class VoiceSession {
+  /** Id of this call in insights records. */
+  public readonly id = randomUUID();
   private readonly abort = new AbortController();
+  private readonly startedAt = Date.now();
+  private audioInMs = 0;
+  private audioOutMs = 0;
+  private readonly transcript: Array<{
+    role: 'user' | 'assistant';
+    text: string;
+    interrupted?: boolean | undefined;
+  }> = [];
   private readonly agent: Agent;
   private readonly options: VoiceOptions;
   private readonly init: VoiceSessionInit;
@@ -126,15 +138,49 @@ export class VoiceSession {
   }
 
   private get context(): AgentContext {
-    return { ...this.init.context, signal: this.abort.signal };
+    return {
+      ...this.init.context,
+      signal: this.abort.signal,
+      metadata: { ...this.init.context.metadata, channel: 'voice', callId: this.id },
+    };
   }
 
   private emit(event: VoiceEvent): void {
-    if (!this.closed) this.init.output.event(event);
+    if (this.closed) return;
+    if (event.type === 'transcript' && event.text)
+      this.transcript.push({ role: event.role, text: event.text, interrupted: event.interrupted });
+    if (event.type === 'response.done')
+      reportAi({
+        type: 'turn',
+        callId: this.id,
+        at: Date.now(),
+        status: event.status,
+        latency: event.latency,
+        usage: event.usage,
+      });
+    this.init.output.event(event);
+  }
+
+  private sendAudio(pcm: Int16Array): void {
+    this.audioOutMs += durationMs(pcm.length, this.init.outputRate);
+    this.init.output.audio(pcm);
   }
 
   /** Connects the providers; emits `ready` when audio can flow. */
   public async start(): Promise<void> {
+    const o = this.options;
+    reportAi({
+      type: 'call.started',
+      id: this.id,
+      at: this.startedAt,
+      agent: this.agent.name,
+      mode: o.realtime ? 'realtime' : 'pipeline',
+      providers: o.realtime
+        ? { realtime: o.realtime.name }
+        : { stt: o.stt!.name, tts: o.tts!.name },
+      userId: userIdOf(this.init.context.user),
+      tenantId: this.init.context.tenantId,
+    });
     try {
       if (this.options.realtime) await this.startRealtime(this.options.realtime);
       else this.startPipeline();
@@ -147,6 +193,7 @@ export class VoiceSession {
   /** Microphone audio, PCM16 mono at `inputRate`. */
   public audio(pcm: Int16Array): void {
     if (this.closed || pcm.length === 0) return;
+    this.audioInMs += durationMs(pcm.length, this.init.inputRate);
     if (this.conn) {
       this.conn.sendAudio(resample(pcm, this.init.inputRate, this.options.realtime!.inputRate));
       return;
@@ -189,6 +236,16 @@ export class VoiceSession {
     this.abort.abort();
     this.sttAudio?.end();
     this.conn?.close();
+    reportAi({
+      type: 'call.ended',
+      id: this.id,
+      at: Date.now(),
+      reason,
+      durationMs: Date.now() - this.startedAt,
+      audioInMs: Math.round(this.audioInMs),
+      audioOutMs: Math.round(this.audioOutMs),
+      transcript: this.transcript,
+    });
     this.init.output.close(reason);
   }
 
@@ -372,7 +429,7 @@ export class VoiceSession {
       if (!turn.spoken.includes(segment)) turn.spoken.push(segment);
       segment.ms += ms;
       this.playbackEndsAt = Math.max(this.playbackEndsAt, Date.now()) + ms;
-      this.init.output.audio(out);
+      this.sendAudio(out);
     };
 
     const pieces = sentences(tokens);
@@ -470,7 +527,7 @@ export class VoiceSession {
         if (this.dropped.has(event.responseId)) return;
         if (this.realtimeFirstAudio === undefined && this.userEndedAt !== undefined)
           this.realtimeFirstAudio = Date.now() - this.userEndedAt;
-        return this.init.output.audio(
+        return this.sendAudio(
           resample(event.pcm, this.options.realtime!.outputRate, this.init.outputRate)
         );
       case 'transcript.delta':

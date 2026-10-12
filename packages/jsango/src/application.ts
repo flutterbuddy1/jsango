@@ -47,7 +47,13 @@ import { AdminMediaManager, LocalDiskMediaStorage, type IMediaStorage } from '@j
 import { Auth, getIdentity, type AuthStore } from '@jsango/auth';
 import { createAdminUiHandler } from '@jsango/admin-ui';
 import { OpenApiRegistry, OpenApiGenerator } from '@jsango/openapi';
-import { Agent, type AgentRunResult } from '@jsango/ai';
+import {
+  Agent,
+  createInsights,
+  type AgentRunResult,
+  type Insights,
+  type InsightsOptions,
+} from '@jsango/ai';
 import {
   WebSocketEndpointManager,
   type ISimpleWebSocket,
@@ -310,6 +316,7 @@ function parseRouteArgs(args: readonly RouteArg[]): {
 export class JSangoApplication {
   public readonly app: MiddlewareApplication;
   private readonly wsManager = new WebSocketEndpointManager();
+  private aiInsightsInstance: Insights | undefined;
   private readonly openapiRegistry = new OpenApiRegistry();
   private isProduction: boolean;
 
@@ -1271,6 +1278,22 @@ export class JSangoApplication {
     });
 
     return this;
+  }
+
+  /**
+   * Records every agent run and voice call (tokens, cost, latency, errors) for dashboards and the
+   * admin. `app.aiInsights({ store: db, prices })`; with no store, records stay in memory.
+   * Prompts, answers and transcripts are only stored with `captureContent: true`.
+   */
+  public aiInsights(options?: InsightsOptions): Insights {
+    this.aiInsightsInstance?.stop();
+    this.aiInsightsInstance = createInsights(options);
+    return this.aiInsightsInstance;
+  }
+
+  /** The insights started with `app.aiInsights()`, if any. */
+  public get insights(): Insights | undefined {
+    return this.aiInsightsInstance;
   }
 
   /**

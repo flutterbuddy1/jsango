@@ -14,6 +14,9 @@ import type {
 import { GuardrailViolationError } from '../errors.js';
 import { ModelRouter } from '../providers/model-router.js';
 import { anySignal } from '../providers/base-provider.js';
+import { hasAiObservers, reportAi, userIdOf } from '../insights/events.js';
+
+type AiRunStatus = 'completed' | 'paused' | 'cancelled' | 'failed';
 import { tool } from '../tools/tool.js';
 import { ToolExecutor, type ToolExecutionResult } from '../tools/tool-executor.js';
 import { InMemoryMemoryStore, compactHistory } from '../memory/memory.js';
@@ -113,6 +116,52 @@ export class Agent<TOutput = string> {
       typeof optionsOrInput === 'string' ? { input: optionsOrInput } : optionsOrInput;
     const runId = `run_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const startTime = Date.now();
+    if (!hasAiObservers()) return this.execute(options, runId, startTime);
+
+    const context = options.context ?? {};
+    const report = (
+      status: AiRunStatus,
+      usage: LlmUsage,
+      output: string,
+      toolCalls: number,
+      error?: string
+    ) =>
+      reportAi({
+        type: 'run',
+        id: runId,
+        at: startTime,
+        agent: this.name,
+        provider: this.provider.name,
+        model: this.config.model,
+        channel: context.metadata?.['channel'] === 'voice' ? 'voice' : 'text',
+        callId: context.metadata?.['callId'] as string | undefined,
+        userId: userIdOf(context.user),
+        tenantId: context.tenantId,
+        conversationId: context.conversationId,
+        status,
+        usage,
+        durationMs: Date.now() - startTime,
+        toolCalls,
+        error,
+        input: options.input,
+        output,
+      });
+    try {
+      const result = await this.execute(options, runId, startTime);
+      report(result.status, result.usage, result.text, result.toolCalls.length);
+      return result;
+    } catch (err) {
+      const usage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+      report('failed', usage, '', 0, err instanceof Error ? err.message : String(err));
+      throw err;
+    }
+  }
+
+  private async execute(
+    options: AgentRunOptions,
+    runId: string,
+    startTime: number
+  ): Promise<AgentRunResult<TOutput>> {
     const context: AgentContext = options.context ?? {};
     const maxSteps = options.maxSteps ?? this.config.maxSteps ?? 10;
     const toolCallRecords: Array<{

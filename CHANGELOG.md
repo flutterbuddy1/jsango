@@ -22,6 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- AI insights: `app.aiInsights({ store: db, prices })` records every agent run and voice call
+  (tokens, cost from your price table, latency per turn, interruptions, audio minutes, errors) in
+  `ai_runs` / `ai_calls` / `ai_turns`, or in memory. Query with `summary()`, `series()`, `runs()`,
+  `calls()`, `call(id)`; optional Prometheus metrics; `observeAi()` for custom sinks. Content is
+  not stored unless `captureContent: true`; 30-day retention. See [AI Insights](docs/ai/insights.md).
+
 - Voice agents with any models: `app.voiceAgent(path, agent, { stt, tts })` runs speech-to-text →
   the agent's own LLM (any provider) → text-to-speech, all streaming (answers are spoken sentence by
   sentence while the LLM writes). Barge-in aborts the LLM and speech calls and keeps only what the
