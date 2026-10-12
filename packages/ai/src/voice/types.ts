@@ -45,8 +45,10 @@ export interface Tts {
 /** Speech-to-speech providers (OpenAI Realtime, Gemini Live, ...). */
 export interface RealtimeAdapter {
   readonly name: string;
-  /** PCM16 rate for both directions. */
-  readonly sampleRate: number;
+  /** PCM16 rate of audio sent to the provider. */
+  readonly inputRate: number;
+  /** PCM16 rate of audio the provider returns. */
+  readonly outputRate: number;
   connect(options: {
     instructions: string;
     tools: ToolDefinition[];

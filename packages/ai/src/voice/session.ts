@@ -148,7 +148,7 @@ export class VoiceSession {
   public audio(pcm: Int16Array): void {
     if (this.closed || pcm.length === 0) return;
     if (this.conn) {
-      this.conn.sendAudio(resample(pcm, this.init.inputRate, this.options.realtime!.sampleRate));
+      this.conn.sendAudio(resample(pcm, this.init.inputRate, this.options.realtime!.inputRate));
       return;
     }
     this.pipelineAudio(pcm);
@@ -208,9 +208,11 @@ export class VoiceSession {
             sampleRate: this.sttRate,
             signal: this.abort.signal,
           })) {
-            if (!r.final || !r.text.trim()) continue;
-            this.pending = `${this.pending} ${r.text.trim()}`.trim();
+            if (r.final && r.text.trim()) {
+              this.pending = `${this.pending} ${r.text.trim()}`.trim();
+            } else if (!r.endOfTurn) continue;
             clearTimeout(this.finalTimer);
+            if (!this.pending) continue;
             if (r.endOfTurn || (this.userEndedAt && !this.vad.speaking)) this.endTurn();
             // Neither the provider nor silence detection ended the turn: don't wait forever.
             else this.finalTimer = setTimeout(() => this.endTurn(), 1500);
@@ -469,7 +471,7 @@ export class VoiceSession {
         if (this.realtimeFirstAudio === undefined && this.userEndedAt !== undefined)
           this.realtimeFirstAudio = Date.now() - this.userEndedAt;
         return this.init.output.audio(
-          resample(event.pcm, this.options.realtime!.sampleRate, this.init.outputRate)
+          resample(event.pcm, this.options.realtime!.outputRate, this.init.outputRate)
         );
       case 'transcript.delta':
         if (!this.dropped.has(event.responseId))

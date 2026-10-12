@@ -20,7 +20,8 @@ export interface OpenAiRealtimeOptions {
 export function openaiRealtime(options: OpenAiRealtimeOptions = {}): RealtimeAdapter {
   return {
     name: 'openai-realtime',
-    sampleRate: 24000,
+    inputRate: 24000,
+    outputRate: 24000,
     async connect({ instructions, tools, history, signal }): Promise<RealtimeConnection> {
       const apiKey = options.apiKey ?? process.env['OPENAI_API_KEY'];
       if (!apiKey) throw new Error('OPENAI_API_KEY is not set');

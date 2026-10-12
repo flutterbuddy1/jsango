@@ -128,6 +128,20 @@ export {
   pcmFromBytes,
   pcmToBytes,
   durationMs,
+  wav,
 } from './voice/audio.js';
 export { sentences } from './voice/chunker.js';
 export { EnergyVad, type VadOptions } from './voice/vad.js';
+export { geminiLive, type GeminiLiveOptions } from './voice/gemini-live.js';
+export {
+  openaiStt,
+  openaiTts,
+  elevenlabs,
+  cartesia,
+  deepgram,
+  type OpenAiSttOptions,
+  type OpenAiTtsOptions,
+  type ElevenLabsOptions,
+  type CartesiaOptions,
+  type DeepgramOptions,
+} from './voice/providers.js';

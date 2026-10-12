@@ -2154,7 +2154,7 @@ const bot = agent({ name: 'Assistant', instructions: 'You are helpful' }, myProv
         <p><code>provider()</code> gets <code>messages</code> with <code>prompt</code> / <code>system</code> already folded in. For tools, return <code>{ toolCalls: [{ id, name, arguments }] }</code>; the result comes back as a <code>role: 'tool'</code> message. For RAG, pass <code>provider(fn, { embed })</code>. Streaming sends the reply as one chunk; for token-by-token streaming, extend <code>BaseLlmProvider</code>. Register it with <code>ai.registerProvider('mine', myProvider)</code> to use <code>model: 'mine:…'</code>.</p>
 
         <h3 id="ai-voice">Realtime Voice Agents</h3>
-        <p>The same agent can talk. <code>app.voiceAgent()</code> relays audio between the browser and the OpenAI Realtime API through your server, so the API key stays on the server and tools run with the signed-in user's permissions.</p>
+        <p>The same agent can talk, with any models you choose: pick a speech-to-text and a text-to-speech (built-in adapters, self-hosted models, or one function each with <code>stt(fn)</code> / <code>tts(fn)</code>) and the agent's own LLM does the thinking. Or use a speech-to-speech provider (<code>openaiRealtime()</code>, <code>geminiLive()</code>). API keys stay on the server, and tools run with the signed-in user's permissions.</p>
         <div class="code-box">
           <div class="code-box-header">
             <span>One agent, text and voice</span>
@@ -2171,7 +2171,11 @@ const bot = agent({ name: 'Assistant', instructions: 'You are helpful' }, myProv
 });
 
 app.agent('/api/chat', support, { middleware: [auth.required()] });      // text
-app.voiceAgent('/voice', support, { middleware: [auth.required()] });   // voice (OPENAI_API_KEY)">Copy</button>
+app.voiceAgent('/voice', support, {                                    // voice, any models
+  middleware: [auth.required()],
+  stt: deepgram(),
+  tts: openaiTts({ voice: 'marin' }),
+});">Copy</button>
           </div>
           <pre><code><span class="hl-kw">const</span> support = <span class="hl-fn">agent</span>({
   instructions: <span class="hl-str">'You are a friendly support agent. Keep answers short.'</span>,
@@ -2186,9 +2190,13 @@ app.voiceAgent('/voice', support, { middleware: [auth.required()] });   // voice
 });
 
 app.<span class="hl-fn">agent</span>(<span class="hl-str">'/api/chat'</span>, support, { middleware: [auth.<span class="hl-fn">required</span>()] });      <span class="hl-comm">// text</span>
-app.<span class="hl-fn">voiceAgent</span>(<span class="hl-str">'/voice'</span>, support, { middleware: [auth.<span class="hl-fn">required</span>()] });   <span class="hl-comm">// voice (OPENAI_API_KEY)</span></code></pre>
+app.<span class="hl-fn">voiceAgent</span>(<span class="hl-str">'/voice'</span>, support, {                                    <span class="hl-comm">// voice, any models</span>
+  middleware: [auth.<span class="hl-fn">required</span>()],
+  stt: <span class="hl-fn">deepgram</span>(),
+  tts: <span class="hl-fn">openaiTts</span>({ voice: <span class="hl-str">'marin'</span> }),
+});</code></pre>
         </div>
-        <p>The browser sends PCM16 24&nbsp;kHz microphone audio as binary frames and plays the binary frames it gets back. When the user talks over the agent, the reply is cancelled, the model's memory is cut to what was actually heard, and tool calls from the cancelled reply never run. Events include transcripts, tool calls, token usage and time to first audio. Full protocol and limits are in <code>docs/ai/voice.md</code>; a runnable browser client is in <code>examples/voice-agent</code>.</p>
+        <p>The LLM's answer is spoken sentence by sentence while it is still being written, for low latency. When the user talks over the agent, the LLM and speech calls are aborted, memory keeps only what was actually heard, and tool calls from the cancelled reply never run. Events include transcripts, tool calls, token usage and time to first audio. Full protocol and limits are in <code>docs/ai/voice.md</code>; a runnable browser client is in <code>examples/voice-agent</code>.</p>
       </section>
 
       <hr class="doc-divider">

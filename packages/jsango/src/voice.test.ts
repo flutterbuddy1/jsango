@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { WebSocket, WebSocketServer } from 'ws';
-import { createApp, agent, tool, FakeLlmProvider, openaiRealtime } from './index.js';
+import { createApp, agent, tool, stt, tts, FakeLlmProvider, openaiRealtime } from './index.js';
 
 const cleanup: (() => Promise<void> | void)[] = [];
 afterEach(async () => {
@@ -207,6 +207,41 @@ describe('app.voiceAgent', () => {
     const closed = new Promise<number>((r) => ws.once('close', (code) => r(code)));
     upstream.hangUp();
     expect(await closed).toBe(1000);
+  });
+
+  it('pipeline mode end to end: any LLM, any speech-to-text and text-to-speech', async () => {
+    const app = createApp();
+    const routeEvents: string[] = [];
+    app.voiceAgent('/voice', agent({ provider: new FakeLlmProvider().respond('Hello there.') }), {
+      stt: stt(async () => 'hi'),
+      tts: tts(async () => new Int16Array(800).fill(7), { sampleRate: 16000 }),
+      onEvent: (e) => routeEvents.push(e.type),
+    });
+    const server = await app.listen(0, '127.0.0.1');
+    cleanup.push(() => server.close());
+    const ws = new WebSocket(`ws://127.0.0.1:${server.address!.port}/voice`);
+    const events: any[] = [];
+    const audio: Buffer[] = [];
+    ws.on('message', (raw, isBinary) =>
+      isBinary ? audio.push(raw as Buffer) : events.push(JSON.parse(raw.toString()))
+    );
+    await until(() => events.some((e) => e.type === 'ready'));
+
+    const loud = Buffer.from(new Int16Array(480).fill(6000).buffer);
+    const quiet = Buffer.alloc(960);
+    for (let i = 0; i < 20; i++) ws.send(loud); // 400 ms of speech
+    for (let i = 0; i < 30; i++) ws.send(quiet); // 600 ms of silence
+    await until(() => events.some((e) => e.type === 'response.done'));
+
+    expect(events.filter((e) => e.type === 'transcript').map((e) => [e.role, e.text])).toEqual([
+      ['user', 'hi'],
+      ['assistant', 'Hello there.'],
+    ]);
+    expect(audio).toHaveLength(1);
+    expect(audio[0]!.length).toBe(1200 * 2); // 800 samples at 16 kHz -> 1200 at 24 kHz
+    ws.close();
+    await until(() => routeEvents.includes('session.closed'));
+    expect(routeEvents[0]).toBe('session.started');
   });
 
   it('reports a missing API key and closes', async () => {

@@ -22,11 +22,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `app.voiceAgent(path, agent)`: realtime voice for the same agent (instructions and tools) used for
-  text, through the OpenAI Realtime API. The API key stays on the server, tools run with the
-  user's permissions, interruption truncates the reply to what was heard, and audio or tool calls
-  from cancelled replies are dropped. Includes usage and first-audio latency. Browser example
-  in [examples/voice-agent](examples/voice-agent). See [Realtime Voice Agents](docs/ai/voice.md).
+- Voice agents with any models: `app.voiceAgent(path, agent, { stt, tts })` runs speech-to-text →
+  the agent's own LLM (any provider) → text-to-speech, all streaming (answers are spoken sentence by
+  sentence while the LLM writes). Barge-in aborts the LLM and speech calls and keeps only what the
+  user heard in memory. `{ realtime }` uses a speech-to-speech provider instead. Adapters:
+  `deepgram`, `openaiStt`, `openaiTts`, `elevenlabs`, `cartesia`, `openaiRealtime`, `geminiLive`
+  (fetch/ws only, no SDKs); self-hosted OpenAI-compatible servers via `baseUrl`; any other model
+  with `stt(fn)` / `tts(fn)`. `VoiceSession` works without HTTP. See
+  [Voice Agents](docs/ai/voice.md).
 - `agent.instructionsFor(context)` and `agent.callTool(name, args, context)` (used by voice;
   `callTool` runs the same permission and approval checks as `run()`).
 

@@ -163,7 +163,7 @@ export class Agent<TOutput = string> {
           maxHistoryTokens
         ).kept
       : [];
-    let summary = summarize ? ((await readMemory!.get(summaryKey))[0]?.content ?? '') : '';
+    const summary = summarize ? ((await readMemory!.get(summaryKey))[0]?.content ?? '') : '';
     const messages: LlmMessage[] = [...history];
 
     if (summary) instructions += `\n\nSummary of the earlier conversation:\n${summary}`;
