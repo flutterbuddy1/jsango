@@ -154,6 +154,14 @@ export {
 } from './websocket-wrapper.js';
 export type { VoiceAgentOptions, VoiceRouteEvent } from './voice.js';
 export {
+  twilio,
+  twilioSignature,
+  type PhoneAgentOptions,
+  type PhoneCall,
+  type PhoneLine,
+  type TwilioOptions,
+} from './phone.js';
+export {
   WebSocketManager,
   WebSocketConnection,
   RoomManager,

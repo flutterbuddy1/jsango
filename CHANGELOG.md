@@ -22,6 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Phone calling agents: `app.phoneAgent(path, agent, { carrier: twilio(), stt, tts })` answers
+  calls (Twilio Media Streams, μ-law 8 kHz) and `line.dial(to)` places them, with the same agent,
+  models, barge-in and insights as browser voice. Webhooks are verified with Twilio's signature
+  and streams need a single-use token. See [Phone Calling Agents](docs/ai/phone.md).
+
 - AI insights: `app.aiInsights({ store: db, prices })` records every agent run and voice call
   (tokens, cost from your price table, latency per turn, interruptions, audio minutes, errors) in
   `ai_runs` / `ai_calls` / `ai_turns`, or in memory. Query with `summary()`, `series()`, `runs()`,

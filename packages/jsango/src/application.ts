@@ -61,6 +61,7 @@ import {
   type WebSocketRouteCallback,
 } from './websocket-wrapper.js';
 import { startVoiceSession, type VoiceAgentOptions } from './voice.js';
+import { phoneRoutes, type PhoneAgentOptions, type PhoneLine } from './phone.js';
 
 export type CrudOperation = 'list' | 'detail' | 'create' | 'update' | 'delete';
 
@@ -1278,6 +1279,25 @@ export class JSangoApplication {
     });
 
     return this;
+  }
+
+  /**
+   * Answers and places phone calls with an agent (Twilio Media Streams). Point your Twilio
+   * number's "A call comes in" webhook at `POST path`; the audio stream connects to
+   * `path/stream`. Webhooks are verified with Twilio's signature, and a stream is only accepted
+   * for a call this server just answered or dialed. See docs/ai/phone.md.
+   */
+  public phoneAgent(path: string, targetAgent: Agent, options: PhoneAgentOptions): PhoneLine {
+    return phoneRoutes(
+      {
+        post: (p, handler) => void this.post(p, handler),
+        ws: (p, handler) => void this.ws(p, handler),
+      },
+      path,
+      targetAgent,
+      options,
+      this.isProduction
+    );
   }
 
   /**
