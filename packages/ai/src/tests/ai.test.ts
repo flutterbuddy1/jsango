@@ -9,6 +9,7 @@ import {
   evaluate,
   mcp,
   BaseLlmProvider,
+  provider,
   FakeLlmProvider,
   ModelRouter,
   OllamaProvider,
@@ -528,5 +529,37 @@ describe('tool argument safety', () => {
     const server = new McpServer();
     server.registerTool({ ...transfer, requiresApproval: true });
     await expect(server.callTool('transfer', { to: 'x', amount: 5 })).rejects.toThrow(/approval/);
+  });
+});
+
+describe('provider() helper', () => {
+  it('runs a full tool-call round trip and plugs into knowledge()', async () => {
+    const seen: string[] = [];
+    const custom = provider(
+      async ({ messages }) => {
+        const last = messages!.at(-1)!;
+        seen.push(last.role);
+        if (last.role === 'tool') return `weather is ${last.content}`;
+        return { toolCalls: [{ id: 't1', name: 'weather', arguments: { city: 'Delhi' } }] };
+      },
+      { embed: async (texts) => texts.map((t) => [t.length, 1]) }
+    );
+    const weather = tool({
+      name: 'weather',
+      description: 'Weather for a city',
+      execute: async ({ city }: { city: string }) => `sunny in ${city}`,
+    });
+
+    const res = await agent({ name: 'Bot', tools: [weather] }, custom).run('weather?');
+    expect(res.status).toBe('completed');
+    expect(res.text).toContain('sunny in Delhi');
+    expect(seen).toEqual(['user', 'tool']);
+
+    const streamed = await (await custom.stream({ prompt: 'x' })).toResponse();
+    expect(streamed.toolCalls?.[0]?.arguments).toEqual({ city: 'Delhi' });
+
+    const kb = knowledge('kb', { provider: custom });
+    await kb.ingest('JSango docs');
+    expect(await kb.retrieve('JSango')).toHaveLength(1);
   });
 });

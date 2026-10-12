@@ -32,7 +32,8 @@ await companyDocs.ingest([
 ```
 
 Embeddings come from the knowledge base's `provider` (default: the default model router), so the
-provider must implement `embed()` (OpenAI, Gemini, Ollama and the fake provider do).
+provider must implement `embed()` (OpenAI, Gemini, Ollama and the fake provider do; for a custom
+provider, pass `provider(fn, { embed })`).
 
 ---
 

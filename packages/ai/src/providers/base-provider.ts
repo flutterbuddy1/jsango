@@ -121,3 +121,52 @@ export function withTimeout(signal: AbortSignal | undefined, ms: number): AbortS
 /** Default limits for a whole model call: plain responses and streams. */
 export const GENERATE_TIMEOUT_MS = 120_000;
 export const STREAM_TIMEOUT_MS = 600_000;
+
+/**
+ * A custom provider from one function: return the reply text, or `{ text, toolCalls, usage }`.
+ * `stream()` falls back to one chunk.
+ *
+ *   const myProvider = provider(async ({ messages, signal }) => callMyModel(messages, signal));
+ *
+ * Pass `{ embed }` to use it with `knowledge()` (RAG).
+ *
+ * Talking to an OpenAI-compatible API (Groq, DeepSeek, vLLM, LM Studio...)? Use
+ * `new OpenAiProvider({ baseUrl, apiKey })` instead.
+ */
+export function provider(
+  generate: (options: LlmCallOptions) => Promise<string | Partial<LlmResponse>>,
+  extra: {
+    name?: string;
+    embed?: (texts: string[], options?: { model?: string }) => Promise<number[][]>;
+  } = {}
+): ILlmProvider {
+  return new (class extends BaseLlmProvider {
+    public readonly name = extra.name ?? 'custom';
+
+    public override async embed(text: string | string[], opts?: { model?: string }) {
+      if (!extra.embed) return super.embed(text, opts);
+      return extra.embed(Array.isArray(text) ? text : [text], opts);
+    }
+
+    public async generate(options: LlmCallOptions): Promise<LlmResponse> {
+      // `prompt` / `system` folded into `messages`, so the function only ever reads `messages`.
+      const messages = this.normalizeMessages(options.messages, options.prompt, options.system);
+      const out = await generate({ ...options, messages, prompt: undefined, system: undefined });
+      const res = typeof out === 'string' ? { text: out } : out;
+      return {
+        ...res,
+        text: res.text ?? '',
+        usage: res.usage ?? { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      };
+    }
+
+    public async stream(options: LlmCallOptions): Promise<LlmStream> {
+      const res = await this.generate(options);
+      return this.createStream(async function* () {
+        if (res.text) yield { delta: res.text };
+        for (const tc of res.toolCalls ?? []) yield { toolCallDelta: tc };
+        yield { finishReason: res.finishReason ?? 'stop', usage: res.usage };
+      });
+    }
+  })();
+}

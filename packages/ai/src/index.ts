@@ -40,7 +40,7 @@ export {
   GuardrailViolationError,
 } from './errors.js';
 
-export { BaseLlmProvider } from './providers/base-provider.js';
+export { BaseLlmProvider, provider } from './providers/base-provider.js';
 export { OpenAiProvider, type OpenAiProviderOptions } from './providers/openai-provider.js';
 export {
   AnthropicProvider,

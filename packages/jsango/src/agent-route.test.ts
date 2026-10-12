@@ -5,6 +5,7 @@ import {
   FakeLlmProvider,
   HttpRequest,
   forbidden,
+  provider,
   type RequestContext,
 } from './index.js';
 
@@ -63,5 +64,27 @@ describe('app.agent', () => {
     expect((await post(app, { input: 'hi' })).status).toBe(403);
     expect((await post(app, { input: 'x'.repeat(11) }, { 'x-user': '1' })).status).toBe(400);
     expect((await post(app, { input: 'hi' }, { 'x-user': '1' })).json.text).toBe('ok');
+  });
+
+  it('answers a real POST over HTTP (body read must not cancel the run)', async () => {
+    const bot = agent(
+      { name: 'Bot' },
+      provider(async ({ messages }) => `echo: ${messages?.at(-1)?.content}`)
+    );
+    const app = createApp();
+    app.agent('/chat', bot);
+    const server = await app.listen(0, '127.0.0.1');
+    try {
+      const res = await fetch(`http://127.0.0.1:${server.address!.port}/chat`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ input: 'hi' }),
+      });
+      const json = await res.json();
+      expect(json.status).toBe('completed');
+      expect(json.text).toBe('echo: hi');
+    } finally {
+      await server.close();
+    }
   });
 });

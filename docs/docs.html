@@ -2088,7 +2088,7 @@ app.<span class="hl-fn">wsAgent</span>(<span class="hl-str">'/ws/support'</span>
         <div class="code-box">
           <div class="code-box-header">
             <span>Provider Configuration &amp; OpenRouter</span>
-            <button class="copy-code-btn copy-trigger" data-copy="import { OpenAiProvider, AnthropicProvider, GeminiProvider, OllamaProvider, OpenRouterProvider, agent, ai, BaseLlmProvider } from 'jsango';
+            <button class="copy-code-btn copy-trigger" data-copy="import { OpenAiProvider, AnthropicProvider, GeminiProvider, OllamaProvider, OpenRouterProvider, agent, provider } from 'jsango';
 
 // 1. Local Ollama (auto-resolves http://localhost:11434 to OpenAI-compatible /v1)
 const localAgent = agent({
@@ -2104,19 +2104,22 @@ const routerAgent = agent({
   instructions: 'High-performance code generator',
 });
 
-// 3. Custom LLM Provider
-class MyCustomProvider extends BaseLlmProvider {
-  public readonly name = 'custom';
-  async generate(options) {
-    return { text: 'Hello from custom model', usage: { promptTokens: 5, completionTokens: 5, totalTokens: 10 } };
-  }
-  async stream(options) {
-    return this.createStream(async function* () { yield { delta: 'Streamed' }; });
-  }
-}
-ai.registerProvider('custom', new MyCustomProvider());">Copy</button>
+// 3. Any OpenAI-compatible API (Groq, DeepSeek, vLLM, LM Studio...): no code
+const groq = new OpenAiProvider({ baseUrl: 'https://api.groq.com/openai/v1', apiKey: process.env.GROQ_API_KEY });
+
+// 4. Anything else: one function that returns the reply text
+const myProvider = provider(async ({ messages, model, signal }) =&gt; {
+  const res = await fetch('https://my-model.example.com/chat', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ model, messages }),
+    signal,
+  });
+  return (await res.json()).text; // or { text, toolCalls, usage }
+});
+const bot = agent({ name: 'Assistant', instructions: 'You are helpful' }, myProvider);">Copy</button>
           </div>
-          <pre><code><span class="hl-kw">import</span> { OpenAiProvider, AnthropicProvider, GeminiProvider, OllamaProvider, OpenRouterProvider, agent, ai, BaseLlmProvider } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
+          <pre><code><span class="hl-kw">import</span> { OpenAiProvider, AnthropicProvider, GeminiProvider, OllamaProvider, OpenRouterProvider, agent, provider } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
 
 <span class="hl-comm">// 1. Local Ollama (auto-resolves http://localhost:11434 to /v1/chat/completions)</span>
 <span class="hl-kw">const</span> localAgent = <span class="hl-fn">agent</span>({
@@ -2132,18 +2135,22 @@ ai.registerProvider('custom', new MyCustomProvider());">Copy</button>
   instructions: <span class="hl-str">'High-performance code generator'</span>,
 });
 
-<span class="hl-comm">// 3. Custom LLM Provider</span>
-<span class="hl-kw">class</span> <span class="hl-type">MyCustomProvider</span> <span class="hl-kw">extends</span> <span class="hl-type">BaseLlmProvider</span> {
-  <span class="hl-kw">public readonly</span> name = <span class="hl-str">'custom'</span>;
-  <span class="hl-kw">async</span> <span class="hl-fn">generate</span>(options) {
-    <span class="hl-kw">return</span> { text: <span class="hl-str">'Hello from custom model'</span>, usage: { promptTokens: 5, completionTokens: 5, totalTokens: 10 } };
-  }
-  <span class="hl-kw">async</span> <span class="hl-fn">stream</span>(options) {
-    <span class="hl-kw">return</span> <span class="hl-kw">this</span>.<span class="hl-fn">createStream</span>(<span class="hl-kw">async function</span>* () { <span class="hl-kw">yield</span> { delta: <span class="hl-str">'Streamed'</span> }; });
-  }
-}
-ai.<span class="hl-fn">registerProvider</span>(<span class="hl-str">'custom'</span>, <span class="hl-kw">new</span> <span class="hl-type">MyCustomProvider</span>());</code></pre>
+<span class="hl-comm">// 3. Any OpenAI-compatible API (Groq, DeepSeek, vLLM, LM Studio...): no code</span>
+<span class="hl-kw">const</span> groq = <span class="hl-kw">new</span> <span class="hl-type">OpenAiProvider</span>({ baseUrl: <span class="hl-str">'https://api.groq.com/openai/v1'</span>, apiKey: process.env.GROQ_API_KEY });
+
+<span class="hl-comm">// 4. Anything else: one function that returns the reply text</span>
+<span class="hl-kw">const</span> myProvider = <span class="hl-fn">provider</span>(<span class="hl-kw">async</span> ({ messages, model, signal }) =&gt; {
+  <span class="hl-kw">const</span> res = <span class="hl-kw">await</span> <span class="hl-fn">fetch</span>(<span class="hl-str">'https://my-model.example.com/chat'</span>, {
+    method: <span class="hl-str">'POST'</span>,
+    headers: { <span class="hl-str">'content-type'</span>: <span class="hl-str">'application/json'</span> },
+    body: JSON.<span class="hl-fn">stringify</span>({ model, messages }),
+    signal,
+  });
+  <span class="hl-kw">return</span> (<span class="hl-kw">await</span> res.<span class="hl-fn">json</span>()).text; <span class="hl-comm">// or { text, toolCalls, usage }</span>
+});
+<span class="hl-kw">const</span> bot = <span class="hl-fn">agent</span>({ name: <span class="hl-str">'Assistant'</span>, instructions: <span class="hl-str">'You are helpful'</span> }, myProvider);</code></pre>
         </div>
+        <p><code>provider()</code> gets <code>messages</code> with <code>prompt</code> / <code>system</code> already folded in. For tools, return <code>{ toolCalls: [{ id, name, arguments }] }</code>; the result comes back as a <code>role: 'tool'</code> message. For RAG, pass <code>provider(fn, { embed })</code>. Streaming sends the reply as one chunk; for token-by-token streaming, extend <code>BaseLlmProvider</code>. Register it with <code>ai.registerProvider('mine', myProvider)</code> to use <code>model: 'mine:…'</code>.</p>
       </section>
 
       <hr class="doc-divider">

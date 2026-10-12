@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+- `app.agent()` POST requests no longer end immediately with `status: "cancelled"` and `durationMs: 0`.
+  The fix was in the 1.6.0 source but missed the published `@jsango/http@1.6.0`. A test now covers it
+  over a real HTTP server.
+
+### Added
+
+- `provider(fn)`: a custom LLM provider from one function that returns the reply text (or
+  `{ text, toolCalls, usage }`). It works with agents, tools, `app.agent()` and, with
+  `provider(fn, { embed })`, `knowledge()`. For OpenAI-compatible APIs, use
+  `new OpenAiProvider({ baseUrl, apiKey })` instead. See
+  [Choosing a Provider](docs/ai/getting-started.md#3-choosing-a-provider).
+
+---
+
 ## [1.6.0] - 2026-10-09
 
 ### Upgrading from 1.5
