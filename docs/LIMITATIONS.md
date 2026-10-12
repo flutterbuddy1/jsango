@@ -59,6 +59,16 @@ This document provides a transparent, honest overview of the architectural limit
   apply to migrations.
 - **Agent approvals**: a run paused by a tool with `requiresApproval` can't be resumed yet; start a
   new run after approving.
+- **Voice agents**:
+  - Server-side WebRTC is only for speech-to-speech (`app.webrtcAgent()` with `openaiRealtime()`).
+    Pipeline mode (any STT/TTS) runs over WebSocket and phone calls.
+  - Twilio is the only phone carrier, with no DTMF (keypad) input or call transfer.
+  - Approval-required tools are not run from voice.
+  - Gemini Live can't cancel a reply on the provider's side.
+  - Built-in silence detection is energy-based: noisy rooms work better with a provider that
+    detects end of turn, e.g. Deepgram.
+- **AI insights** support memory and SQL stores (not MongoDB). Aggregation runs over the rows in
+  the requested range; for millions of rows per query, query the `ai_*` tables directly.
 - **Swagger UI** is loaded from unpkg at a pinned version, without Subresource Integrity.
 - **In-memory defaults**: the queue driver, the admin audit log and (without `createAuth`) the admin
   session store live in memory. They warn in production; configure persistent stores for

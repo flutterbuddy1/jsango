@@ -2,7 +2,7 @@
  * Every TypeScript snippet in the documentation must compile against the real `jsango` types,
  * so the docs can only show APIs that exist.
  *
- * Sources: site/docs.html (copy buttons), site/js/app.js (landing page), README.md,
+ * Sources: site/docs.html (copy buttons), site/index.html and site/js/app.js (landing page), README.md,
  * docs/**\/*.md and packages/*\/README.md.
  *
  * Names a snippet uses without defining (e.g. `db`, `User`) are treated as `any`; what is checked
@@ -47,6 +47,16 @@ function collect(): Snippet[] {
     const code = decodeHtml(m[1]!);
     if (looksLikeTypeScript(code))
       out.push({ source: `site/docs.html:${html.slice(0, m.index).split('\n').length}`, code });
+  }
+
+  // Landing page: the highlighted code in the hero tabs and the comparison section.
+  const landing = fs.readFileSync(path.join(ROOT, 'site/index.html'), 'utf8');
+  for (const m of landing.matchAll(/<pre><code>([\s\S]*?)<\/code><\/pre>/g)) {
+    const code = decodeHtml(m[1]!.replace(/<[^>]+>/g, ''))
+      .replace(/\\`/g, '`')
+      .replace(/\\\$/g, '$');
+    if (looksLikeTypeScript(code))
+      out.push({ source: `site/index.html:${landing.slice(0, m.index).split('\n').length}`, code });
   }
 
   const app = fs.readFileSync(path.join(ROOT, 'site/js/app.js'), 'utf8');

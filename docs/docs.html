@@ -137,7 +137,11 @@
         <ul class="sidebar-links">
           <li><a href="#ai-agents" class="sidebar-link">AI Agents & Tool Calling</a></li>
           <li><a href="#ai-providers" class="sidebar-link">LLM Providers (OpenAI, Gemini, Anthropic, Ollama)</a></li>
-          <li><a href="#ai-voice" class="sidebar-link">Realtime Voice Agents</a></li>
+          <li><a href="#ai-memory" class="sidebar-link">Token-Efficient Memory</a></li>
+          <li><a href="#ai-voice" class="sidebar-link">Voice Agents (any models)</a></li>
+          <li><a href="#ai-webrtc" class="sidebar-link">WebRTC Voice</a></li>
+          <li><a href="#ai-phone" class="sidebar-link">Phone Calling Agents</a></li>
+          <li><a href="#ai-insights" class="sidebar-link">AI Insights &amp; Admin Widgets</a></li>
           <li><a href="#ai-workflows" class="sidebar-link">Multi-Agent Workflows</a></li>
           <li><a href="#ai-rag" class="sidebar-link">RAG & Vector Search</a></li>
           <li><a href="#ai-mcp" class="sidebar-link">Model Context Protocol (MCP)</a></li>
@@ -2083,6 +2087,24 @@ app.<span class="hl-fn">agent</span>(<span class="hl-str">'/api/support'</span>,
 app.<span class="hl-fn">wsAgent</span>(<span class="hl-str">'/ws/support'</span>, supportAgent);</code></pre>
         </div>
 
+        <h3 id="ai-memory">Token-Efficient Memory</h3>
+        <p>With <code>memory</code>, an agent remembers the conversation per tenant, user and conversation. It sends the model as few tokens as possible: tool calls and results are kept only for the latest turn, RAG context is never stored, history has a token budget (default 4,000), and with <code>summarize: true</code> older turns are folded into a short running summary.</p>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>Memory with a token budget</span>
+            <button class="copy-code-btn copy-trigger" data-copy="const assistant = agent({
+  instructions: &#x27;Help users with their questions.&#x27;,
+  memory: true, // or new DatabaseMemoryStore({ connection: db }) to persist
+  history: { maxTokens: 2000, summarize: true },
+});">Copy</button>
+          </div>
+          <pre><code><span class="hl-kw">const</span> assistant = <span class="hl-fn">agent</span>({
+  instructions: <span class="hl-str">'Help users with their questions.'</span>,
+  memory: <span class="hl-kw">true</span>, <span class="hl-comm">// or new DatabaseMemoryStore({ connection: db }) to persist</span>
+  history: { maxTokens: <span class="hl-num">2000</span>, summarize: <span class="hl-kw">true</span> },
+});</code></pre>
+        </div>
+
         <h3 id="ai-providers">Universal LLM Providers &amp; Custom LLMs</h3>
         <p>Switch between OpenAI, Anthropic Claude, Google Gemini, Local Ollama, OpenRouter, or your own custom provider:</p>
 
@@ -2153,50 +2175,204 @@ const bot = agent({ name: 'Assistant', instructions: 'You are helpful' }, myProv
         </div>
         <p><code>provider()</code> gets <code>messages</code> with <code>prompt</code> / <code>system</code> already folded in. For tools, return <code>{ toolCalls: [{ id, name, arguments }] }</code>; the result comes back as a <code>role: 'tool'</code> message. For RAG, pass <code>provider(fn, { embed })</code>. Streaming sends the reply as one chunk; for token-by-token streaming, extend <code>BaseLlmProvider</code>. Register it with <code>ai.registerProvider('mine', myProvider)</code> to use <code>model: 'mine:…'</code>.</p>
 
-        <h3 id="ai-voice">Realtime Voice Agents</h3>
-        <p>The same agent can talk, with any models you choose: pick a speech-to-text and a text-to-speech (built-in adapters, self-hosted models, or one function each with <code>stt(fn)</code> / <code>tts(fn)</code>) and the agent's own LLM does the thinking. Or use a speech-to-speech provider (<code>openaiRealtime()</code>, <code>geminiLive()</code>). API keys stay on the server, and tools run with the signed-in user's permissions.</p>
+      </section>
+
+      <hr class="doc-divider">
+
+      <!-- SECTION: Voice & Phone Agents -->
+      <section id="ai-voice" class="doc-section">
+        <h2>Voice &amp; Phone Calling Agents</h2>
+        <p>The same agent you use for text can talk: in the browser, over WebRTC, or on a phone call. It keeps the same instructions, tools, permissions and memory. You choose every model: any LLM provider, any speech-to-text and any text-to-speech (including your own self-hosted models), or a speech-to-speech provider. API keys always stay on the server.</p>
         <div class="code-box">
           <div class="code-box-header">
-            <span>One agent, text and voice</span>
-            <button class="copy-code-btn copy-trigger" data-copy="const support = agent({
-  instructions: 'You are a friendly support agent. Keep answers short.',
-  tools: {
-    lookupOrder: tool({
-      name: 'lookup_order',
-      description: 'Find an order by its id',
-      input: { orderId: 'A100' },
-      execute: async ({ orderId }) =&gt; ({ orderId, status: 'shipped' }),
-    }),
-  },
+            <span>Voice with any models</span>
+            <button class="copy-code-btn copy-trigger" data-copy="import { createApp, agent, deepgram, cartesia } from &#x27;jsango&#x27;;
+
+const support = agent({
+  provider: myLlm, // any LLM: OpenAI, Anthropic, Gemini, Ollama, provider(fn)…
+  instructions: &#x27;You are a friendly support agent. Keep answers short.&#x27;,
+  memory: true,
 });
 
-app.agent('/api/chat', support, { middleware: [auth.required()] });      // text
-app.voiceAgent('/voice', support, {                                    // voice, any models
-  middleware: [auth.required()],
-  stt: deepgram(),
-  tts: openaiTts({ voice: 'marin' }),
+const app = createApp();
+app.voiceAgent(&#x27;/voice&#x27;, support, {
+  middleware: [auth.required()], // voice costs money per minute
+  stt: deepgram(), // speech-to-text
+  tts: cartesia({ voiceId: &#x27;your-voice-id&#x27; }), // text-to-speech
 });">Copy</button>
           </div>
-          <pre><code><span class="hl-kw">const</span> support = <span class="hl-fn">agent</span>({
+          <pre><code><span class="hl-kw">import</span> { createApp, agent, deepgram, cartesia } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
+
+<span class="hl-kw">const</span> support = <span class="hl-fn">agent</span>({
+  provider: myLlm, <span class="hl-comm">// any LLM: OpenAI, Anthropic, Gemini, Ollama, provider(fn)…</span>
   instructions: <span class="hl-str">'You are a friendly support agent. Keep answers short.'</span>,
-  tools: {
-    lookupOrder: <span class="hl-fn">tool</span>({
-      name: <span class="hl-str">'lookup_order'</span>,
-      description: <span class="hl-str">'Find an order by its id'</span>,
-      input: { orderId: <span class="hl-str">'A100'</span> },
-      execute: <span class="hl-kw">async</span> ({ orderId }) =&gt; ({ orderId, status: <span class="hl-str">'shipped'</span> }),
-    }),
+  memory: <span class="hl-kw">true</span>,
+});
+
+<span class="hl-kw">const</span> app = <span class="hl-fn">createApp</span>();
+app.<span class="hl-fn">voiceAgent</span>(<span class="hl-str">'/voice'</span>, support, {
+  middleware: [auth.<span class="hl-fn">required</span>()], <span class="hl-comm">// voice costs money per minute</span>
+  stt: <span class="hl-fn">deepgram</span>(), <span class="hl-comm">// speech-to-text</span>
+  tts: <span class="hl-fn">cartesia</span>({ voiceId: <span class="hl-str">'your-voice-id'</span> }), <span class="hl-comm">// text-to-speech</span>
+});</code></pre>
+        </div>
+        <p>Everything streams: the LLM's answer is cut into sentences and each one is spoken while the LLM is still writing. When the user talks over the agent, the LLM and speech calls are aborted, memory keeps only what was actually heard, and tool calls from the cancelled reply never run. Every reply reports its latency (<code>sttMs</code>, <code>llmMs</code>, <code>firstAudioMs</code>).</p>
+        <div class="cli-table-wrapper" style="margin-bottom: 24px;">
+          <table class="cli-table">
+            <thead><tr><th>Adapter</th><th>Kind</th><th>Notes</th></tr></thead>
+            <tbody><tr><td><code>deepgram()</code></td><td>Speech-to-text, streaming</td><td><code>nova-3</code>, end-of-turn detection</td></tr><tr><td><code>openaiStt()</code></td><td>Speech-to-text</td><td><code>gpt-transcribe</code>; any OpenAI-compatible server via <code>baseUrl</code> (e.g. faster-whisper)</td></tr><tr><td><code>openaiTts()</code></td><td>Text-to-speech, streaming</td><td><code>gpt-4o-mini-tts</code>; OpenAI-compatible servers (e.g. Kokoro) via <code>baseUrl</code></td></tr><tr><td><code>elevenlabs({ voiceId })</code></td><td>Text-to-speech, streaming</td><td><code>eleven_flash_v2_5</code></td></tr><tr><td><code>cartesia({ voiceId })</code></td><td>Text-to-speech, streaming</td><td><code>sonic-3.6</code></td></tr><tr><td><code>openaiRealtime()</code></td><td>Speech-to-speech</td><td>WebSocket or WebRTC</td></tr><tr><td><code>geminiLive({ model })</code></td><td>Speech-to-speech</td><td>16 kHz in, 24 kHz out</td></tr></tbody>
+          </table>
+        </div>
+        <h3 id="ai-voice-custom">Your Own Speech Models</h3>
+        <p>Any model is one function. Audio is PCM16 mono and is resampled automatically.</p>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>stt(fn) and tts(fn)</span>
+            <button class="copy-code-btn copy-trigger" data-copy="import { stt, tts } from &#x27;jsango&#x27;;
+
+const myStt = stt(async (audio, { sampleRate, signal }) =&gt; {
+  const res = await fetch(&#x27;http://my-asr/transcribe&#x27;, {
+    method: &#x27;POST&#x27;,
+    headers: { &#x27;content-type&#x27;: &#x27;application/json&#x27; },
+    body: JSON.stringify({ audio: Buffer.from(audio.buffer).toString(&#x27;base64&#x27;), sampleRate }),
+    signal,
+  });
+  return (await res.json()).text;
+}, { sampleRate: 16000 });
+
+const myTts = tts(async (text, { signal }) =&gt; {
+  const res = await fetch(&#x27;http://my-tts/speak&#x27;, { method: &#x27;POST&#x27;, body: text, signal });
+  return new Int16Array(await res.arrayBuffer());
+}, { sampleRate: 22050 });
+
+app.voiceAgent(&#x27;/voice&#x27;, support, { stt: myStt, tts: myTts });">Copy</button>
+          </div>
+          <pre><code><span class="hl-kw">import</span> { stt, tts } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
+
+<span class="hl-kw">const</span> myStt = <span class="hl-fn">stt</span>(<span class="hl-kw">async</span> (audio, { sampleRate, signal }) =&gt; {
+  <span class="hl-kw">const</span> res = <span class="hl-kw">await</span> <span class="hl-fn">fetch</span>(<span class="hl-str">'http://my-asr/transcribe'</span>, {
+    method: <span class="hl-str">'POST'</span>,
+    headers: { <span class="hl-str">'content-type'</span>: <span class="hl-str">'application/json'</span> },
+    body: JSON.<span class="hl-fn">stringify</span>({ audio: Buffer.<span class="hl-kw">from</span>(audio.buffer).<span class="hl-fn">toString</span>(<span class="hl-str">'base64'</span>), sampleRate }),
+    signal,
+  });
+  <span class="hl-kw">return</span> (<span class="hl-kw">await</span> res.<span class="hl-fn">json</span>()).text;
+}, { sampleRate: <span class="hl-num">16000</span> });
+
+<span class="hl-kw">const</span> myTts = <span class="hl-fn">tts</span>(<span class="hl-kw">async</span> (text, { signal }) =&gt; {
+  <span class="hl-kw">const</span> res = <span class="hl-kw">await</span> <span class="hl-fn">fetch</span>(<span class="hl-str">'http://my-tts/speak'</span>, { method: <span class="hl-str">'POST'</span>, body: text, signal });
+  <span class="hl-kw">return</span> <span class="hl-kw">new</span> <span class="hl-fn">Int16Array</span>(<span class="hl-kw">await</span> res.<span class="hl-fn">arrayBuffer</span>());
+}, { sampleRate: <span class="hl-num">22050</span> });
+
+app.<span class="hl-fn">voiceAgent</span>(<span class="hl-str">'/voice'</span>, support, { stt: myStt, tts: myTts });</code></pre>
+        </div>
+        <h3 id="ai-webrtc">WebRTC (lowest latency)</h3>
+        <p>The browser streams audio over WebRTC directly to a speech-to-speech provider. Your server creates the call with its own key and keeps a control connection to it, where tools run with the user's permissions and transcripts, usage and the time limit (hang-up) are handled.</p>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>WebRTC voice</span>
+            <button class="copy-code-btn copy-trigger" data-copy="app.webrtcAgent(&#x27;/voice/rtc&#x27;, support, {
+  realtime: openaiRealtime({ voice: &#x27;marin&#x27; }),
+  middleware: [auth.required()],
+});
+// Browser: create an RTCPeerConnection with the microphone track, POST the SDP offer
+// to /voice/rtc (Content-Type: application/sdp) and set the returned SDP as the answer.">Copy</button>
+          </div>
+          <pre><code>app.<span class="hl-fn">webrtcAgent</span>(<span class="hl-str">'/voice/rtc'</span>, support, {
+  realtime: <span class="hl-fn">openaiRealtime</span>({ voice: <span class="hl-str">'marin'</span> }),
+  middleware: [auth.<span class="hl-fn">required</span>()],
+});
+<span class="hl-comm">// Browser: create an RTCPeerConnection with the microphone track, POST the SDP offer</span>
+<span class="hl-comm">// to /voice/rtc (Content-Type: application/sdp) and set the returned SDP as the answer.</span></code></pre>
+        </div>
+        <h3 id="ai-phone">Phone Calling Agents</h3>
+        <p>Answer and place real phone calls (Twilio Media Streams) with the same agent and models. Webhooks are verified with Twilio's signature, and a media stream is only accepted with a single-use token for a call this server just answered or dialed.</p>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>Inbound and outbound calls</span>
+            <button class="copy-code-btn copy-trigger" data-copy="const line = app.phoneAgent(&#x27;/phone&#x27;, support, {
+  carrier: twilio({ from: &#x27;+15550001111&#x27; }), // TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN
+  publicUrl: &#x27;https://voice.example.com&#x27;,
+  stt: deepgram(),
+  tts: cartesia({ voiceId: &#x27;your-voice-id&#x27; }),
+  identify: async (call) =&gt; findCustomerByPhone(call.from), // optional: who is calling
+});
+
+// Point your Twilio number&#x27;s &quot;A call comes in&quot; webhook at POST /phone.
+await line.dial(&#x27;+919876543210&#x27;); // outbound">Copy</button>
+          </div>
+          <pre><code><span class="hl-kw">const</span> line = app.<span class="hl-fn">phoneAgent</span>(<span class="hl-str">'/phone'</span>, support, {
+  carrier: <span class="hl-fn">twilio</span>({ <span class="hl-kw">from</span>: <span class="hl-str">'+15550001111'</span> }), <span class="hl-comm">// TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN</span>
+  publicUrl: <span class="hl-str">'https://voice.example.com'</span>,
+  stt: <span class="hl-fn">deepgram</span>(),
+  tts: <span class="hl-fn">cartesia</span>({ voiceId: <span class="hl-str">'your-voice-id'</span> }),
+  identify: <span class="hl-kw">async</span> (call) =&gt; <span class="hl-fn">findCustomerByPhone</span>(call.<span class="hl-kw">from</span>), <span class="hl-comm">// optional: who is calling</span>
+});
+
+<span class="hl-comm">// Point your Twilio number's "A call comes in" webhook at POST /phone.</span>
+<span class="hl-kw">await</span> line.<span class="hl-fn">dial</span>(<span class="hl-str">'+919876543210'</span>); <span class="hl-comm">// outbound</span></code></pre>
+        </div>
+        <p>Full guides: <code>docs/ai/voice.md</code> and <code>docs/ai/phone.md</code>. A runnable browser client is in <code>examples/voice-agent</code>.</p>
+      </section>
+
+      <hr class="doc-divider">
+
+      <!-- SECTION: AI Insights & Admin -->
+      <section id="ai-insights" class="doc-section">
+        <h2>AI Insights: Usage, Cost &amp; Latency</h2>
+        <p>One line records every agent run and voice call: tokens, cost from your price table, latency per voice turn, interruptions, audio minutes and errors. Records go to your SQL database (or memory), show up in the admin panel and can feed Prometheus. Prompts, answers and transcripts are not stored unless you turn on <code>captureContent</code>; records are deleted after 30 days.</p>
+        <div class="code-box">
+          <div class="code-box-header">
+            <span>Insights in the admin panel</span>
+            <button class="copy-code-btn copy-trigger" data-copy="import { aiWidgets, aiAdminPage, recordTo, LocalDiskMediaStorage } from &#x27;jsango&#x27;;
+
+const insights = app.aiInsights({
+  store: db, // PostgreSQL, MySQL or SQLite
+  prices: {
+    &#x27;gpt-4o-mini&#x27;: { input: 0.15, output: 0.6 }, // USD per 1M tokens
+    deepgram: { perMinute: 0.0043 },
   },
 });
 
-app.<span class="hl-fn">agent</span>(<span class="hl-str">'/api/chat'</span>, support, { middleware: [auth.<span class="hl-fn">required</span>()] });      <span class="hl-comm">// text</span>
-app.<span class="hl-fn">voiceAgent</span>(<span class="hl-str">'/voice'</span>, support, {                                    <span class="hl-comm">// voice, any models</span>
-  middleware: [auth.<span class="hl-fn">required</span>()],
-  stt: <span class="hl-fn">deepgram</span>(),
-  tts: <span class="hl-fn">openaiTts</span>({ voice: <span class="hl-str">'marin'</span> }),
-});</code></pre>
+const recordings = new LocalDiskMediaStorage();
+app.admin({
+  media: { local: recordings },
+  dashboard: aiWidgets(insights), // usage, cost, latency, errors, charts
+  pages: [aiAdminPage(insights)], // &quot;AI Usage&quot; page: recent calls, transcripts, recordings
+});
+
+// Optional, off by default: record calls (tell your callers)
+app.voiceAgent(&#x27;/voice&#x27;, support, { stt: deepgram(), tts: openaiTts(), record: recordTo(recordings) });
+
+// Your own dashboards
+const today = await insights.summary(); // runs, tokens, costUsd, calls, latency p50/p95, byModel…
+const chart = await insights.series({ bucket: &#x27;day&#x27; });">Copy</button>
+          </div>
+          <pre><code><span class="hl-kw">import</span> { aiWidgets, aiAdminPage, recordTo, LocalDiskMediaStorage } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
+
+<span class="hl-kw">const</span> insights = app.<span class="hl-fn">aiInsights</span>({
+  store: db, <span class="hl-comm">// PostgreSQL, MySQL or SQLite</span>
+  prices: {
+    <span class="hl-str">'gpt-4o-mini'</span>: { input: <span class="hl-num">0</span>.<span class="hl-num">15</span>, output: <span class="hl-num">0</span>.<span class="hl-num">6</span> }, <span class="hl-comm">// USD per 1M tokens</span>
+    deepgram: { perMinute: <span class="hl-num">0</span>.<span class="hl-num">0043</span> },
+  },
+});
+
+<span class="hl-kw">const</span> recordings = <span class="hl-kw">new</span> <span class="hl-fn">LocalDiskMediaStorage</span>();
+app.<span class="hl-fn">admin</span>({
+  media: { local: recordings },
+  dashboard: <span class="hl-fn">aiWidgets</span>(insights), <span class="hl-comm">// usage, cost, latency, errors, charts</span>
+  pages: [<span class="hl-fn">aiAdminPage</span>(insights)], <span class="hl-comm">// "AI Usage" page: recent calls, transcripts, recordings</span>
+});
+
+<span class="hl-comm">// Optional, off by default: record calls (tell your callers)</span>
+app.<span class="hl-fn">voiceAgent</span>(<span class="hl-str">'/voice'</span>, support, { stt: <span class="hl-fn">deepgram</span>(), tts: <span class="hl-fn">openaiTts</span>(), record: <span class="hl-fn">recordTo</span>(recordings) });
+
+<span class="hl-comm">// Your own dashboards</span>
+<span class="hl-kw">const</span> today = <span class="hl-kw">await</span> insights.<span class="hl-fn">summary</span>(); <span class="hl-comm">// runs, tokens, costUsd, calls, latency p50/p95, byModel…</span>
+<span class="hl-kw">const</span> chart = <span class="hl-kw">await</span> insights.<span class="hl-fn">series</span>({ bucket: <span class="hl-str">'day'</span> });</code></pre>
         </div>
-        <p>The LLM's answer is spoken sentence by sentence while it is still being written, for low latency. When the user talks over the agent, the LLM and speech calls are aborted, memory keeps only what was actually heard, and tool calls from the cancelled reply never run. Events include transcripts, tool calls, token usage and time to first audio. Full protocol and limits are in <code>docs/ai/voice.md</code>; a runnable browser client is in <code>examples/voice-agent</code>.</p>
+        <p>Widgets are normal admin widgets behind the <code>ai.insights.view</code> permission. Pick the ones you want or build your own on <code>insights.summary()</code>, <code>series()</code>, <code>runs()</code>, <code>calls()</code> and <code>call(id)</code>. <code>observeAi(listener)</code> streams every record to your own sink. Full guide: <code>docs/ai/insights.md</code>.</p>
       </section>
 
       <hr class="doc-divider">
@@ -2341,7 +2517,7 @@ app.<span class="hl-fn">post</span>(<span class="hl-str">'/mcp'</span>, <span cl
         </div>
 
         <h3 id="ai-streaming">Streaming SSE &amp; WebSockets</h3>
-        <p>Stream agent thoughts, token chunks and tool approvals in real time. Responses contain the answer, <code>conversationId</code>, tool call names and usage, never the history or system prompt; anonymous visitors get their own server-issued conversation, and a run stops when the client disconnects.</p>
+        <p>Stream agent thoughts, token chunks and tool approvals in real time. Responses contain the answer, <code>conversationId</code>, tool call names and usage, never the history or system prompt; anonymous visitors get their own server-issued conversation, and a run stops when the client disconnects. Tokens arrive as <code>message.delta</code> events while the model writes; <code>agent.stream()</code> gives the same events in code, and stopping the loop cancels the run.</p>
         <div class="code-box">
           <div class="code-box-header">
             <span>Streaming Endpoints</span>
@@ -3295,7 +3471,8 @@ app.<span class="hl-fn">openapi</span>({
         <li><a href="#admin-dashboards" class="toc-link">Admin Dashboards</a></li>
         <li><a href="#ai-agents" class="toc-link">AI Agents &amp; Tools</a></li>
         <li><a href="#ai-providers" class="toc-link">LLM Providers</a></li>
-        <li><a href="#ai-voice" class="toc-link">Realtime Voice</a></li>
+        <li><a href="#ai-voice" class="toc-link">Voice &amp; Phone Agents</a></li>
+        <li><a href="#ai-insights" class="toc-link">AI Insights</a></li>
         <li><a href="#ai-workflows" class="toc-link">Multi-Agent Workflows</a></li>
         <li><a href="#ai-rag" class="toc-link">RAG &amp; Vector Search</a></li>
         <li><a href="#ai-mcp" class="toc-link">MCP Protocol</a></li>

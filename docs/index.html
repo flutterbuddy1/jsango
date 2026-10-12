@@ -6,7 +6,7 @@
   <title>JSango - Production-Grade TypeScript Backend Framework</title>
   
   <!-- SEO & Social Meta Tags -->
-  <meta name="description" content="JSango is a batteries-included, high-performance TypeScript backend framework built on convention over configuration, featuring an ORM, SegRadix router (>7.7M ops/sec), auto-generated React admin console, 2FA auth, and background queues.">
+  <meta name="description" content="JSango is a batteries-included, high-performance TypeScript backend framework built on convention over configuration, featuring an ORM, SegRadix router (>7.7M ops/sec), auto-generated React admin console, AI agents, voice and phone calling agents with any AI models, 2FA auth, and background queues.">
   <meta name="keywords" content="JSango, TypeScript framework, batteries-included TypeScript backend, backend framework, Node.js, ORM, Admin Panel, REST API, SegRadix Router">
   <meta property="og:title" content="JSango - The Complete Backend Framework for TypeScript">
   <meta property="og:description" content="Production-grade, batteries-included TypeScript backend framework for modern JavaScript runtimes.">
@@ -95,7 +95,7 @@
       </h1>
 
       <p class="hero-subtitle">
-        Stop stitching together dozens of disjointed libraries. JSango delivers a cohesive, enterprise-grade ecosystem: Declarative ORM, SegRadix Router (&gt;7.7M ops/sec), Auto-Generated React Admin Panel, AI Agents &amp; Workflows, 2FA Auth, Background Queues, and WebSockets.
+        Stop stitching together dozens of disjointed libraries. JSango delivers a cohesive, enterprise-grade ecosystem: Declarative ORM, SegRadix Router (&gt;7.7M ops/sec), Auto-Generated React Admin Panel, AI Agents &amp; Workflows, Voice &amp; Phone Agents with any AI models, 2FA Auth, Background Queues, and WebSockets.
       </p>
 
       <div class="hero-actions">
@@ -124,6 +124,9 @@
             </button>
             <button class="tab-btn" data-tab="ai">
               <span>🤖</span> AI Agents &amp; Tools
+            </button>
+            <button class="tab-btn" data-tab="voice">
+              <span>🎙️</span> Voice &amp; Phone Agents
             </button>
             <button class="tab-btn" data-tab="router">
               <span>⚡</span> App &amp; Routes
@@ -202,6 +205,38 @@ app.<span class="hl-fn">wsAgent</span>(<span class="hl-str">'/ws/support'</span>
 <span class="hl-kw">await</span> app.<span class="hl-fn">listen</span>(<span class="hl-num">3000</span>);</code></pre>
           </div>
 
+          <!-- Voice Tab -->
+          <div class="code-pane" id="pane-voice">
+            <pre><code><span class="hl-kw">import</span> { createApp, agent, deepgram, cartesia, openaiRealtime, twilio, aiAdminPage } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
+
+<span class="hl-comm">// One agent, any LLM provider: the same instructions, tools and memory everywhere</span>
+<span class="hl-kw">const</span> support = <span class="hl-fn">agent</span>({
+  provider: myLlm,
+  instructions: <span class="hl-str">'You are a friendly support agent. Keep answers short.'</span>,
+  tools: { lookupOrder: orderTool },
+  memory: <span class="hl-kw">true</span>,
+});
+<span class="hl-kw">const</span> app = <span class="hl-fn">createApp</span>();
+
+<span class="hl-comm">// 1. Talk in the browser: any speech-to-text, your LLM, any text-to-speech (all streaming)</span>
+app.<span class="hl-fn">voiceAgent</span>(<span class="hl-str">'/voice'</span>, support, { stt: <span class="hl-fn">deepgram</span>(), tts: <span class="hl-fn">cartesia</span>({ voiceId: <span class="hl-str">'warm-voice'</span> }) });
+
+<span class="hl-comm">// 2. Speech-to-speech over WebRTC; the API key never leaves the server</span>
+app.<span class="hl-fn">webrtcAgent</span>(<span class="hl-str">'/voice/rtc'</span>, support, { realtime: <span class="hl-fn">openaiRealtime</span>() });
+
+<span class="hl-comm">// 3. Phone calling agents: answer calls and dial out</span>
+<span class="hl-kw">const</span> line = app.<span class="hl-fn">phoneAgent</span>(<span class="hl-str">'/phone'</span>, support, {
+  carrier: <span class="hl-fn">twilio</span>(),
+  stt: <span class="hl-fn">deepgram</span>(),
+  tts: <span class="hl-fn">cartesia</span>({ voiceId: <span class="hl-str">'warm-voice'</span> }),
+});
+<span class="hl-kw">await</span> line.<span class="hl-fn">dial</span>(<span class="hl-str">'+919876543210'</span>);
+
+<span class="hl-comm">// 4. Usage, cost, latency, transcripts and recordings in the admin</span>
+<span class="hl-kw">const</span> insights = app.<span class="hl-fn">aiInsights</span>({ store: db });
+app.<span class="hl-fn">admin</span>({ pages: [<span class="hl-fn">aiAdminPage</span>(insights)] });</code></pre>
+          </div>
+
           <!-- Router Tab -->
           <div class="code-pane" id="pane-router">
             <pre><code><span class="hl-kw">import</span> { createApp, validate, schema, string, email, notFound } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
@@ -273,20 +308,20 @@ app.<span class="hl-fn">ws</span>(<span class="hl-str">'/chat'</span>, (socket) 
           <div class="code-pane" id="pane-queue">
             <pre><code><span class="hl-kw">import</span> { jobs, events, cache } <span class="hl-kw">from</span> <span class="hl-str">'jsango'</span>;
 
-<span class="hl-comm">// 1. Background Jobs with exponential retries</span>
-jobs.<span class="hl-fn">define</span>(<span class="hl-str">'send-welcome-email'</span>, <span class="hl-kw">async</span> ({ email, name }) => {
-  <span class="hl-kw">await</span> mailService.<span class="hl-fn">send</span>(email, <span class="hl-str">\`Welcome \${name}!\`</span>);
+<span class="hl-comm">// 1. Background jobs with retries</span>
+jobs.<span class="hl-fn">register</span>(<span class="hl-str">'send-welcome-email'</span>, <span class="hl-kw">async</span> ({ email, name }: { email: <span class="hl-type">string</span>; name: <span class="hl-type">string</span> }) => {
+  <span class="hl-kw">await</span> mailService.<span class="hl-fn">send</span>(email, <span class="hl-str">`Welcome ${name}!`</span>);
 });
 <span class="hl-kw">await</span> jobs.<span class="hl-fn">dispatch</span>(<span class="hl-str">'send-welcome-email'</span>, { email: <span class="hl-str">'alex@jsango.dev'</span>, name: <span class="hl-str">'Alex'</span> });
 
-<span class="hl-comm">// 2. Application Events</span>
-events.<span class="hl-fn">on</span>(<span class="hl-str">'user.created'</span>, <span class="hl-kw">async</span> (user) => {
+<span class="hl-comm">// 2. Application events</span>
+events.<span class="hl-fn">on</span>(<span class="hl-str">'user.created'</span>, <span class="hl-kw">async</span> (user: { id: <span class="hl-type">string</span> }) => {
   <span class="hl-kw">await</span> analytics.<span class="hl-fn">track</span>(<span class="hl-str">'Signup'</span>, { id: user.id });
 });
 
-<span class="hl-comm">// 3. Stampede-protected Caching</span>
+<span class="hl-comm">// 3. Stampede-protected caching</span>
 <span class="hl-kw">const</span> metrics = <span class="hl-kw">await</span> cache.<span class="hl-fn">remember</span>(<span class="hl-str">'app:metrics'</span>, <span class="hl-num">60</span>, <span class="hl-kw">async</span> () => {
-  <span class="hl-kw">return</span> computeHeavyMetrics();
+  <span class="hl-kw">return</span> <span class="hl-fn">computeHeavyMetrics</span>();
 });</code></pre>
           </div>
 
@@ -294,21 +329,19 @@ events.<span class="hl-fn">on</span>(<span class="hl-str">'user.created'</span>,
           <div class="code-pane" id="pane-auth">
             <pre><code><span class="hl-kw">import</span> { TotpService } <span class="hl-kw">from</span> <span class="hl-str">'@jsango/auth'</span>;
 
-<span class="hl-comm">// RFC 6238 Time-based One-Time Password (TOTP) 2FA</span>
+<span class="hl-comm">// RFC 6238 time-based one-time passwords (TOTP) for 2FA</span>
 <span class="hl-kw">const</span> totp = <span class="hl-kw">new</span> <span class="hl-type">TotpService</span>();
 
-<span class="hl-comm">// Setup Two-Factor Authenticator</span>
-<span class="hl-kw">const</span> secret = totp.<span class="hl-fn">generateSecret</span>();
-<span class="hl-kw">const</span> qrUri = totp.<span class="hl-fn">generateKeyUri</span>({
-  secret,
+<span class="hl-comm">// Setup: store `secret`, show `uri` as a QR code in the authenticator app</span>
+<span class="hl-kw">const</span> { secret, uri } = totp.<span class="hl-fn">generateSecret</span>({
   accountName: <span class="hl-str">'admin@jsango.dev'</span>,
-  issuer: <span class="hl-str">'JSango Security'</span>
+  issuer: <span class="hl-str">'JSango Security'</span>,
 });
 
-<span class="hl-comm">// Validate 6-digit TOTP code during login</span>
-<span class="hl-kw">const</span> isValid = totp.<span class="hl-fn">verifyToken</span>({ secret, token: <span class="hl-str">'482910'</span>, window: <span class="hl-num">1</span> });
+<span class="hl-comm">// Login: check the 6-digit code (±1 time step)</span>
+<span class="hl-kw">const</span> isValid = totp.<span class="hl-fn">verifyToken</span>(<span class="hl-str">'482910'</span>, secret, { window: <span class="hl-num">1</span> });
 <span class="hl-kw">if</span> (!isValid) {
-  <span class="hl-kw">throw new</span> <span class="hl-type">AuthenticationError</span>(<span class="hl-str">'Invalid 2FA Verification Code'</span>);
+  <span class="hl-kw">throw new</span> <span class="hl-type">AuthenticationError</span>(<span class="hl-str">'Invalid 2FA verification code'</span>);
 }</code></pre>
           </div>
         </div>
@@ -339,6 +372,21 @@ events.<span class="hl-fn">on</span>(<span class="hl-str">'user.created'</span>,
             <li><span class="check">✓</span> Autonomous reasoning loop &amp; tool dispatch</li>
             <li><span class="check">✓</span> 1-line HTTP / SSE &amp; WebSocket agent streaming</li>
             <li><span class="check">✓</span> Zero-cost deterministic testing fixtures</li>
+          </ul>
+        </div>
+
+        <!-- Feature: Voice -->
+        <div class="feature-card">
+          <div class="feature-icon-wrapper icon-pink">🎙️</div>
+          <h3>Voice &amp; Phone Calling Agents</h3>
+          <p>
+            Let users talk to your agents in the browser or on a phone call. Bring any LLM, any speech-to-text and any text-to-speech, including your own self-hosted models, or use a speech-to-speech provider.
+          </p>
+          <ul class="feature-list">
+            <li><span class="check">✓</span> Streaming pipeline: first sentence spoken while the LLM still writes</li>
+            <li><span class="check">✓</span> Barge-in: interrupt the agent, memory keeps only what was heard</li>
+            <li><span class="check">✓</span> WebSocket, WebRTC &amp; Twilio phone calls (inbound + outbound)</li>
+            <li><span class="check">✓</span> Usage, cost, latency &amp; recordings in the admin panel</li>
           </ul>
         </div>
 
@@ -558,6 +606,7 @@ export const runtime = createRuntimeAdapter({
               <tr><td>OpenAPI + Swagger UI</td><td><span class="cmp-no" title="Bring your own library">—</span></td><td><span class="cmp-plugin" title="Official plugin / module to install and wire up">◐</span></td><td><span class="cmp-plugin" title="Official plugin / module to install and wire up">◐</span></td><td class="cmp-jsango"><span class="cmp-yes" title="Built in">✓</span></td></tr>
               <tr><td>CORS, security headers, rate limits</td><td><span class="cmp-no" title="Bring your own library">—</span></td><td><span class="cmp-plugin" title="Official plugin / module to install and wire up">◐</span></td><td><span class="cmp-plugin" title="Official plugin / module to install and wire up">◐</span></td><td class="cmp-jsango"><span class="cmp-yes" title="Built in">✓</span></td></tr>
               <tr><td>AI agents, tools &amp; MCP</td><td><span class="cmp-no" title="Bring your own library">—</span></td><td><span class="cmp-no" title="Bring your own library">—</span></td><td><span class="cmp-no" title="Bring your own library">—</span></td><td class="cmp-jsango"><span class="cmp-yes" title="Built in">✓</span></td></tr>
+              <tr><td>Voice &amp; phone agents (any STT, LLM, TTS)</td><td><span class="cmp-no" title="Bring your own library">—</span></td><td><span class="cmp-no" title="Bring your own library">—</span></td><td><span class="cmp-no" title="Bring your own library">—</span></td><td class="cmp-jsango"><span class="cmp-yes" title="Built in">✓</span></td></tr>
               <tr class="cmp-perf"><td>Requests/sec, JSON hello world <a href="#benchmarks">(measured)</a></td><td>16.0k</td><td>60.1k</td><td><span class="cmp-no">not measured</span></td><td class="cmp-jsango">57.8k</td></tr>
           </tbody>
         </table>

@@ -114,3 +114,21 @@ Pick the first option that fits:
      `BaseLlmProvider` and implement `stream()`.
    - Register it under a name to use `model: 'mine:some-model'`:
      `ai.registerProvider('mine', myProvider)`.
+
+---
+
+## Guides
+
+| Guide                                     | What it covers                                                          |
+| ----------------------------------------- | ----------------------------------------------------------------------- |
+| [Agents](agents.md)                       | Defining agents, running, token streaming                               |
+| [Tools](tools.md)                         | Typed tools, validation, permissions                                    |
+| [Memory](memory.md)                       | Conversation history, token budget, running summary, database storage   |
+| [Human-in-the-loop](human-in-the-loop.md) | Approval-required tools                                                 |
+| [Workflows](workflows.md)                 | Multi-step and multi-agent workflows                                    |
+| [RAG](rag.md)                             | Knowledge bases and vector search                                       |
+| [MCP](mcp.md)                             | Model Context Protocol servers and clients                              |
+| [Voice Agents](voice.md)                  | Voice with any STT / LLM / TTS, speech-to-speech, WebRTC, custom models |
+| [Phone Calling Agents](phone.md)          | Inbound and outbound calls with Twilio                                  |
+| [AI Insights](insights.md)                | Usage, cost, latency, admin widgets, recordings, Prometheus             |
+| [Testing](testing.md)                     | Fake providers and deterministic tests                                  |

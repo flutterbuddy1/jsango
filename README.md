@@ -396,6 +396,38 @@ usage, status }`; send the `conversationId` back to continue the conversation. T
 system prompt are never returned, anonymous visitors get their own server-issued conversation, input
 is capped at 10,000 characters (`maxInputLength`), and a run stops when the client disconnects.
 
+Custom LLMs are one function (`provider(async ({ messages }) => text)`), and memory keeps token
+use low (old tool results aren't re-sent, history has a token budget, optional running summary).
+
+### 7. Voice & Phone Calling Agents
+
+The same agent can talk, with any models: any LLM, any speech-to-text and any text-to-speech
+(including self-hosted models), or a speech-to-speech provider. Answers are spoken sentence by
+sentence while the LLM is still writing; interruptions abort the reply and memory keeps only what
+was heard.
+
+```typescript
+import { agent, deepgram, cartesia, openaiRealtime, twilio, aiAdminPage } from 'jsango';
+
+const support = agent({ provider: myLlm, instructions: 'You are a friendly support agent.' });
+
+app.voiceAgent('/voice', support, { stt: deepgram(), tts: cartesia({ voiceId: 'your-voice-id' }) });
+app.webrtcAgent('/voice/rtc', support, { realtime: openaiRealtime() }); // WebRTC, key stays on server
+const line = app.phoneAgent('/phone', support, {
+  carrier: twilio(),
+  stt: deepgram(),
+  tts: cartesia({ voiceId: 'your-voice-id' }),
+});
+await line.dial('+919876543210'); // outbound phone call
+
+// Usage, cost, latency, transcripts and recordings in the admin
+const insights = app.aiInsights({ store: db });
+app.admin({ pages: [aiAdminPage(insights)] });
+```
+
+Guides: [Voice](docs/ai/voice.md) · [Phone](docs/ai/phone.md) · [Insights](docs/ai/insights.md) ·
+[Memory](docs/ai/memory.md) · runnable example: [examples/voice-agent](examples/voice-agent).
+
 ---
 
 ## CLI Commands
@@ -421,24 +453,24 @@ is capped at 10,000 characters (`maxInputLength`), and a run stops when the clie
 
 For advanced customization, internal packages remain independently available:
 
-| Package                                     | Responsibility                                                             |
-| :------------------------------------------ | :------------------------------------------------------------------------- |
-| [`jsango`](packages/jsango)                 | **Unified high-level developer facade and app coordinator**                |
-| [`@jsango/ai`](packages/ai)                 | **AI Agent runtime, provider abstraction, tools, workflows, RAG, and MCP** |
-| [`@jsango/core`](packages/core)             | Application lifecycle coordinator and structured error hierarchy           |
-| [`@jsango/http`](packages/http)             | HTTP request/response abstractions and streaming body parsers              |
-| [`@jsango/router`](packages/router)         | Segment Radix Trie router (>7.7M ops/sec) and parameter constraints        |
-| [`@jsango/middleware`](packages/middleware) | Middleware execution pipeline and response normalizers                     |
-| [`@jsango/orm`](packages/orm)               | Declarative models, AST query builder, and batch eager loading             |
-| [`@jsango/database`](packages/database)     | Multi-connection manager, connection pool, and transactions                |
-| [`@jsango/validation`](packages/validation) | Fluent schema validation engine and request middleware                     |
-| [`@jsango/websocket`](packages/websocket)   | Real-time WebSocket server, room manager, and heartbeat engine             |
-| [`@jsango/admin`](packages/admin)           | Metadata-driven administrative dashboard engine                            |
-| [`@jsango/auth`](packages/auth)             | Authentication (JWT, Session, API Key) and policy authorization            |
-| [`@jsango/cache`](packages/cache)           | Driver-agnostic caching with stampede protection (`remember`)              |
-| [`@jsango/queue`](packages/queue)           | Asynchronous background job queues with exponential retries                |
-| [`@jsango/events`](packages/events)         | In-process and distributed asynchronous event bus                          |
-| [`@jsango/cli`](packages/cli)               | CLI tooling and project generators                                         |
+| Package                                     | Responsibility                                                                            |
+| :------------------------------------------ | :---------------------------------------------------------------------------------------- |
+| [`jsango`](packages/jsango)                 | **Unified high-level developer facade and app coordinator**                               |
+| [`@jsango/ai`](packages/ai)                 | **AI Agent runtime, providers, tools, workflows, RAG, MCP, voice agents and AI insights** |
+| [`@jsango/core`](packages/core)             | Application lifecycle coordinator and structured error hierarchy                          |
+| [`@jsango/http`](packages/http)             | HTTP request/response abstractions and streaming body parsers                             |
+| [`@jsango/router`](packages/router)         | Segment Radix Trie router (>7.7M ops/sec) and parameter constraints                       |
+| [`@jsango/middleware`](packages/middleware) | Middleware execution pipeline and response normalizers                                    |
+| [`@jsango/orm`](packages/orm)               | Declarative models, AST query builder, and batch eager loading                            |
+| [`@jsango/database`](packages/database)     | Multi-connection manager, connection pool, and transactions                               |
+| [`@jsango/validation`](packages/validation) | Fluent schema validation engine and request middleware                                    |
+| [`@jsango/websocket`](packages/websocket)   | Real-time WebSocket server, room manager, and heartbeat engine                            |
+| [`@jsango/admin`](packages/admin)           | Metadata-driven administrative dashboard engine                                           |
+| [`@jsango/auth`](packages/auth)             | Authentication (JWT, Session, API Key) and policy authorization                           |
+| [`@jsango/cache`](packages/cache)           | Driver-agnostic caching with stampede protection (`remember`)                             |
+| [`@jsango/queue`](packages/queue)           | Asynchronous background job queues with exponential retries                               |
+| [`@jsango/events`](packages/events)         | In-process and distributed asynchronous event bus                                         |
+| [`@jsango/cli`](packages/cli)               | CLI tooling and project generators                                                        |
 
 ---
 
