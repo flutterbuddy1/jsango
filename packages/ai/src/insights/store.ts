@@ -61,6 +61,7 @@ const COLUMNS: Record<Table, Record<string, 'id' | 'text' | 'int' | 'long'>> = {
     audio_out_ms: 'int',
     first_audio_ms: 'int',
     transcript: 'long',
+    recording_url: 'text',
   },
   turns: {
     id: 'id',

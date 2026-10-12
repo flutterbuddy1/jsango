@@ -36,6 +36,49 @@ provider or adapter name (`deepgram`, `openai-tts`, `elevenlabs`, `cartesia`, `o
 `openai-realtime`, `gemini-live`, or the `name` you gave `stt()`/`tts()`). Without a price, cost
 is left empty. It is never guessed.
 
+## In the Admin Panel
+
+```typescript
+import { aiWidgets, aiAdminPage } from 'jsango';
+
+app.admin({
+  dashboard: aiWidgets(insights), // on the main dashboard
+  pages: [aiAdminPage(insights)], // and/or an "AI Usage" page in the sidebar
+});
+```
+
+Widgets: AI runs, cost, tokens, voice calls (minutes and interruptions), voice latency (p95 and
+median), failed runs (each compared with the previous 24 h); a 7-day usage chart and a cost per
+day chart; recent voice calls (duration, turns, interruptions, first-audio latency, cost,
+expandable transcript, **recording player**); usage by model; recent AI errors.
+
+They are ordinary admin widgets. Pick the ones you want
+(`aiWidgets(insights).filter((w) => w.id !== 'ai-cost')`), mix them with your own, or build new
+ones on `insights.summary()` / `series()` / `calls()`. Only superusers and identities with
+`ai.insights.view` see them (`aiWidgets(insights, { permission: '...' })` to change it). Admin
+tables can show `audioCell(url)`, `linkCell(href, label)` and `detailsCell(label, text)`.
+
+## Call Recordings
+
+Recording is off by default, and many countries require telling callers. When you turn it on,
+both sides are mixed into one WAV per call (16 kHz). Agent audio the caller interrupted is cut,
+so the recording matches what was heard.
+
+```typescript
+import { recordTo, LocalDiskMediaStorage, deepgram, openaiTts } from 'jsango';
+
+const recordings = new LocalDiskMediaStorage(); // or S3MediaStorage (S3, R2, MinIO…)
+app.admin({ media: { local: recordings }, pages: [aiAdminPage(insights)] });
+app.voiceAgent('/voice', support, {
+  stt: deepgram(),
+  tts: openaiTts(),
+  record: recordTo(recordings),
+});
+```
+
+The recording URL is saved on the call (`recording_url`) and plays in the admin's recent-calls
+table. `record` is a plain function, so you can also save recordings anywhere else.
+
 ## Querying (custom dashboards)
 
 ```typescript

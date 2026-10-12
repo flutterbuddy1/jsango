@@ -42,8 +42,16 @@ export type MetricValue =
 
 export interface TableData {
   headers: string[];
+  /** Cells are text, or `audioCell()` / `linkCell()` / `detailsCell()`. */
   rows: unknown[][];
 }
+
+/** A table cell the admin shows as an audio player (http(s) or same-site URL). */
+export const audioCell = (url: string) => ({ audio: url });
+/** A table cell the admin shows as a link (http(s) or same-site URL). */
+export const linkCell = (href: string, label?: string) => ({ href, label });
+/** A table cell the admin shows as a label that expands to long text (e.g. a transcript). */
+export const detailsCell = (label: string, details: string) => ({ label, details });
 
 export interface ChartData {
   labels: string[];

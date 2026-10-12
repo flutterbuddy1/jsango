@@ -115,6 +115,31 @@ const Metric: React.FC<{ value: any }> = ({ value }) => {
   );
 };
 
+// Only http(s) and same-site paths: a cell's URL comes from app data and must never run script.
+const safeUrl = (url: unknown): string | undefined =>
+  typeof url === 'string' && /^(https?:\/\/|\/(?!\/))/i.test(url) ? url : undefined;
+
+/** A table cell: text, or `{ audio }` (player), `{ href, label }` (link), `{ details, label }` (expandable text). */
+export const Cell: React.FC<{ value: unknown }> = ({ value }) => {
+  if (value === null || value === undefined) return <>—</>;
+  if (typeof value !== 'object') return <>{String(value)}</>;
+  const v = value as { audio?: unknown; href?: unknown; label?: unknown; details?: unknown };
+  const label = typeof v.label === 'string' ? v.label : undefined;
+  const audio = safeUrl(v.audio);
+  if (audio) return <audio controls preload="none" src={audio} style={{ height: 32, maxWidth: 260 }} />;
+  const href = safeUrl(v.href);
+  if (href) return <a href={href} target="_blank" rel="noopener noreferrer">{label ?? href}</a>;
+  if (v.href !== undefined || v.audio !== undefined) return <>{label ?? '—'}</>; // unsafe URL: text only
+  if (typeof v.details === 'string')
+    return (
+      <details>
+        <summary style={{ cursor: 'pointer' }}>{label ?? 'Show'}</summary>
+        <div style={{ whiteSpace: 'pre-wrap', maxWidth: 520, fontSize: '0.8125rem', marginTop: 4 }}>{v.details}</div>
+      </details>
+    );
+  return <>{JSON.stringify(value)}</>;
+};
+
 const Table: React.FC<{ data: { headers: string[]; rows: unknown[][] } }> = ({ data }) => (
   <div style={{ overflowX: 'auto' }}>
     <table className="chakra-table" style={{ width: '100%' }}>
@@ -128,7 +153,7 @@ const Table: React.FC<{ data: { headers: string[]; rows: unknown[][] } }> = ({ d
           </tr>
         )}
         {data.rows.map((row, i) => (
-          <tr key={i}>{row.map((cell, j) => <td key={j}>{cell === null || cell === undefined ? '—' : typeof cell === 'object' ? JSON.stringify(cell) : String(cell)}</td>)}</tr>
+          <tr key={i}>{row.map((cell, j) => <td key={j}><Cell value={cell} /></td>)}</tr>
         ))}
       </tbody>
     </table>

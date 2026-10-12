@@ -46,7 +46,11 @@ export function openaiStt(options: OpenAiSttOptions = {}): Stt {
         ? (options.apiKey ?? env('OPENAI_API_KEY'))
         : requireKey('openai-stt', options.apiKey ?? env('OPENAI_API_KEY'), 'OPENAI_API_KEY');
       const form = new FormData();
-      form.append('file', new Blob([new Uint8Array(wav(audio, sampleRate))], { type: 'audio/wav' }), 'speech.wav');
+      form.append(
+        'file',
+        new Blob([new Uint8Array(wav(audio, sampleRate))], { type: 'audio/wav' }),
+        'speech.wav'
+      );
       form.append('model', options.model ?? 'gpt-transcribe');
       const res = await check(
         'openai-stt',

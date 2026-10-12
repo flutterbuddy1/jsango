@@ -237,6 +237,8 @@ export class Insights {
           })
         );
       }
+      case 'call.recorded':
+        return this.write(() => this.store.update('calls', r.id, { recording_url: r.url }));
       case 'call.ended': {
         const call = this.active.get(r.id);
         this.active.delete(r.id);

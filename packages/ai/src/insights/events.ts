@@ -43,6 +43,7 @@ export type AiRecord =
       latency: TurnLatency;
       usage?: VoiceUsage | undefined;
     }
+  | { type: 'call.recorded'; id: string; at: number; url: string }
   | {
       type: 'call.ended';
       id: string;

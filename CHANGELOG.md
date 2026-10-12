@@ -22,6 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- AI in the admin: `aiWidgets(insights)` / `aiAdminPage(insights)` add usage, cost, latency,
+  error, chart and recent-call widgets (with transcripts and a recording player), behind the
+  `ai.insights.view` permission. Admin tables render `audioCell()`, `linkCell()` and
+  `detailsCell()` (URLs limited to http(s) and same-site paths).
+- Call recordings: `record: recordTo(storage)` saves each call (caller and agent mixed, WAV) to
+  admin media storage and links it to the call in insights. Off by default.
+
 - Phone calling agents: `app.phoneAgent(path, agent, { carrier: twilio(), stt, tts })` answers
   calls (Twilio Media Streams, μ-law 8 kHz) and `line.dial(to)` places them, with the same agent,
   models, barge-in and insights as browser voice. Webhooks are verified with Twilio's signature

@@ -6,6 +6,7 @@ import { durationMs, resample } from './audio.js';
 import { sentences } from './chunker.js';
 import { AsyncQueue } from './queue.js';
 import { EnergyVad, type VadOptions } from './vad.js';
+import { CallRecorder } from './recorder.js';
 import type {
   RealtimeAdapter,
   RealtimeConnection,
@@ -30,6 +31,13 @@ export interface VoiceOptions {
   maxSteps?: number | undefined;
   /** Hard limit on one session. Default 10 minutes. */
   maxSessionMs?: number | undefined;
+  /**
+   * Record the call (caller and agent mixed, WAV 16 kHz) and save it; return its URL. Off by
+   * default: tell callers they are recorded. `recordTo(storage)` saves to admin media storage.
+   */
+  record?:
+    | ((recording: { callId: string; wav: Buffer; durationMs: number }) => Promise<string>)
+    | undefined;
 }
 
 /** Where a session's output goes: a browser socket, a phone call, a test. */
@@ -73,6 +81,7 @@ export class VoiceSession {
   private readonly abort = new AbortController();
   private readonly startedAt = Date.now();
   private audioInMs = 0;
+  private readonly recorder: CallRecorder | undefined;
   private audioOutMs = 0;
   private readonly transcript: Array<{
     role: 'user' | 'assistant';
@@ -128,6 +137,7 @@ export class VoiceSession {
     this.options = options;
     this.init = init;
     this.vad = new EnergyVad(options.vad);
+    this.recorder = options.record ? new CallRecorder() : undefined;
     this.limit = setTimeout(
       () => {
         this.emit({ type: 'error', error: 'Session time limit reached' });
@@ -163,7 +173,14 @@ export class VoiceSession {
 
   private sendAudio(pcm: Int16Array): void {
     this.audioOutMs += durationMs(pcm.length, this.init.outputRate);
+    this.recorder?.agent(pcm, this.init.outputRate);
     this.init.output.audio(pcm);
+  }
+
+  /** Stop the caller's playback (and cut the unplayed audio from the recording). */
+  private clearPlayback(): void {
+    this.recorder?.cut();
+    this.init.output.clear();
   }
 
   /** Connects the providers; emits `ready` when audio can flow. */
@@ -194,6 +211,7 @@ export class VoiceSession {
   public audio(pcm: Int16Array): void {
     if (this.closed || pcm.length === 0) return;
     this.audioInMs += durationMs(pcm.length, this.init.inputRate);
+    this.recorder?.caller(pcm, this.init.inputRate);
     if (this.conn) {
       this.conn.sendAudio(resample(pcm, this.init.inputRate, this.options.realtime!.inputRate));
       return;
@@ -247,6 +265,20 @@ export class VoiceSession {
       transcript: this.transcript,
     });
     this.init.output.close(reason);
+    if (this.recorder) void this.saveRecording(this.recorder);
+  }
+
+  private async saveRecording(recorder: CallRecorder): Promise<void> {
+    try {
+      const url = await this.options.record!({
+        callId: this.id,
+        wav: recorder.toWav(),
+        durationMs: Date.now() - this.startedAt,
+      });
+      reportAi({ type: 'call.recorded', id: this.id, at: Date.now(), url });
+    } catch (err) {
+      process.emitWarning(`Call recording could not be saved: ${message(err)}`);
+    }
   }
 
   // --- pipeline mode -------------------------------------------------------------------------
@@ -305,7 +337,7 @@ export class VoiceSession {
       this.preroll = [];
       // Barge-in: the agent is talking (or about to), the user wins.
       if (this.turn && !this.turn.finished) this.cancelTurn();
-      else if (Date.now() < this.playbackEndsAt) this.init.output.clear();
+      else if (Date.now() < this.playbackEndsAt) this.clearPlayback();
       this.emit({ type: 'speech.started' });
     } else if (change === 'stop') {
       this.userEndedAt = Date.now();
@@ -473,7 +505,7 @@ export class VoiceSession {
   private cancelTurn(heardMs?: number): void {
     const turn = this.turn;
     this.turn = undefined;
-    this.init.output.clear();
+    this.clearPlayback();
     this.playbackEndsAt = 0;
     if (!turn || turn.finished) return;
     turn.finished = true;
@@ -555,7 +587,7 @@ export class VoiceSession {
         if (this.currentResponse) this.dropped.add(this.currentResponse);
         this.currentResponse = undefined;
         this.toolRounds = 0;
-        this.init.output.clear();
+        this.clearPlayback();
         return this.emit({ type: 'speech.started' });
       case 'speech.stopped':
         this.userEndedAt = Date.now();
