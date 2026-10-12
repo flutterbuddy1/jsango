@@ -1,0 +1,65 @@
+/** Audio helpers for voice: PCM16 mono everywhere, converted at the edges. */
+
+/** Bytes (little-endian PCM16) to samples, copying so odd byte offsets are safe. */
+export function pcmFromBytes(bytes: Uint8Array): Int16Array {
+  const out = new Int16Array(bytes.length >> 1);
+  new Uint8Array(out.buffer).set(bytes.subarray(0, out.length * 2));
+  return out;
+}
+
+export function pcmToBytes(pcm: Int16Array): Buffer {
+  return Buffer.from(pcm.buffer, pcm.byteOffset, pcm.byteLength);
+}
+
+// ponytail: linear interpolation is fine for speech; use a polyphase filter if music quality matters.
+export function resample(pcm: Int16Array, from: number, to: number): Int16Array {
+  if (from === to || pcm.length === 0) return pcm;
+  const out = new Int16Array(Math.max(1, Math.round((pcm.length * to) / from)));
+  const step = from / to;
+  for (let i = 0; i < out.length; i++) {
+    const pos = i * step;
+    const j = Math.floor(pos);
+    const a = pcm[Math.min(j, pcm.length - 1)]!;
+    const b = pcm[Math.min(j + 1, pcm.length - 1)]!;
+    out[i] = Math.round(a + (b - a) * (pos - j));
+  }
+  return out;
+}
+
+/** Duration of PCM16 mono audio in milliseconds. */
+export const durationMs = (samples: number, sampleRate: number): number =>
+  (samples / sampleRate) * 1000;
+
+/** G.711 μ-law (phone audio) to PCM16. */
+export function mulawDecode(bytes: Uint8Array): Int16Array {
+  const out = new Int16Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) {
+    const u = ~bytes[i]! & 0xff;
+    const t = (((u & 0x0f) << 3) + 0x84) << ((u & 0x70) >> 4);
+    out[i] = u & 0x80 ? 0x84 - t : t - 0x84;
+  }
+  return out;
+}
+
+/** PCM16 to G.711 μ-law. */
+export function mulawEncode(pcm: Int16Array): Uint8Array {
+  const out = new Uint8Array(pcm.length);
+  for (let i = 0; i < pcm.length; i++) {
+    let s = pcm[i]!;
+    const sign = s < 0 ? 0x80 : 0;
+    if (s < 0) s = -s;
+    s = Math.min(s, 32635) + 0x84;
+    let exp = 7;
+    for (let mask = 0x4000; (s & mask) === 0 && exp > 0; mask >>= 1) exp--;
+    out[i] = ~(sign | (exp << 4) | ((s >> (exp + 3)) & 0x0f)) & 0xff;
+  }
+  return out;
+}
+
+/** Root-mean-square level, 0..32768. */
+export function rms(pcm: Int16Array): number {
+  if (pcm.length === 0) return 0;
+  let sum = 0;
+  for (let i = 0; i < pcm.length; i++) sum += pcm[i]! * pcm[i]!;
+  return Math.sqrt(sum / pcm.length);
+}

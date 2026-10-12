@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { WebSocket, WebSocketServer } from 'ws';
-import { createApp, agent, tool, FakeLlmProvider } from './index.js';
+import { createApp, agent, tool, FakeLlmProvider, openaiRealtime } from './index.js';
 
 const cleanup: (() => Promise<void> | void)[] = [];
 afterEach(async () => {
@@ -26,7 +26,11 @@ async function fakeRealtime() {
   wss.on('connection', (ws, req) => {
     peer = ws;
     auth = req.headers.authorization ?? '';
-    ws.on('message', (raw) => received.push(JSON.parse(raw.toString())));
+    ws.on('message', (raw) => {
+      const event = JSON.parse(raw.toString());
+      received.push(event);
+      if (event.type === 'session.update') ws.send(JSON.stringify({ type: 'session.updated' }));
+    });
   });
   return {
     url: `ws://127.0.0.1:${(wss.address() as { port: number }).port}`,
@@ -56,7 +60,10 @@ async function setup(options: Record<string, unknown> = {}) {
     tools: { lookup },
   });
   const app = createApp();
-  app.voiceAgent('/voice', bot, { apiKey: 'sk-test', url: upstream.url, ...options });
+  app.voiceAgent('/voice', bot, {
+    realtime: openaiRealtime({ apiKey: 'sk-test', url: upstream.url }),
+    ...options,
+  });
   const server = await app.listen(0, '127.0.0.1');
   cleanup.push(() => server.close());
 
@@ -202,22 +209,24 @@ describe('app.voiceAgent', () => {
     expect(await closed).toBe(1000);
   });
 
-  it('refuses to start without an API key', async () => {
-    const app = createApp();
+  it('reports a missing API key and closes', async () => {
     const prev = process.env['OPENAI_API_KEY'];
     delete process.env['OPENAI_API_KEY'];
     cleanup.push(() => {
       if (prev !== undefined) process.env['OPENAI_API_KEY'] = prev;
     });
-    app.voiceAgent('/voice', agent({ provider: new FakeLlmProvider() }));
-    const server = await app.listen(0, '127.0.0.1');
-    cleanup.push(() => server.close());
-    const ws = new WebSocket(`ws://127.0.0.1:${server.address!.port}/voice`);
-    const events: any[] = [];
-    ws.on('message', (raw) => events.push(JSON.parse(raw.toString())));
-    const code = await new Promise<number>((r) => ws.once('close', (c) => r(c)));
-    expect(code).toBe(1011);
-    expect(events[0].type).toBe('error');
+    const { events, code } = await connect({ realtime: openaiRealtime() });
+    expect(await code).toBe(1000);
+    expect(events[0]).toEqual({
+      type: 'error',
+      error: 'Voice provider failed: OPENAI_API_KEY is not set',
+    });
+  });
+
+  it('refuses a route with neither stt+tts nor realtime', async () => {
+    const { events, code } = await connect({});
+    expect(await code).toBe(1011);
+    expect(events[0].error).toMatch(/stt, tts.*realtime/);
   });
 
   // Opt-in: runs against the real OpenAI Realtime API only when OPENAI_API_KEY is set.
@@ -225,7 +234,9 @@ describe('app.voiceAgent', () => {
     'live: answers a text message with audio and a transcript',
     async () => {
       const app = createApp();
-      app.voiceAgent('/voice', agent({ instructions: 'Answer in one short sentence.' }));
+      app.voiceAgent('/voice', agent({ instructions: 'Answer in one short sentence.' }), {
+        realtime: openaiRealtime(),
+      });
       const server = await app.listen(0, '127.0.0.1');
       cleanup.push(() => server.close());
       const ws = new WebSocket(`ws://127.0.0.1:${server.address!.port}/voice`);
@@ -245,3 +256,16 @@ describe('app.voiceAgent', () => {
     40_000
   );
 });
+
+/** Opens a voice route with these options; resolves the close code. */
+async function connect(options: Record<string, unknown>) {
+  const app = createApp();
+  app.voiceAgent('/voice', agent({ provider: new FakeLlmProvider() }), options);
+  const server = await app.listen(0, '127.0.0.1');
+  cleanup.push(() => server.close());
+  const ws = new WebSocket(`ws://127.0.0.1:${server.address!.port}/voice`);
+  const events: any[] = [];
+  ws.on('message', (raw) => events.push(JSON.parse(raw.toString())));
+  const code = new Promise<number>((r) => ws.once('close', (c) => r(c)));
+  return { events, code };
+}

@@ -149,32 +149,21 @@ export class Agent<TOutput = string> {
     // 3. Prepare messages & memory
     // History is isolated per tenant and user, so two users can never read each other's
     // conversation even if they pick the same conversationId.
-    const userId =
-      context.user && typeof context.user === 'object'
-        ? (context.user as { id?: unknown }).id
-        : context.user;
-    const hasUser = userId !== undefined && userId !== null;
-    const conversationKey = [
-      context.tenantId !== undefined ? `t:${context.tenantId}` : undefined,
-      hasUser ? `u:${String(userId)}` : undefined,
-      context.conversationId ?? 'default',
-    ]
-      .filter((part) => part !== undefined)
-      .join('|');
-    // Anonymous callers without a conversationId get no memory: one shared 'default' conversation
-    // would show every visitor the others' messages.
-    const memory = hasUser || context.conversationId ? this.memoryStore : undefined;
+    const { memory: storedMemory, key: conversationKey } = this.memoryFor(context);
+    const memory = options.saveHistory === false ? undefined : storedMemory;
+    // Voice reads history but saves turns itself (only what the caller actually heard).
+    const readMemory = storedMemory;
     // The system prompt is rebuilt every run (never stored), so it can't grow turn after turn.
     const maxHistoryTokens = this.config.history?.maxTokens ?? 4000;
-    const summarize = Boolean(memory && this.config.history?.summarize);
+    const summarize = Boolean(readMemory && this.config.history?.summarize);
     const summaryKey = `${conversationKey}|summary`;
-    const history: LlmMessage[] = memory
+    const history: LlmMessage[] = readMemory
       ? compactHistory(
-          (await memory.get(conversationKey)).filter((m) => m.role !== 'system'),
+          (await readMemory.get(conversationKey)).filter((m) => m.role !== 'system'),
           maxHistoryTokens
         ).kept
       : [];
-    let summary = summarize ? ((await memory!.get(summaryKey))[0]?.content ?? '') : '';
+    let summary = summarize ? ((await readMemory!.get(summaryKey))[0]?.content ?? '') : '';
     const messages: LlmMessage[] = [...history];
 
     if (summary) instructions += `\n\nSummary of the earlier conversation:\n${summary}`;
@@ -348,11 +337,22 @@ export class Agent<TOutput = string> {
           });
 
           if (execResult.error) {
-            emit({ type: 'tool.failed', data: { toolName: tc.name, error: execResult.error } });
+            emit({
+              type: 'tool.failed',
+              data: {
+                toolName: tc.name,
+                error: execResult.error,
+                durationMs: execResult.durationMs,
+              },
+            });
           } else {
             emit({
               type: 'tool.completed',
-              data: { toolName: tc.name, output: execResult.output },
+              data: {
+                toolName: tc.name,
+                output: execResult.output,
+                durationMs: execResult.durationMs,
+              },
             });
           }
 
@@ -376,12 +376,7 @@ export class Agent<TOutput = string> {
       const turns = messages
         .filter((m) => m.role !== 'system')
         .map((m) => (m === userMessage ? { ...m, content: options.input } : m));
-      const { kept, dropped } = compactHistory(turns, maxHistoryTokens);
-      if (summarize && dropped.length > 0) {
-        summary = await this.summarize(summary, dropped, usage, options.signal);
-        await memory.set(summaryKey, [{ role: 'user', content: summary }]);
-      }
-      await memory.set(conversationKey, kept);
+      await this.saveTurns(memory, conversationKey, turns, summary, usage, options.signal);
     }
 
     emit({ type: 'run.completed', data: { text: finalAnswer, usage } });
@@ -396,6 +391,67 @@ export class Agent<TOutput = string> {
       durationMs: Date.now() - startTime,
       status: 'completed',
     };
+  }
+
+  /**
+   * Where this context's history lives. History is isolated per tenant and user, so two users
+   * never read each other's conversation even with the same conversationId. Anonymous callers
+   * without a conversationId get no memory (a shared 'default' would mix visitors).
+   */
+  private memoryFor(context: AgentContext): { memory?: MemoryStore | undefined; key: string } {
+    const userId =
+      context.user && typeof context.user === 'object'
+        ? (context.user as { id?: unknown }).id
+        : context.user;
+    const hasUser = userId !== undefined && userId !== null;
+    const key = [
+      context.tenantId !== undefined ? `t:${context.tenantId}` : undefined,
+      hasUser ? `u:${String(userId)}` : undefined,
+      context.conversationId ?? 'default',
+    ]
+      .filter((part) => part !== undefined)
+      .join('|');
+    return { memory: hasUser || context.conversationId ? this.memoryStore : undefined, key };
+  }
+
+  /** Compacts and stores history, folding dropped turns into the summary when enabled. */
+  private async saveTurns(
+    memory: MemoryStore,
+    key: string,
+    turns: LlmMessage[],
+    summary: string,
+    usage: LlmUsage,
+    signal?: AbortSignal
+  ): Promise<void> {
+    const { kept, dropped } = compactHistory(turns, this.config.history?.maxTokens ?? 4000);
+    if (this.config.history?.summarize && dropped.length > 0) {
+      const next = await this.summarize(summary, dropped, usage, signal);
+      await memory.set(`${key}|summary`, [{ role: 'user', content: next }]);
+    }
+    await memory.set(key, kept);
+  }
+
+  /** This context's stored history, compacted to the token budget (empty without memory). */
+  public async history(context: AgentContext = {}): Promise<LlmMessage[]> {
+    const { memory, key } = this.memoryFor(context);
+    if (!memory) return [];
+    const stored = (await memory.get(key)).filter((m) => m.role !== 'system');
+    return compactHistory(stored, this.config.history?.maxTokens ?? 4000).kept;
+  }
+
+  /**
+   * Appends messages to this context's history (for turns that didn't go through `run()`, e.g. a
+   * voice reply the user interrupted: only what they heard is saved).
+   */
+  public async remember(context: AgentContext, messages: LlmMessage[]): Promise<void> {
+    const { memory, key } = this.memoryFor(context);
+    if (!memory) return;
+    const history = (await memory.get(key)).filter((m) => m.role !== 'system');
+    const summary = this.config.history?.summarize
+      ? ((await memory.get(`${key}|summary`))[0]?.content ?? '')
+      : '';
+    const usage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+    await this.saveTurns(memory, key, [...history, ...messages], summary, usage, context.signal);
   }
 
   /** Folds dropped turns into the running summary, so long conversations stay small. */

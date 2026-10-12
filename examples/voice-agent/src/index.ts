@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { createApp, agent, tool, HttpResponse } from 'jsango';
+import { createApp, agent, tool, HttpResponse, openaiRealtime } from 'jsango';
 
 // One agent: the same instructions and tools work for text (app.agent) and voice (app.voiceAgent).
 export const support = agent({
@@ -24,7 +24,7 @@ export function createApplication() {
   const app = createApp();
   // In a real app, protect both with auth: { middleware: [auth.required()] }.
   app.agent('/api/chat', support);
-  app.voiceAgent('/voice', support);
+  app.voiceAgent('/voice', support, { realtime: openaiRealtime() });
   const page = readFileSync(new URL('../client.html', import.meta.url), 'utf8');
   app.get('/', () => HttpResponse.html(page));
   return app;

@@ -99,3 +99,35 @@ export {
 export { evaluate } from './evals/evaluator.js';
 
 export { ai, AiFacade } from './facade.js';
+
+// Voice: one session engine, pluggable speech-to-text / text-to-speech / speech-to-speech.
+export {
+  VoiceSession,
+  type VoiceOptions,
+  type VoiceOutput,
+  type VoiceSessionInit,
+} from './voice/session.js';
+export {
+  stt,
+  tts,
+  type Stt,
+  type SttResult,
+  type Tts,
+  type RealtimeAdapter,
+  type RealtimeConnection,
+  type RealtimeEvent,
+  type VoiceEvent,
+  type VoiceUsage,
+  type TurnLatency,
+} from './voice/types.js';
+export { openaiRealtime, type OpenAiRealtimeOptions } from './voice/openai-realtime.js';
+export {
+  resample,
+  mulawDecode,
+  mulawEncode,
+  pcmFromBytes,
+  pcmToBytes,
+  durationMs,
+} from './voice/audio.js';
+export { sentences } from './voice/chunker.js';
+export { EnergyVad, type VadOptions } from './voice/vad.js';

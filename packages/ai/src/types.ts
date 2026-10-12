@@ -143,6 +143,8 @@ export interface AgentRunOptions {
   maxSteps?: number | undefined;
   knowledge?: any | undefined;
   onEvent?: ((event: AgentEvent) => void) | undefined;
+  /** `false`: read history but don't save this turn (the caller saves it with `remember()`). */
+  saveHistory?: boolean | undefined;
 }
 
 export interface AgentApprovalRequest {
