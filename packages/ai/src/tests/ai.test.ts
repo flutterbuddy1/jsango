@@ -507,6 +507,70 @@ describe('agent memory', () => {
   });
 });
 
+describe('token-efficient history', () => {
+  const ctx = { context: { user: { id: 1 } } };
+  const sent = (p: FakeLlmProvider) =>
+    p.callHistory.at(-1)!.messages!.filter((m) => m.role !== 'system');
+
+  it('drops old tool results and never stores RAG context', async () => {
+    const provider = new FakeLlmProvider()
+      .respondWithTool('lookup', { q: 'a' })
+      .respond('answer one')
+      .respond('answer two')
+      .respond('answer three');
+    const lookup = tool({
+      name: 'lookup',
+      description: 'Look up',
+      input: { q: 'x' },
+      execute: async () => 'BIG TOOL OUTPUT',
+    });
+    const kb = { retrieve: async () => ['LONG RAG CHUNK'] } as any;
+    const bot = agent({ provider, tools: { lookup }, memory: true });
+    await bot.run({ input: 'q1', knowledge: kb, ...ctx });
+    await bot.run({ input: 'q2', ...ctx });
+    // The previous turn keeps its tool results (for follow-ups)...
+    expect(JSON.stringify(sent(provider))).toContain('BIG TOOL OUTPUT');
+    await bot.run({ input: 'q3', ...ctx });
+
+    // ...older turns are just question + answer, and the RAG chunk was never stored.
+    const third = sent(provider);
+    // (callHistory holds the live array, so the final answer is appended too)
+    expect(third.map((m) => m.content)).toEqual([
+      'q1',
+      'answer one',
+      'q2',
+      'answer two',
+      'q3',
+      'answer three',
+    ]);
+    expect(JSON.stringify(third)).not.toContain('BIG TOOL OUTPUT');
+    expect(JSON.stringify(third)).not.toContain('LONG RAG CHUNK');
+    expect(third[0]!.content).toBe('q1');
+  });
+
+  it('keeps history under the token budget and folds old turns into a summary', async () => {
+    const provider = new FakeLlmProvider();
+    const bot = agent({ provider, memory: true, history: { maxTokens: 40, summarize: true } });
+    const long = 'x'.repeat(80); // ~20 tokens each
+
+    provider.respond('a1');
+    await bot.run({ input: `first ${long}`, ...ctx });
+    provider.respond('a2').respond('SUMMARY: user said first');
+    await bot.run({ input: `second ${long}`, ...ctx });
+    provider.respond('a3');
+    const before = provider.callHistory.length;
+    await bot.run({ input: 'third', ...ctx });
+
+    const last = provider.callHistory[before]!.messages!;
+    expect(last[0]!.content).toContain('SUMMARY: user said first');
+    expect(JSON.stringify(last)).not.toContain('first x');
+    expect(last.filter((m) => m.role === 'user').map((m) => m.content)).toEqual([
+      'second ' + long,
+      'third',
+    ]);
+  });
+});
+
 describe('tool argument safety', () => {
   it('validates arguments with the schema and keeps MCP callers out of guarded tools', async () => {
     const { schema, string, number } = await import('@jsango/validation');

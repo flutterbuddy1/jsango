@@ -14,7 +14,7 @@ import { GuardrailViolationError } from '../errors.js';
 import { ModelRouter } from '../providers/model-router.js';
 import { tool } from '../tools/tool.js';
 import { ToolExecutor } from '../tools/tool-executor.js';
-import { InMemoryMemoryStore } from '../memory/memory.js';
+import { InMemoryMemoryStore, compactHistory } from '../memory/memory.js';
 
 let defaultRouter: ModelRouter | null = null;
 
@@ -128,11 +128,19 @@ export class Agent<TOutput = string> {
     // would show every visitor the others' messages.
     const memory = hasUser || context.conversationId ? this.memoryStore : undefined;
     // The system prompt is rebuilt every run (never stored), so it can't grow turn after turn.
+    const maxHistoryTokens = this.config.history?.maxTokens ?? 4000;
+    const summarize = Boolean(memory && this.config.history?.summarize);
+    const summaryKey = `${conversationKey}|summary`;
     const history: LlmMessage[] = memory
-      ? (await memory.get(conversationKey)).filter((m) => m.role !== 'system')
+      ? compactHistory(
+          (await memory.get(conversationKey)).filter((m) => m.role !== 'system'),
+          maxHistoryTokens
+        ).kept
       : [];
+    let summary = summarize ? ((await memory!.get(summaryKey))[0]?.content ?? '') : '';
     const messages: LlmMessage[] = [...history];
 
+    if (summary) instructions += `\n\nSummary of the earlier conversation:\n${summary}`;
     if (instructions) {
       messages.unshift({ role: 'system', content: instructions });
     }
@@ -146,7 +154,8 @@ export class Agent<TOutput = string> {
       }
     }
 
-    messages.push({ role: 'user', content: userInput });
+    const userMessage: LlmMessage = { role: 'user', content: userInput };
+    messages.push(userMessage);
 
     const toolsList = this.getTools();
 
@@ -314,12 +323,17 @@ export class Agent<TOutput = string> {
       }
     }
 
-    // Save updated memory
+    // Save updated memory: the raw question (not the RAG context injected into it), compacted.
     if (memory) {
-      await memory.set(
-        conversationKey,
-        messages.filter((m) => m.role !== 'system')
-      );
+      const turns = messages
+        .filter((m) => m.role !== 'system')
+        .map((m) => (m === userMessage ? { ...m, content: options.input } : m));
+      const { kept, dropped } = compactHistory(turns, maxHistoryTokens);
+      if (summarize && dropped.length > 0) {
+        summary = await this.summarize(summary, dropped, usage, options.signal);
+        await memory.set(summaryKey, [{ role: 'user', content: summary }]);
+      }
+      await memory.set(conversationKey, kept);
     }
 
     emit({ type: 'run.completed', data: { text: finalAnswer, usage } });
@@ -334,6 +348,37 @@ export class Agent<TOutput = string> {
       durationMs: Date.now() - startTime,
       status: 'completed',
     };
+  }
+
+  /** Folds dropped turns into the running summary, so long conversations stay small. */
+  private async summarize(
+    previous: string,
+    dropped: LlmMessage[],
+    usage: LlmUsage,
+    signal?: AbortSignal
+  ): Promise<string> {
+    const transcript = dropped.map((m) => `${m.role}: ${m.content}`).join('\n');
+    const res = await this.provider.generate({
+      model: this.config.model,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'Summarize this conversation in under 120 words. Keep names, numbers, decisions and ' +
+            'open questions. Reply with the summary only.',
+        },
+        {
+          role: 'user',
+          content: previous ? `Earlier summary:\n${previous}\n\n${transcript}` : transcript,
+        },
+      ],
+      maxTokens: 300,
+      signal,
+    });
+    usage.promptTokens += res.usage.promptTokens;
+    usage.completionTokens += res.usage.completionTokens;
+    usage.totalTokens += res.usage.totalTokens;
+    return res.text.trim() || previous;
   }
 
   public async *stream(optionsOrInput: AgentRunOptions | string): AsyncIterable<AgentEvent> {

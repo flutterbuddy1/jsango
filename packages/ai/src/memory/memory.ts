@@ -217,3 +217,33 @@ export function memory(
   }
   return new InMemoryMemoryStore();
 }
+
+// ponytail: ~4 chars per token, close enough for budgeting; swap in a real tokenizer if exactness matters.
+const estimateTokens = (m: LlmMessage): number =>
+  4 + Math.ceil((m.content.length + (m.toolCalls ? JSON.stringify(m.toolCalls).length : 0)) / 4);
+
+/**
+ * Shrinks stored history to what the next model call needs: tool calls/results are kept only for
+ * the latest turn (older answers already carry what mattered), then the oldest whole turns are
+ * dropped until the rest fits `maxTokens`. The latest turn is always kept.
+ */
+export function compactHistory(
+  messages: LlmMessage[],
+  maxTokens: number
+): { kept: LlmMessage[]; dropped: LlmMessage[] } {
+  const lastTurn = messages.map((m) => m.role).lastIndexOf('user');
+  const lean = messages.filter(
+    (m, i) => i >= lastTurn || m.role === 'user' || (m.role === 'assistant' && !m.toolCalls?.length)
+  );
+  let total = lean.reduce((sum, m) => sum + estimateTokens(m), 0);
+  let start = 0;
+  while (total > maxTokens) {
+    const next = lean.findIndex((m, i) => i > start && m.role === 'user');
+    if (next === -1) break;
+    for (let i = start; i < next; i++) total -= estimateTokens(lean[i]!);
+    start = next;
+  }
+  // Never start on a tool result or an assistant reply without its user turn.
+  while (start < lean.length && lean[start]!.role !== 'user') start++;
+  return { kept: lean.slice(start), dropped: lean.slice(0, start) };
+}

@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Token-efficient agent memory: old tool calls/results are no longer re-sent (only the latest
+  turn keeps them), RAG context is no longer saved into history, and history has a token budget
+  (`agent({ history: { maxTokens } })`, default 4000). `history: { summarize: true }` folds dropped
+  turns into a short running summary. See [Token Budget](docs/ai/memory.md#token-budget-what-gets-sent-back).
+
 - `provider(fn)`: a custom LLM provider from one function that returns the reply text (or
   `{ text, toolCalls, usage }`). It works with agents, tools, `app.agent()` and, with
   `provider(fn, { embed })`, `knowledge()`. For OpenAI-compatible APIs, use

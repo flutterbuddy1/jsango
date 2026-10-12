@@ -167,6 +167,12 @@ export interface AgentConfig {
   instructions?: string | ((ctx: AgentContext) => string | Promise<string>) | undefined;
   tools?: Record<string, ToolDefinition | ((...args: any[]) => any)> | undefined;
   memory?: MemoryStore | 'conversation' | 'long-term' | boolean | undefined;
+  /**
+   * What memory sends back to the model. `maxTokens` (default 4000) caps the history; older turns
+   * are dropped, or folded into a short running summary with `summarize: true` (one extra model
+   * call each time the history overflows).
+   */
+  history?: { maxTokens?: number | undefined; summarize?: boolean | undefined } | undefined;
   guardrails?: GuardrailConfig | undefined;
   maxSteps?: number | undefined;
   maxTokens?: number | undefined;

@@ -36,6 +36,33 @@ user (and tenant) gets a single `default` conversation.
 
 ---
 
+## Token Budget: What Gets Sent Back
+
+Memory is built to send the model as few tokens as possible:
+
+- **Tool calls and results are kept only for the latest turn.** Older turns are sent as just the
+  question and the final answer, which already carries what the tool returned that mattered.
+- **RAG context is never stored.** `knowledge` chunks are added to the current question only; history
+  keeps the question as the user typed it.
+- **History has a token budget** (`history.maxTokens`, default 4000, estimated at ~4 characters per
+  token). The oldest whole turns are dropped first; the latest turn is always kept.
+- **Optional running summary**: with `summarize: true`, dropped turns are folded into a short
+  summary (under ~120 words) that goes into the system prompt. This costs one small model call
+  each time the history overflows, and keeps long conversations from losing earlier facts.
+
+```typescript
+const assistant = agent({
+  instructions: 'Help users with their questions.',
+  memory: true,
+  history: { maxTokens: 2000, summarize: true },
+});
+```
+
+The summary is stored next to the conversation (key `<conversation>|summary`) in the same store.
+The system prompt is rebuilt on every run and never stored.
+
+---
+
 ## Database Memory Store
 
 To keep conversations across restarts and multiple servers, store them in your database
