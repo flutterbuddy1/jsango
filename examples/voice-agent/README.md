@@ -14,6 +14,9 @@ cp examples/voice-agent/.env.example examples/voice-agent/.env   # add your OPEN
 cd examples/voice-agent && pnpm start
 ```
 
+`pnpm start` and `pnpm dev` (build + start) both read `.env`. Running `node dist/index.js`
+directly does not, so the API keys are missing.
+
 Open http://localhost:3002, click **Start**, allow the microphone and ask
 _"Where is order A100?"_. Talk over the agent to interrupt it. Usage and calls are at
 http://localhost:3002/admin (`admin@example.com` / `change-me-in-dev` in development) under
