@@ -55,7 +55,8 @@ export interface ExampleOptions {
 }
 
 export function createApplication(options: ExampleOptions = {}) {
-  const production = process.env['NODE_ENV'] === 'production';
+  // Same rule as JSango: anything but development/test (including no NODE_ENV) is production.
+  const production = !['development', 'test'].includes(process.env['NODE_ENV'] ?? '');
   const { mode, voice } = options.voice ? { mode: 'custom', voice: options.voice } : voiceFromEnv();
   const support = supportAgent(options.llm ?? llmFromEnv());
   const app = createApp();
