@@ -1296,7 +1296,7 @@ export class JSangoApplication {
     if (!options.realtime?.webrtc)
       throw new Error(`'${options.realtime?.name}' does not support WebRTC; use app.voiceAgent().`);
     return this.post(path, ...(options.middleware ?? []), (ctx: RequestContext) =>
-      answerWebRtcOffer(ctx, targetAgent, options)
+      answerWebRtcOffer(ctx, targetAgent, this.logVoiceErrors(path, options))
     );
   }
 
@@ -1314,7 +1314,7 @@ export class JSangoApplication {
       },
       path,
       targetAgent,
-      options,
+      this.logVoiceErrors(path, options),
       this.isProduction
     );
   }
@@ -1336,15 +1336,35 @@ export class JSangoApplication {
   }
 
   /**
+   * Voice errors (a provider refusing a key, a model that doesn't exist...) always reach the
+   * server log with their details, even in production where the client gets a short message.
+   */
+  private logVoiceErrors<T extends { onEvent?: ((event: any) => void) | undefined }>(
+    path: string,
+    options: T
+  ): T {
+    const logger = this.app.logger;
+    return {
+      ...options,
+      onEvent: (event: { type: string; error?: string }) => {
+        if (event.type === 'error')
+          logger?.warn(`Voice error on ${path}: ${event.error}`, { path });
+        options.onEvent?.(event);
+      },
+    };
+  }
+
+  /**
    * Mounts an agent as a realtime voice endpoint (OpenAI Realtime API, relayed through this server
    * so the API key never reaches the browser). Same instructions and tools as `run()`; tools run
    * here with the connected user's permissions. Send PCM16 24 kHz audio as binary frames after
    * the `ready` event. See docs/ai/voice.md.
    */
   public voiceAgent(path: string, targetAgent: Agent, options: VoiceAgentOptions = {}): this {
+    const voiceOptions = this.logVoiceErrors(path, options);
     return this.ws(path, ...(options.middleware ?? []), {
       open: (socket: ISimpleWebSocket) =>
-        startVoiceSession(socket, targetAgent, options, this.isProduction),
+        startVoiceSession(socket, targetAgent, voiceOptions, this.isProduction),
       maxPayload: 256 * 1024, // ~5 s of audio per frame
     });
   }

@@ -244,6 +244,38 @@ describe('app.voiceAgent', () => {
     expect(routeEvents[0]).toBe('session.started');
   });
 
+  it('logs the full provider error on the server, and only a short one to the client in production', async () => {
+    const logged: string[] = [];
+    const logger = {
+      debug() {},
+      info() {},
+      warn: (m: string) => logged.push(m),
+      error: (m: string) => logged.push(m),
+    };
+    const app = createApp({ isProduction: true, logger: logger as never });
+    app.voiceAgent('/voice', agent({ provider: new FakeLlmProvider() }), {
+      stt: stt(async () => {
+        throw new Error('model gpt-x does not exist');
+      }),
+      tts: tts(async () => new Int16Array(0), { sampleRate: 16000 }),
+    });
+    const server = await app.listen(0, '127.0.0.1');
+    cleanup.push(() => server.close());
+    const ws = new WebSocket(`ws://127.0.0.1:${server.address!.port}/voice`);
+    const events: any[] = [];
+    ws.on('message', (raw, isBinary) => !isBinary && events.push(JSON.parse(raw.toString())));
+    await until(() => events.some((e) => e.type === 'ready'));
+    for (let i = 0; i < 20; i++) ws.send(Buffer.from(new Int16Array(480).fill(6000).buffer));
+    for (let i = 0; i < 30; i++) ws.send(Buffer.alloc(960));
+    await until(() => events.some((e) => e.type === 'error'));
+
+    expect(events.find((e) => e.type === 'error').error).toBe('Speech-to-text failed');
+    expect(logged.join('\n')).toContain(
+      'Voice error on /voice: Speech-to-text failed: model gpt-x does not exist'
+    );
+    ws.close();
+  });
+
   it('reports a missing API key and closes', async () => {
     const prev = process.env['OPENAI_API_KEY'];
     delete process.env['OPENAI_API_KEY'];
