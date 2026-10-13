@@ -62,7 +62,7 @@ export function createApplication(models = { llm, voice }) {
   if (process.env['NODE_ENV'] === 'development') {
     app.admin({
       resources: [],
-      credentials: { email: 'admin@example.com', password: 'change-me-in-dev' },
+      credentials: { email: 'admin@admin.com', password: '123456' },
       pages: [aiAdminPage(insights)],
     });
   }
