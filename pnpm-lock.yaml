@@ -235,6 +235,13 @@ importers:
       jsango:
         specifier: workspace:*
         version: link:../../packages/jsango
+    devDependencies:
+      '@types/ws':
+        specifier: ^8.5.14
+        version: 8.18.1
+      ws:
+        specifier: ^8.18.0
+        version: 8.21.3
 
   packages/admin-audit:
     dependencies:

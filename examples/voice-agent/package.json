@@ -7,9 +7,14 @@
     "build": "tsc -b",
     "typecheck": "tsc -b",
     "clean": "rm -rf dist *.tsbuildinfo",
-    "dev": "node dist/index.js"
+    "dev": "node dist/index.js",
+    "start": "node --env-file=.env dist/index.js"
   },
   "dependencies": {
     "jsango": "workspace:*"
+  },
+  "devDependencies": {
+    "ws": "^8.18.0",
+    "@types/ws": "^8.5.14"
   }
 }
