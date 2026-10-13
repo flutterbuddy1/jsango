@@ -47,7 +47,7 @@ async function setup(options: { status?: number; maxSessionMs?: number } = {}) {
   const lookup = tool({
     name: 'lookup',
     description: 'Find',
-    input: { id: 'x' },
+    input: { id: 'string' },
     execute: async (a: { id: string }) => {
       calls.push(a);
       return 'found';

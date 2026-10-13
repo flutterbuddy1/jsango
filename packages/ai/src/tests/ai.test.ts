@@ -495,7 +495,7 @@ describe('agent memory', () => {
     const lookup = tool({
       name: 'lookup',
       description: 'Look something up',
-      input: { q: 'x' },
+      input: { q: 'string' },
       execute: async () => 'x',
     });
     const bot = agent({ instructions: 'Be brief', provider, tools: { lookup }, memory: true });
@@ -521,7 +521,7 @@ describe('token-efficient history', () => {
     const lookup = tool({
       name: 'lookup',
       description: 'Look up',
-      input: { q: 'x' },
+      input: { q: 'string' },
       execute: async () => 'BIG TOOL OUTPUT',
     });
     const kb = { retrieve: async () => ['LONG RAG CHUNK'] } as any;
@@ -625,5 +625,33 @@ describe('provider() helper', () => {
     const kb = knowledge('kb', { provider: custom });
     await kb.ingest('JSango docs');
     expect(await kb.retrieve('JSango')).toHaveLength(1);
+  });
+});
+
+describe('tool input shapes', () => {
+  it('turns type names into JSON schema and rejects values that are not types', () => {
+    const t = tool({
+      name: 'lookup',
+      description: 'Find',
+      input: { orderId: 'string', qty: 1, gift: true },
+      execute: async () => null,
+    });
+    expect(t.inputSchema).toMatchObject({
+      type: 'object',
+      properties: {
+        orderId: { type: 'string' },
+        qty: { type: 'number' },
+        gift: { type: 'boolean' },
+      },
+      required: ['orderId', 'qty', 'gift'],
+    });
+    expect(() =>
+      tool({
+        name: 'lookup_order',
+        description: 'Find',
+        input: { orderId: 'A100' },
+        execute: async () => null,
+      })
+    ).toThrow(/Tool 'lookup_order': Parameter 'orderId' has type 'A100'/);
   });
 });

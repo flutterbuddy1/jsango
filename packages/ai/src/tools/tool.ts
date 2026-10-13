@@ -38,7 +38,12 @@ export function tool<TInput = any, TOutput = any>(
     optionsOrName.schema ??
     optionsOrName.input;
 
-  let inputSchema = rawSchemaDef ? toJsonSchema(rawSchemaDef) : null;
+  let inputSchema: Record<string, unknown> | null = null;
+  try {
+    inputSchema = rawSchemaDef ? toJsonSchema(rawSchemaDef) : null;
+  } catch (err) {
+    throw new Error(`Tool '${optionsOrName.name}': ${err instanceof Error ? err.message : err}`);
+  }
   if (!inputSchema || !inputSchema.properties || Object.keys(inputSchema.properties).length === 0) {
     const inferred = inferParametersFromFunction(optionsOrName.execute);
     if (inferred) {
@@ -108,6 +113,8 @@ function inferParametersFromFunction(fn: Function): Record<string, unknown> | nu
 /**
  * Converts JSango validation schema objects or standard objects into JSON Schema format
  */
+const JSON_TYPES = new Set(['string', 'number', 'integer', 'boolean', 'array', 'object']);
+
 export function toJsonSchema(schemaDef: any): Record<string, unknown> {
   if (!schemaDef) {
     return { type: 'object', properties: {} };
@@ -170,7 +177,18 @@ export function toJsonSchema(schemaDef: any): Record<string, unknown> {
         required.push(key);
       }
     } else if (typeof val === 'string') {
+      // `{ orderId: 'string' }`: the value is a type name. Anything else (e.g. a sample value like
+      // 'A100') would produce a schema the model provider rejects, so say so now.
+      if (!JSON_TYPES.has(val)) {
+        throw new Error(
+          `Parameter '${key}' has type '${val}'. Use a type name (${[...JSON_TYPES].join(', ')}) ` +
+            `or a schema, e.g. { ${key}: 'string' } or schema({ ${key}: string() }).`
+        );
+      }
       properties[key] = { type: val, description: `Parameter '${key}'` };
+      required.push(key);
+    } else if (typeof val === 'number' || typeof val === 'boolean') {
+      properties[key] = { type: typeof val, description: `Parameter '${key}'` };
       required.push(key);
     } else {
       properties[key] = { type: 'string', description: `Parameter '${key}'` };

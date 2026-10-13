@@ -112,7 +112,7 @@ describe('VoiceSession: pipeline mode (any LLM)', () => {
     const lookup = tool({
       name: 'lookup',
       description: 'Look up an order',
-      input: { id: 'x' },
+      input: { id: 'string' },
       execute: async (args: { id: string }) => {
         calls.push(args);
         return 'shipped';

@@ -33,7 +33,7 @@ export function supportAgent(provider: ILlmProvider) {
       lookupOrder: tool({
         name: 'lookup_order',
         description: 'Status and delivery estimate of an order, by order id like A100',
-        input: { orderId: 'A100' },
+        input: { orderId: 'string' },
         execute: async ({ orderId }: { orderId: string }) =>
           ORDERS[orderId.toUpperCase().replace(/\s+/g, '')] ?? { error: `No order ${orderId}` },
       }),

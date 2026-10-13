@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { WebSocket } from 'ws';
 import { FakeLlmProvider, HttpRequest, stt, tts } from 'jsango';
-import { createApplication } from './index.js';
+import { createApplication, supportAgent } from './index.js';
 import { voiceFromEnv } from './models.js';
 
 const cleanup: Array<() => unknown> = [];
@@ -86,6 +86,20 @@ describe('voice agent example', () => {
     });
     const pages = await call('GET', '/admin/api/v1/pages', undefined, login.data.token);
     expect(JSON.stringify(pages)).toContain('AI Usage');
+  });
+
+  it('gives the model valid tool schemas', () => {
+    const tools = supportAgent(new FakeLlmProvider()).getTools();
+    const types = new Set(['string', 'number', 'integer', 'boolean', 'array', 'object']);
+    for (const t of tools) {
+      for (const p of Object.values(
+        (t.inputSchema?.properties ?? {}) as Record<string, { type: string }>
+      ))
+        expect(types.has(p.type)).toBe(true);
+    }
+    expect(tools.find((t) => t.name === 'lookup_order')!.inputSchema.properties.orderId.type).toBe(
+      'string'
+    );
   });
 
   it('picks models from the environment', () => {

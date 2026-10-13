@@ -225,7 +225,7 @@ describe('geminiLive realtime adapter', () => {
     const lookup = tool({
       name: 'lookup',
       description: 'Find',
-      input: { id: 'x' },
+      input: { id: 'string' },
       execute: async () => 1,
     });
     const conn = await geminiLive({

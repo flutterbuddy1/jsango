@@ -48,7 +48,7 @@ async function setup(options: Record<string, unknown> = {}) {
   const lookup = tool({
     name: 'lookup_order',
     description: 'Find an order',
-    input: { orderId: 'x' },
+    input: { orderId: 'string' },
     execute: async (args: { orderId: string }) => {
       calls.push(args);
       return { status: 'shipped' };
