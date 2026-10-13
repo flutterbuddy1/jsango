@@ -3,134 +3,76 @@ import {
   createApp,
   agent,
   tool,
-  twilio,
   aiAdminPage,
-  recordTo,
   HttpResponse,
-  LocalDiskMediaStorage,
+  OpenAiProvider,
+  openaiStt,
+  openaiTts,
   type ILlmProvider,
   type VoiceOptions,
 } from 'jsango';
-import { llmFromEnv, voiceFromEnv } from './models.js';
 
-/** A tiny order book standing in for your database. */
-const ORDERS: Record<string, { item: string; status: string; eta: string }> = {
+// ─── 1. Your data ────────────────────────────────────────────────────────────────────────────
+// A tiny order book standing in for your database.
+const orders: Record<string, { item: string; status: string; eta: string }> = {
   A100: { item: 'Mechanical keyboard', status: 'shipped', eta: 'tomorrow' },
   A101: { item: 'USB-C hub', status: 'packed', eta: 'in 3 days' },
-  A102: { item: 'Monitor arm', status: 'delivered', eta: 'delivered on Monday' },
 };
 
-/** One agent for text and voice: same instructions, tools and memory everywhere. */
-export function supportAgent(provider: ILlmProvider) {
-  return agent({
+// ─── 2. A tool the agent can call ────────────────────────────────────────────────────────────
+const lookupOrder = tool({
+  name: 'lookup_order',
+  description: 'Find an order by its id, like A100',
+  input: { orderId: 'string' }, // parameter name → type
+  execute: async ({ orderId }: { orderId: string }) =>
+    orders[orderId.toUpperCase()] ?? { error: `No order ${orderId}` },
+});
+
+// ─── 3. The models ───────────────────────────────────────────────────────────────────────────
+// The LLM that thinks. Any provider works: AnthropicProvider, OllamaProvider, provider(fn)...
+const llm: ILlmProvider = new OpenAiProvider({ defaultModel: 'gpt-4o-mini' });
+
+// How the agent hears (speech-to-text) and speaks (text-to-speech). Swap for any provider:
+//   { stt: deepgram(), tts: cartesia({ voiceId: '...' }) }
+//   { stt: openaiStt(), tts: elevenlabs({ voiceId: '...' }) }
+//   { realtime: openaiRealtime() }   ← one speech-to-speech model instead of stt + LLM + tts
+const voice: VoiceOptions = { stt: openaiStt(), tts: openaiTts({ voice: 'marin' }) };
+
+// ─── 4. The app ──────────────────────────────────────────────────────────────────────────────
+export function createApplication(models = { llm, voice }) {
+  // One agent serves both text and voice: same instructions, tools and memory.
+  const support = agent({
     name: 'ShopSupport',
-    provider,
+    provider: models.llm,
     instructions:
-      'You are the voice support agent of an online shop. Answer in one or two short, ' +
-      'friendly sentences: your answers are spoken aloud. Use the tools for order questions; ' +
-      'never invent order details.',
-    tools: {
-      lookupOrder: tool({
-        name: 'lookup_order',
-        description: 'Status and delivery estimate of an order, by order id like A100',
-        input: { orderId: 'string' },
-        execute: async ({ orderId }: { orderId: string }) =>
-          ORDERS[orderId.toUpperCase().replace(/\s+/g, '')] ?? { error: `No order ${orderId}` },
-      }),
-      storeHours: tool({
-        name: 'store_hours',
-        description: 'When customer support is open',
-        execute: async () => ({ weekdays: '9:00–18:00 IST', weekends: 'closed' }),
-      }),
-    },
-    memory: true, // per caller; old tool results aren't re-sent, history stays small
-    history: { maxTokens: 2000, summarize: true },
+      'You are the support agent of an online shop. Your answers are spoken aloud, so keep ' +
+      'them to one or two short sentences. Use lookup_order for order questions.',
+    tools: { lookupOrder },
+    memory: true,
   });
-}
 
-export interface ExampleOptions {
-  /** Override the models (tests use fakes; by default they come from the environment). */
-  llm?: ILlmProvider;
-  voice?: VoiceOptions;
-}
-
-export function createApplication(options: ExampleOptions = {}) {
-  // Same rule as JSango: anything but development/test (including no NODE_ENV) is production.
-  const production = !['development', 'test'].includes(process.env['NODE_ENV'] ?? '');
-  const { mode, voice } = options.voice ? { mode: 'custom', voice: options.voice } : voiceFromEnv();
-  const support = supportAgent(options.llm ?? llmFromEnv());
   const app = createApp();
 
-  // Usage, cost and latency of every run and call (in memory here; pass `store: db` to keep it).
-  const insights = app.aiInsights({
-    prices: {
-      'gpt-4o-mini': { input: 0.15, output: 0.6 },
-      'openai-stt': { perMinute: 0.003 },
-      'openai-tts': { perMinute: 0.015 },
-    },
-    captureContent: !production, // transcripts in the admin while developing only
-  });
+  app.agent('/api/chat', support); // text:  POST /api/chat { "input": "..." }
+  app.voiceAgent('/voice', support, models.voice); // voice: the WebSocket client.html talks to
 
-  // Recordings are opt-in (RECORD=1): tell your callers they are recorded.
-  const recordings = new LocalDiskMediaStorage({ root: 'recordings', publicUrl: '/media' });
-  const voiceOptions: VoiceOptions = {
-    ...voice,
-    record: process.env['RECORD'] === '1' ? recordTo(recordings) : undefined,
-  };
-
-  // In a real app, protect these with auth: { middleware: [auth.required()] }.
-  app.agent('/api/chat', support); // text: POST { input }
-  app.voiceAgent('/voice', support, voiceOptions); // browser voice over WebSocket
-  if (voice.realtime?.webrtc) {
-    app.webrtcAgent('/voice/rtc', support, { realtime: voice.realtime }); // browser voice over WebRTC
-  }
-
-  // Phone line: set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_NUMBER and PUBLIC_URL, then point
-  // your Twilio number's "A call comes in" webhook at POST {PUBLIC_URL}/phone.
-  const phone = process.env['TWILIO_ACCOUNT_SID']
-    ? app.phoneAgent('/phone', support, {
-        ...voiceOptions,
-        carrier: twilio({ from: process.env['TWILIO_NUMBER'] }),
-        publicUrl: process.env['PUBLIC_URL'],
-      })
-    : undefined;
-  if (phone) {
-    // POST /call { "to": "+91..." } places an outbound call. Protect it in a real app.
-    app.post('/call', async (ctx) => {
-      const { to } = (await ctx.request.json()) as { to?: string };
-      if (!to || !/^\+\d{8,15}$/.test(to))
-        return HttpResponse.json({ error: 'to: +E.164 number' }, { status: 400 });
-      return phone.dial(to);
-    });
-  }
-
-  // Admin with the "AI Usage" page: runs, calls, cost, latency, transcripts, recordings.
-  const adminPassword =
-    process.env['ADMIN_PASSWORD'] ?? (production ? undefined : 'change-me-in-dev');
-  if (adminPassword) {
+  // Usage, cost and latency of every chat and call, on an "AI Usage" admin page.
+  // (Development only: a real app uses its own users and auth here.)
+  const insights = app.aiInsights();
+  if (process.env['NODE_ENV'] === 'development') {
     app.admin({
       resources: [],
-      credentials: {
-        email: process.env['ADMIN_EMAIL'] ?? 'admin@example.com',
-        password: adminPassword,
-      },
-      media: { local: recordings },
+      credentials: { email: 'admin@example.com', password: 'change-me-in-dev' },
       pages: [aiAdminPage(insights)],
     });
   }
 
   const page = readFileSync(new URL('../client.html', import.meta.url), 'utf8');
   app.get('/', () => HttpResponse.html(page));
-  app.get('/config', () => ({
-    mode,
-    webrtc: Boolean(voice.realtime?.webrtc),
-    phone: Boolean(phone),
-  }));
   return app;
 }
 
 if (process.env['NODE_ENV'] !== 'test') {
-  const port = Number(process.env['PORT']) || 3002;
-  await createApplication().listen(port);
-  console.log(`Voice agent: http://localhost:${port}  ·  admin: http://localhost:${port}/admin`);
+  await createApplication().listen(3002);
+  console.log('Voice agent: http://localhost:3002  ·  admin: http://localhost:3002/admin');
 }

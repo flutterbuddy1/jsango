@@ -1,70 +1,62 @@
 # Voice Agent Example
 
-A shop support agent you can talk to: in the browser, over WebRTC, or on a phone call. It looks up
-orders with a tool, remembers the conversation, and shows usage, cost, latency and transcripts in
-the admin. Every model comes from `.env`, so the same app runs on OpenAI, Anthropic, Ollama,
-Deepgram, Cartesia, ElevenLabs, Gemini, or your own self-hosted models.
+A shop support agent you can talk to in the browser. It understands speech, looks up orders with a
+tool, answers out loud, and stops talking when you interrupt it. All in about 80 lines:
+[src/index.ts](src/index.ts).
 
 ## Run It
 
 ```bash
-pnpm install
-pnpm --filter example-voice-agent build
-cp examples/voice-agent/.env.example examples/voice-agent/.env   # add your OPENAI_API_KEY
-cd examples/voice-agent && pnpm start
+cd examples/voice-agent
+cp .env.example .env      # put your OPENAI_API_KEY in .env
+pnpm dev                  # builds and starts with .env
 ```
 
-`pnpm start` and `pnpm dev` (build + start) both read `.env`. Running `node dist/index.js`
-directly does not, so the API keys are missing.
-
 Open http://localhost:3002, click **Start**, allow the microphone and ask
-_"Where is order A100?"_. Talk over the agent to interrupt it. Usage and calls are at
-http://localhost:3002/admin (`admin@example.com` / `change-me-in-dev` in development) under
-**AI Usage**.
+_"Where is order A100?"_. Usage, cost and latency are at http://localhost:3002/admin
+(`admin@example.com` / `change-me-in-dev`) under **AI Usage**.
 
-## Choose Your Models
+## How It Works
 
-| `.env`                    | What runs                                                                                      | Keys                                                          |
-| ------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `VOICE=openai` (default)  | OpenAI speech-to-text → your LLM → OpenAI text-to-speech                                       | `OPENAI_API_KEY`                                              |
-| `VOICE=deepgram-cartesia` | Deepgram (streaming, fast end-of-turn) → your LLM → Cartesia                                   | `DEEPGRAM_API_KEY`, `CARTESIA_API_KEY`, `CARTESIA_VOICE_ID`   |
-| `VOICE=elevenlabs`        | OpenAI speech-to-text → your LLM → ElevenLabs                                                  | `OPENAI_API_KEY`, `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID` |
-| `VOICE=local`             | Self-hosted OpenAI-compatible servers (e.g. faster-whisper-server + Kokoro-FastAPI) → your LLM | none                                                          |
-| `VOICE=realtime`          | OpenAI speech-to-speech; also shows a **Start (WebRTC)** button                                | `OPENAI_API_KEY`                                              |
-| `VOICE=gemini`            | Gemini Live speech-to-speech                                                                   | `GEMINI_API_KEY`, `GEMINI_LIVE_MODEL`                         |
+[src/index.ts](src/index.ts) has four parts:
 
-The LLM ("your LLM" above) is `LLM=openai` (default), `anthropic` or `ollama`, plus an optional
-`LLM_MODEL`. `LLM=ollama` with `VOICE=local` runs fully on your machine.
+1. **Your data**: a small order list, standing in for your database.
+2. **A tool** (`lookup_order`): a function the agent can call. `input: { orderId: 'string' }`
+   tells the model the parameter's name and type.
+3. **The models**: the LLM that thinks, plus speech-to-text and text-to-speech. They are separate,
+   so you can mix providers.
+4. **The app**: one `agent()` served as text (`app.agent`) and as voice (`app.voiceAgent`).
 
-To use any other provider, change one line in [src/models.ts](src/models.ts): `provider(fn)`
-for an LLM, `stt(fn)` / `tts(fn)` for speech.
+[client.html](client.html) records the microphone, streams it to `/voice`, plays the answer as it
+arrives, and tells the server when you interrupt.
 
-## What It Shows
+## Use Other Models
 
-| File                                   |                                                                                                                                                                                    |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [src/index.ts](src/index.ts)           | One agent (tools + memory) served as text (`app.agent`), browser voice (`app.voiceAgent`), WebRTC (`app.webrtcAgent`) and phone (`app.phoneAgent`); insights and the admin AI page |
-| [src/models.ts](src/models.ts)         | Picking the LLM and voice models from the environment                                                                                                                              |
-| [client.html](client.html)             | Browser client: microphone capture, streaming playback, interruptions, WebRTC                                                                                                      |
-| [src/index.test.ts](src/index.test.ts) | The whole flow with fake models, no keys needed: `pnpm vitest run examples/voice-agent`                                                                                            |
+Change the lines in part 3:
 
-## Phone Calls (optional)
+```typescript
+import { AnthropicProvider, deepgram, cartesia, openaiRealtime } from 'jsango';
 
-Set `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_NUMBER` and `PUBLIC_URL` (an https URL
-that reaches this server, e.g. a tunnel). Then:
+const llm = new AnthropicProvider(); // any LLM
+const voice = { stt: deepgram(), tts: cartesia({ voiceId: 'your-voice-id' }) }; // any speech models
+const realtime = { realtime: openaiRealtime() }; // or one speech-to-speech model
+```
 
-1. Point your Twilio number's **A call comes in** webhook at `POST {PUBLIC_URL}/phone` and call
-   it.
-2. Or have the agent call someone:
+Your own or self-hosted models are one function each: `stt(fn)`, `tts(fn)`, `provider(fn)`.
+See [Voice Agents](../../docs/ai/voice.md).
 
-   ```bash
-   curl -X POST localhost:3002/call -H 'content-type: application/json' -d '{"to":"+91XXXXXXXXXX"}'
-   ```
+## Next Steps
 
-## Before Production
+- WebRTC and phone calls with the same agent: [Voice Agents](../../docs/ai/voice.md),
+  [Phone Calling Agents](../../docs/ai/phone.md).
+- Before going live: protect `/api/chat` and `/voice` with auth (`middleware: [auth.required()]`),
+  because every call costs money. Keep insights in your database with
+  `app.aiInsights({ store: db })`.
 
-- Put `middleware: [auth.required()]` on `/api/chat`, `/voice`, `/voice/rtc` and `/call`: every
-  call costs money.
-- Set `ADMIN_PASSWORD` (the admin is not mounted in production without it), and pass
-  `store: db` to `app.aiInsights()` so records survive restarts.
-- `RECORD=1` records calls to `./recordings`: tell your callers.
+## Test
+
+```bash
+pnpm vitest run examples/voice-agent
+```
+
+The test uses fake models, so it needs no API key.
